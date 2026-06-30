@@ -62,7 +62,7 @@ const Login = () => {
     let detectedRole = 'student';
     const emailLower = email.toLowerCase();
     
-    // Explicit administrator login check
+    // Explicit account credential validation
     if (emailLower === 'support.campuslunch@gmail.com') {
       if (password === 'Campuslunch@0101') {
         detectedRole = 'admin';
@@ -70,6 +70,26 @@ const Login = () => {
         setTimeout(() => {
           setLoading(false);
           setError('Invalid administrator password');
+        }, 800);
+        return;
+      }
+    } else if (emailLower === 'vendor.campuslunch@gmail.com') {
+      if (password === 'Vendor@123') {
+        detectedRole = 'vendor';
+      } else {
+        setTimeout(() => {
+          setLoading(false);
+          setError('Invalid password for vendor account');
+        }, 800);
+        return;
+      }
+    } else if (emailLower === 'student.campuslunch@gmail.com') {
+      if (password === 'Student@123') {
+        detectedRole = 'student';
+      } else {
+        setTimeout(() => {
+          setLoading(false);
+          setError('Invalid password for student account');
         }, 800);
         return;
       }

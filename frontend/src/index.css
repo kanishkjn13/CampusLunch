@@ -1436,7 +1436,7 @@ h3 {
 .hero-overlay-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(11, 28, 48, 0.55) 0%, rgba(11, 28, 48, 0.45) 50%, #f8f9ff 100%) !important;
+  background: linear-gradient(to bottom, rgba(11, 28, 48, 0.72) 0%, rgba(11, 28, 48, 0.55) 55%, #f8f9ff 100%) !important;
   z-index: 1;
 }
 
@@ -2681,7 +2681,7 @@ h3 {
   /* Footer Grid layout */
   .footer-grid-container {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr;
+    grid-template-columns: 2.2fr 1fr 1fr 1.8fr;
     gap: 40px;
     margin-bottom: 40px;
   }
@@ -6441,6 +6441,12 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   padding-bottom: 90px; /* space for bottom nav bar */
 }
 
+.desktop-dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .kitchen-status-card {
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.05);
@@ -7822,7 +7828,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   }
 
   /* Desktop Header */
-  .vendor-desktop-header {
+  .vendor-app-header {
     height: 70px;
     background-color: #ffffff;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -7938,4 +7944,846 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
     max-width: 240px;
     margin-top: 12px;
   }
+}
+
+/* ==========================================================================
+   Student Dashboard Widescreen & Mobile Responsive Styles
+   ========================================================================== */
+
+.student-device-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  font-family: 'Outfit', sans-serif;
+  padding: 20px 0;
+}
+
+.student-phone-frame {
+  width: 390px;
+  height: 844px;
+  border-radius: 40px;
+  background-color: #f4f6fb;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 8px solid #0f172a;
+}
+
+.student-dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #f4f6fb;
+}
+
+.student-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.desktop-student-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.vendor-dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vendor-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* On mobile viewports under 480px, allow frame to take 100% width/height */
+@media (max-width: 480px) {
+  .student-device-wrapper {
+    padding: 0;
+  }
+  .student-phone-frame {
+    width: 100% !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+}
+
+.student-app-header {
+  height: 60px;
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.student-app-logo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #855300;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.5px;
+}
+
+.student-avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #855300;
+}
+
+.student-app-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 90px; /* space for bottom nav */
+}
+
+/* Category Chips */
+.category-scroll-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.category-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.category-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-pill.active-veg {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.category-pill.inactive-blue {
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+.category-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.category-dot.veg {
+  background-color: #10b981;
+}
+
+.category-dot.nonveg {
+  background-color: #ef4444;
+}
+
+/* Live Order Card */
+.live-order-card {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 22px;
+  padding: 26px 22px;
+  color: #ffffff;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(217, 119, 6, 0.2);
+}
+
+.live-badge {
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.token-badge {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 10px 16px;
+  text-align: center;
+  color: #ffffff;
+}
+
+.token-badge span.label {
+  display: block;
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.token-badge span.number {
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.live-order-card h3 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 14px 0 4px 0;
+}
+
+.live-order-card p.expected {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0 0 18px 0;
+}
+
+.live-delivery-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Services Grid */
+.services-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.service-box-btn {
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.service-box-btn:hover {
+  transform: translateY(-2px);
+}
+
+.service-box-btn.blue {
+  background-color: #38bdf8;
+  color: #ffffff;
+}
+
+.service-box-btn.peach {
+  background-color: #ffedd5;
+  color: #7c2d12;
+}
+
+.service-box-btn h4 {
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Order Again Card */
+.order-again-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.order-again-image {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.order-again-info {
+  flex: 1;
+}
+
+.order-again-info h4 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.order-again-info p {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin: 2px 0;
+}
+
+.order-again-info span.rating {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #d97706;
+}
+
+.order-again-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #fef3c7;
+  color: #d97706;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Top Rated Vertical Cards */
+.rated-food-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+}
+
+.food-card-image-wrapper {
+  position: relative;
+  height: 180px;
+}
+
+.food-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.food-card-rating {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.food-card-bestseller {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background-color: #065f46;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.food-card-details {
+  padding: 16px;
+  position: relative;
+}
+
+.food-card-details h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.food-card-details p.location {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0 0 10px 0;
+}
+
+.food-card-price-row {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #855300;
+}
+
+.food-card-price-row span.per {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.food-plus-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #855300;
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(133, 83, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.food-plus-btn:hover {
+  background-color: #653e00;
+  transform: scale(1.05);
+}
+
+/* Floating Action Button */
+.floating-basket-btn {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #855300;
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(133, 83, 0, 0.3);
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.floating-basket-btn:hover {
+  background-color: #653e00;
+  transform: scale(1.05);
+}
+
+/* Bottom Nav bar active pill styling */
+.student-bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background-color: #ffffff;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 10px;
+  z-index: 1000;
+}
+
+.student-nav-item {
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  outline: none;
+  padding: 6px 12px;
+  border-radius: 12px;
+  min-width: 65px;
+  transition: all 0.2s ease;
+}
+
+.student-nav-item span {
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.student-nav-item.active {
+  color: #855300;
+}
+
+.student-nav-item.active .nav-item-icon-wrapper {
+  background-color: #fef3c7;
+  color: #855300;
+  border-radius: 14px;
+  padding: 4px 12px;
+}
+
+.student-nav-item:not(.active) .nav-item-icon-wrapper {
+  padding: 4px 12px;
+}
+
+/* ==========================================================================
+   Student Desktop Dashboard Styles (1:1 with Vendor Layout)
+   ========================================================================== */
+
+.student-sidebar {
+  display: none;
+}
+
+.student-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.student-desktop-header {
+  height: 60px;
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .student-device-wrapper {
+    background-color: #f8fafc;
+    min-height: 100vh;
+    display: block;
+    padding: 0;
+  }
+
+  .student-phone-frame {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  .student-dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8fafc;
+  }
+
+  /* Left Sidebar Navigation */
+  .student-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 260px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #0b1c30;
+    color: #ffffff;
+    z-index: 1000;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 24px 0;
+  }
+
+  .student-sidebar .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 24px 24px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .student-sidebar .sidebar-logo {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .student-sidebar .sidebar-brand span {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
+
+  .student-sidebar .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 24px 16px;
+    flex: 1;
+  }
+
+  .student-sidebar .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    outline: none;
+  }
+
+  .student-sidebar .sidebar-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+  }
+
+  .student-sidebar .sidebar-nav-item.active {
+    background-color: #855300;
+    color: #ffffff;
+  }
+
+  .student-sidebar .sidebar-footer {
+    padding: 0 16px;
+  }
+
+  .student-sidebar .sidebar-logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: none;
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    outline: none;
+  }
+
+  .student-sidebar .sidebar-logout-btn:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+  }
+
+  /* Right main content wrapper */
+  .student-main-wrapper {
+    flex: 1;
+    margin-left: 260px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8fafc;
+  }
+
+  /* Desktop Header */
+  .student-desktop-header {
+    height: 70px;
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 900;
+  }
+
+  .student-desktop-header .mobile-brand-container {
+    display: none !important;
+  }
+
+  .student-desktop-header .desktop-page-title {
+    display: block;
+  }
+
+  .student-desktop-header .desktop-page-title h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .student-desktop-header .header-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .student-desktop-header .header-vendor-name {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #334155;
+  }
+
+  /* Main scroll area overrides for Desktop */
+  .student-app-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    height: calc(100vh - 70px) !important;
+    background-color: #f8fafc;
+  }
+
+  /* Layout grids for student subpages on desktop */
+  .desktop-student-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 32px;
+    align-items: flex-start;
+  }
+
+  /* Active subscriptions grid */
+  .student-subscriptions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+
+  /* Rated cards grid */
+  .student-rated-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+}
+
+/* Premium Cart layout styles */
+.premium-cart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 120px; /* space for sticky bar */
+}
+
+.premium-address-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.premium-cart-item {
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  position: relative;
+}
+
+.premium-qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.premium-coupon-card {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px dashed #f59e0b;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.premium-bill-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.premium-sticky-bottom-bar {
+  position: absolute;
+  bottom: 0; /* at the absolute bottom when bottom navbar is hidden (Desktop) */
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 1023px) {
+  .premium-sticky-bottom-bar {
+    position: fixed !important;
+    bottom: 72px !important; /* sit exactly above the 72px mobile bottom nav */
+  }
+}
+
+.premium-sticky-btn {
+  background-color: #f59e0b;
+  color: #ffffff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+  transition: all 0.2s ease;
+}
+
+.premium-sticky-btn:hover {
+  background-color: #d97706;
 }

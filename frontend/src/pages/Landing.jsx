@@ -112,7 +112,7 @@ const Landing = () => {
       </section>
 
       {/* How It Works Section */}
-      <section className="how-it-works-section">
+      <section id="how-it-works" className="how-it-works-section">
         <div className="how-it-works-glow-1"></div>
         <div className="how-it-works-glow-2"></div>
         <div className="container">

@@ -13,26 +13,35 @@ import VendorDashboard from './pages/vendor/VendorDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AboutUs from './pages/AboutUs';
 import HelpFaq from './pages/HelpFaq';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import SupportChat from './pages/SupportChat';
+import { StudentProvider } from './context/StudentContext';
 
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* Auth routes don't necessarily need the full layout, but let's wrap them in layout or provide a clean view */}
-        <Route element={<Layout><Outlet /></Layout>}>
-          <Route path="/" element={<Landing />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/faq" element={<HelpFaq />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/vendor/:id" element={<VendorDetails />} />
-          <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-        </Route>
-      </Routes>
+      <StudentProvider>
+        <Routes>
+          {/* Auth routes don't necessarily need the full layout, but let's wrap them in layout or provide a clean view */}
+          <Route element={<Layout><Outlet /></Layout>}>
+            <Route path="/" element={<Landing />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/faq" element={<HelpFaq />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/support-chat" element={<SupportChat />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            
+            <Route path="/student" element={<StudentDashboard />} />
+            <Route path="/vendor/:id" element={<VendorDetails />} />
+            <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
+        </Routes>
+      </StudentProvider>
     </Router>
   );
 }

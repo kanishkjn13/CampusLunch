@@ -210,7 +210,7 @@ const VendorDashboard = () => {
           <div className="vendor-main-wrapper">
             
             {/* Header bar (Desktop & Mobile) */}
-            <header className="vendor-desktop-header">
+            <header className="vendor-app-header">
               {/* Mobile view only logo */}
               <div className="mobile-brand-container">
                 <div className="flex items-center gap-2 logo-container-left">
@@ -228,18 +228,6 @@ const VendorDashboard = () => {
 
               {/* Header Right Actions */}
               <div className="header-right-actions" style={{ position: 'relative' }}>
-                {/* Kitchen Status Toggle (visible inside Header on Desktop, hidden on Mobile) */}
-                <div className="header-kitchen-status-pill">
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: kitchenOpen ? '#10b981' : '#ef4444' }}>
-                    {kitchenOpen ? 'Kitchen Open' : 'Kitchen Closed'}
-                  </span>
-                  <div 
-                    className={`status-toggle-track small ${kitchenOpen ? 'active' : ''}`}
-                    onClick={() => setKitchenOpen(!kitchenOpen)}
-                  >
-                    <div className="status-toggle-thumb small"></div>
-                  </div>
-                </div>
 
                 <button 
                   className="header-notification-btn"
@@ -306,132 +294,180 @@ const VendorDashboard = () => {
               {activeBottomTab === 'home' && (
                 <div className="desktop-dashboard-grid">
                   
-                  {/* Left Column: Metrics & Kitchen Status */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    
-                    {/* Kitchen Status Toggle Card (visible on mobile only, hidden on desktop layout) */}
-                    <div className="kitchen-status-card mobile-only-status" style={{ display: 'flex' }}>
-                      <div className="status-card-left">
-                        <h3>Kitchen Status</h3>
-                        <p className={kitchenOpen ? "text-accepting" : "text-offline"}>
-                          {kitchenOpen ? "Accepting Orders" : "Closed / Offline"}
-                        </p>
-                      </div>
-                      <div 
-                        className={`status-toggle-track ${kitchenOpen ? 'active' : ''}`}
-                        onClick={() => setKitchenOpen(!kitchenOpen)}
-                      >
-                        <div className="status-toggle-thumb"></div>
-                      </div>
+                  {/* Chef Greeting Banner Card (Spans full-width of grid on desktop) */}
+                  <div className="chef-greeting-banner" style={{
+                    background: 'linear-gradient(135deg, #0b1c30 0%, #1e293b 100%)',
+                    borderRadius: '20px',
+                    padding: '24px 30px',
+                    color: '#ffffff',
+                    textAlign: 'left',
+                    boxShadow: '0 8px 24px rgba(11, 28, 48, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '24px',
+                    gridColumn: '1 / -1'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#f59e0b', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>
+                        {new Date().getHours() < 12 ? '🍳 Breakfast Rush' : new Date().getHours() < 17 ? '🍛 Lunch Rush' : '🍲 Dinner Rush'}
+                      </span>
+                      <h2 style={{ fontSize: '1.45rem', fontWeight: 900, margin: '4px 0', color: '#ffffff' }}>
+                        {new Date().getHours() < 12 ? 'Good Morning Chef,' : new Date().getHours() < 17 ? 'Good Afternoon Chef,' : 'Good Evening Chef,'}
+                      </h2>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', lineHeight: '1.5' }}>
+                        {vendorName} is live and accepting orders. Let's make campus dining great!
+                      </p>
                     </div>
+                    <div style={{ 
+                      width: '56px', 
+                      height: '56px', 
+                      borderRadius: '16px', 
+                      backgroundColor: 'rgba(255,255,255,0.08)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#f59e0b',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      flexShrink: 0
+                    }}>
+                      <Utensils size={28} />
+                    </div>
+                  </div>
+
+                  {/* Left Column: Metrics & Kitchen Status */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    
 
                     {/* Sales Overview Section */}
-                    <div className="sales-overview-section" style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid rgba(0, 0, 0, 0.05)' }}>
-                      <div className="section-title-row" style={{ marginBottom: '16px' }}>
-                        <h2>Sales Overview</h2>
+                    <div className="sales-overview-section" style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid rgba(0, 0, 0, 0.05)', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                        <h2 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', margin: 0, textAlign: 'left' }}>Sales Summary</h2>
                         
-                        {/* Period Selector Tabs */}
-                        <div className="sales-period-switcher" style={{ margin: 0, width: '240px' }}>
-                          <button 
-                            className={`sales-period-btn ${salesPeriod === 'today' ? 'active' : ''}`}
-                            onClick={() => setSalesPeriod('today')}
-                          >
-                            Today
-                          </button>
-                          <button 
-                            className={`sales-period-btn ${salesPeriod === 'month' ? 'active' : ''}`}
-                            onClick={() => setSalesPeriod('month')}
-                          >
-                            1 Month
-                          </button>
-                          <button 
-                            className={`sales-period-btn ${salesPeriod === 'alltime' ? 'active' : ''}`}
-                            onClick={() => setSalesPeriod('alltime')}
-                          >
-                            All Time
-                          </button>
+                        {/* Custom Segmented Period switcher tabs */}
+                        <div style={{ width: '220px', display: 'flex', gap: '4px', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '10px' }}>
+                          {['today', 'month', 'alltime'].map(p => (
+                            <button 
+                              key={p}
+                              className={`sales-period-btn ${salesPeriod === p ? 'active' : ''}`}
+                              onClick={() => setSalesPeriod(p)}
+                              style={{ 
+                                flex: 1, 
+                                padding: '8px 0', 
+                                fontSize: '0.72rem', 
+                                fontWeight: 800, 
+                                border: 'none', 
+                                borderRadius: '8px', 
+                                backgroundColor: salesPeriod === p ? '#ffffff' : 'transparent',
+                                color: salesPeriod === p ? '#0f172a' : '#64748b',
+                                boxShadow: salesPeriod === p ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {p === 'today' ? 'Today' : p === 'month' ? 'Month' : 'All-Time'}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
-                      {/* Grid Metrics */}
-                      <div className="sales-metrics-grid">
+                      {/* 2-Column Grid Metrics */}
+                      <div className="sales-metrics-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                         {/* Revenue Metric */}
-                        <div className="sales-metric-box">
-                          <div className="sales-metric-icon bg-gold-circle">
-                            <Coins size={20} className="text-gold-icon" />
+                        <div className="sales-metric-box" style={{ padding: '24px 20px', alignItems: 'center', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)', backgroundColor: '#f8fafc' }}>
+                          <div className="sales-metric-icon bg-gold-circle" style={{ width: '44px', height: '44px', marginBottom: '8px' }}>
+                            <Coins size={22} className="text-gold-icon" />
                           </div>
-                          <span className="metric-label">Revenue</span>
-                          <h3 className="metric-value">{metrics.revenue}</h3>
+                          <span className="metric-label" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>Total Revenue</span>
+                          <h3 className="metric-value" style={{ fontSize: '1.35rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a' }}>{metrics.revenue}</h3>
                         </div>
 
                         {/* Orders Metric */}
-                        <div className="sales-metric-box">
-                          <div className="sales-metric-icon bg-blue-circle">
-                            <ShoppingBag size={20} className="text-blue-icon" />
+                        <div className="sales-metric-box" style={{ padding: '24px 20px', alignItems: 'center', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)', backgroundColor: '#f8fafc' }}>
+                          <div className="sales-metric-icon bg-blue-circle" style={{ width: '44px', height: '44px', marginBottom: '8px' }}>
+                            <ShoppingBag size={22} className="text-blue-icon" />
                           </div>
-                          <span className="metric-label">Orders</span>
-                          <h3 className="metric-value">{metrics.orders}</h3>
+                          <span className="metric-label" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>Total Orders</span>
+                          <h3 className="metric-value" style={{ fontSize: '1.35rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a' }}>{metrics.orders}</h3>
                         </div>
                       </div>
 
                       {/* Growth Rate Card */}
-                      <div className="weekly-growth-card-gradient" style={{ marginTop: '20px' }}>
-                        <span className="growth-label">Growth Rate</span>
-                        <h2 className="growth-value">{metrics.growth}</h2>
-                        <div className="growth-progress-container">
-                          <div className="growth-progress-bar" style={{ width: salesPeriod === 'today' ? '65%' : salesPeriod === 'month' ? '80%' : '95%' }}></div>
+                      <div className="weekly-growth-card-gradient" style={{ marginTop: '16px', borderRadius: '16px', padding: '16px 20px' }}>
+                        <span className="growth-label" style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.8 }}>Weekly Growth Performance</span>
+                        <h2 className="growth-value" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0' }}>{metrics.growth}</h2>
+                        <div className="growth-progress-container" style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '3px' }}>
+                          <div className="growth-progress-bar" style={{ width: salesPeriod === 'today' ? '65%' : salesPeriod === 'month' ? '80%' : '95%', height: '100%', backgroundColor: '#ffffff', borderRadius: '3px' }}></div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Right Column: Active Orders (3) */}
-                  <div className="active-orders-section" style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid rgba(0, 0, 0, 0.05)', height: '100%', minHeight: '340px' }}>
-                    <div className="section-title-row" style={{ marginBottom: '16px' }}>
-                      <h2>Active Orders ({activeOrders.length})</h2>
-                      <span className="refresh-label-btn" onClick={() => setActiveBottomTab('orders')}>
+                  <div className="active-orders-section" style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid rgba(0, 0, 0, 0.05)', minHeight: '340px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                    <div className="section-title-row" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h2 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Active Orders ({activeOrders.length})</h2>
+                      <span 
+                        className="refresh-label-btn" 
+                        onClick={() => setActiveBottomTab('orders')}
+                        style={{ fontSize: '0.78rem', fontWeight: 800, color: '#f59e0b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                      >
                         View All
-                        <ChevronRight size={14} style={{ marginLeft: '2px' }} />
+                        <ChevronRight size={14} />
                       </span>
                     </div>
 
-                    <div className="active-orders-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="active-orders-list" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                       {activeOrders.slice(0, 3).map(order => {
                         const isExpanded = expandedOrderId === order.id;
                         return (
                           <div 
                             key={order.id} 
                             className={`active-order-item-card ${order.color} ${isExpanded ? 'expanded' : ''}`}
-                            style={{ cursor: 'pointer', padding: isExpanded ? '20px' : '18px 20px', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', gap: isExpanded ? '14px' : '0px' }}
+                            style={{ 
+                              cursor: 'pointer', 
+                              padding: '18px 20px', 
+                              borderRadius: '16px',
+                              border: '1px solid rgba(0,0,0,0.04)',
+                              backgroundColor: '#f8fafc',
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: isExpanded ? '14px' : '0px',
+                              textAlign: 'left'
+                            }}
                             onClick={(e) => toggleExpand(order.id, e)}
                             title="Click to see details"
                           >
                             <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{order.id}</span>
-                                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{order.items}</span>
+                                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{order.id}</span>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>{order.items}</span>
                               </div>
-                              <span className="order-status-pill preparing" style={{ backgroundColor: '#fff7ed', color: '#c2410c', fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: '12px' }}>
-                                {order.status}
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span className="order-status-pill preparing" style={{ backgroundColor: '#fff7ed', color: '#c2410c', fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: '12px' }}>
+                                  {order.status}
+                                </span>
+                                <ChevronRight size={16} color="#64748b" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                              </div>
                             </div>
 
                             {isExpanded && (
                               <div className="order-expanded-content" style={{ animation: 'slideDown 0.2s ease-out' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid rgba(0, 0, 0, 0.05)', paddingTop: '12px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(0, 0, 0, 0.05)', paddingTop: '14px' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Customer</span>
-                                    <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 700 }}>{order.customer}</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Customer</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 800 }}>{order.customer}</span>
                                   </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Total Price</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Total Price</span>
                                     <span style={{ fontSize: '0.9rem', color: '#855300', fontWeight: 800 }}>{order.price}</span>
                                   </div>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', borderTop: '1px dashed rgba(0, 0, 0, 0.06)', paddingTop: '12px' }}>
                                   <button 
                                     className="order-action-btn btn-solid"
-                                    style={{ padding: '8px 16px', borderRadius: '8px' }}
+                                    style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800 }}
                                     onClick={() => handleDeliverTrigger(order.id)}
                                   >
                                     Mark as Delivered
@@ -443,8 +479,8 @@ const VendorDashboard = () => {
                         );
                       })}
                       {activeOrders.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
-                          <p>All clear! No pending orders.</p>
+                        <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                          <p style={{ margin: 0 }}>All clear! No pending orders.</p>
                         </div>
                       )}
                     </div>

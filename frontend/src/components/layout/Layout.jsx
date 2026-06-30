@@ -8,7 +8,7 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password';
   const isAdminPage = location.pathname.startsWith('/admin');
-  const isHideLayout = isAuthPage || isAdminPage || location.pathname === '/vendor-dashboard';
+  const isHideLayout = isAuthPage || isAdminPage || location.pathname === '/vendor-dashboard' || location.pathname === '/student';
 
   useEffect(() => {
     window.scrollTo(0, 0);
