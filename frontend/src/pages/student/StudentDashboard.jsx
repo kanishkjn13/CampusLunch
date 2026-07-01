@@ -1,7 +1,7 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.png';
-import { StudentContext } from '../../context/StudentContext';
+import logo from '@/assets/logos/logo.png';
+import { StudentContext } from '@/context/StudentContext';
 import { 
   Search, 
   Menu, 
@@ -22,7 +22,8 @@ import {
   AlertCircle, 
   Trash2, 
   Share2, 
-  CheckCircle 
+  CheckCircle,
+  MessageSquare
 } from 'lucide-react';
 
 const StudentDashboard = () => {
@@ -34,6 +35,8 @@ const StudentDashboard = () => {
     activeCoupon,
     orders,
     activeOrderTracker,
+    activeTrackers,
+    setActiveTrackers,
     loading,
     updateUserProfile,
     addToCart,
@@ -48,6 +51,8 @@ const StudentDashboard = () => {
 
   // Layout Tab Navigation
   const [activeTab, setActiveTab] = useState('home'); 
+  const [selectedTrackingOrderId, setSelectedTrackingOrderId] = useState(null);
+  const currentTracker = activeTrackers.find(t => t.orderId === selectedTrackingOrderId) || activeTrackers.filter(t => t.statusIndex < 5)[0] || activeTrackers[0] || activeOrderTracker;
   // Detail navigation states
   const [selectedSellerId, setSelectedSellerId] = useState(null);
   const [selectedMeal, setSelectedMeal] = useState(null); // Detailed menu item modal state
@@ -86,17 +91,21 @@ const StudentDashboard = () => {
     comment: ''
   });
 
-  // Profile Form state
+  // Profile Form state - loaded from login session (removing hostel, room, emergency contact)
   const [profileForm, setProfileForm] = useState({
-    name: user.name,
-    phone: user.phone,
-    hostel: user.hostel,
-    roomNumber: user.roomNumber,
-    dietPreference: user.dietPreference,
-    emergencyContact: user.emergencyContact
+    name: localStorage.getItem('name') || user.name,
+    phone: localStorage.getItem('phone') || user.phone,
+    email: localStorage.getItem('email') || 'alex.johnson@campus.edu',
+    dietPreference: user.dietPreference || 'Vegetarian',
+    avatar: localStorage.getItem('student_avatar') || user.avatar
   });
-  const [profileSuccess, setProfileSuccess] = useState(false);
+   const [profileSuccess, setProfileSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [cartConflictModal, setCartConflictModal] = useState({
+    isOpen: false,
+    meal: null,
+    sellerId: null
+  });
 
   // Toast confirmation helper
   const [toastMessage, setToastMessage] = useState('');
@@ -142,14 +151,34 @@ const StudentDashboard = () => {
 
   // Add Item to cart helper with toast alert
   const handleAddToCart = (meal, sellerId) => {
-    addToCart(meal, sellerId);
-    triggerToast(`${meal.name} added to cart!`);
+    const success = addToCart(meal, sellerId);
+    if (success) {
+      triggerToast(`${meal.name} added to cart!`);
+    } else {
+      setCartConflictModal({
+        isOpen: true,
+        meal,
+        sellerId
+      });
+    }
+  };
+
+  const handleConfirmReplaceCart = () => {
+    clearCart();
+    if (cartConflictModal.meal && cartConflictModal.sellerId) {
+      // Add after a slight delay to ensure state clearance of first cart
+      setTimeout(() => {
+        addToCart(cartConflictModal.meal, cartConflictModal.sellerId);
+        triggerToast(`${cartConflictModal.meal.name} added to cart!`);
+      }, 50);
+    }
+    setCartConflictModal({ isOpen: false, meal: null, sellerId: null });
   };
 
   // Share menu alert mock
   const handleShareMeal = (mealName) => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(`Hey! Check out this delicious ${mealName} on CampusLunch!`);
+      navigator.clipboard.writeText(`Hey! Check out this delicious ${mealName} on Campus Lunch!`);
       triggerToast('Share link copied to clipboard!');
     } else {
       triggerToast(`Shared ${mealName} successfully!`);
@@ -190,13 +219,13 @@ const StudentDashboard = () => {
     }
     
     try {
-      const orderId = await placeOrder(checkoutForm, selectedUpiApp);
+      const { orderIds, vendorNames } = await placeOrder(checkoutForm, selectedUpiApp);
       setPaymentSuccessData({
-        orderId,
+        orderId: orderIds.join(', '),
         paymentId: 'PAY' + Math.floor(100000 + Math.random() * 900000),
         transactionId: 'TXN' + Math.floor(1000000000 + Math.random() * 9000000000),
         eta: checkoutForm.deliverySlot.includes('Lunch') ? '1:15 PM' : '8:30 PM',
-        vendor: activeSeller ? activeSeller.name : 'Kitchen'
+        vendor: vendorNames.join(' & ')
       });
       setPaymentProcessing(false);
       setActiveTab('order-success');
@@ -214,9 +243,48 @@ const StudentDashboard = () => {
     triggerToast(`Order ${orderId} has been cancelled. Refund initiated.`);
   };
 
+  useEffect(() => {
+    const savedName = localStorage.getItem('name');
+    const savedPhone = localStorage.getItem('phone');
+    const savedEmail = localStorage.getItem('email');
+    const savedDiet = localStorage.getItem('dietPreference');
+    const savedAvatar = savedEmail ? localStorage.getItem(`student_avatar_${savedEmail}`) : null;
+    
+    const syncedData = {
+      name: savedName || user.name,
+      phone: savedPhone || user.phone,
+      email: savedEmail || user.email,
+      dietPreference: savedDiet || user.dietPreference || 'Vegetarian',
+      avatar: savedAvatar || user.avatar
+    };
+
+    updateUserProfile(syncedData);
+    setProfileForm(syncedData);
+  }, []);
+
+  // Handle avatar upload from gallery
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Data = reader.result;
+        const activeEmail = localStorage.getItem('email') || profileForm.email;
+        localStorage.setItem(`student_avatar_${activeEmail}`, base64Data);
+        setProfileForm(prev => ({ ...prev, avatar: base64Data }));
+        updateUserProfile({ ...profileForm, avatar: base64Data });
+        triggerToast('Profile picture updated successfully!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Save profile updates
   const handleSaveProfile = (e) => {
     e.preventDefault();
+    localStorage.setItem('name', profileForm.name);
+    localStorage.setItem('phone', profileForm.phone);
+    localStorage.setItem('email', profileForm.email);
     updateUserProfile(profileForm);
     setProfileSuccess(true);
     triggerToast('Profile information updated successfully!');
@@ -233,7 +301,7 @@ const StudentDashboard = () => {
           <aside className="student-sidebar">
             <div className="sidebar-brand" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
               <img src={logo} alt="CampusLunch Logo" className="sidebar-logo" />
-              <span>CampusLunch</span>
+              <span>Campus Lunch</span>
             </div>
             
             <nav className="sidebar-nav">
@@ -336,7 +404,7 @@ const StudentDashboard = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     {/* Greetings */}
                     <div>
-                      <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0', fontFamily: 'serif' }}>Hello, {user.name}!</h1>
+                      <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0', fontFamily: 'serif' }}>Hello, {user.name}!</h1>
                       <p style={{ fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic', margin: 0 }}>Ready for your home-cooked meal today?</p>
                     </div>
 
@@ -383,41 +451,100 @@ const StudentDashboard = () => {
                       </button>
                     </div>
 
-                    {/* Live Order Card (ONLY display Heading, Token and Maps Button) */}
-                    {activeOrderTracker && activeOrderTracker.statusIndex < 5 && (
-                      <div className="live-order-card" style={{ padding: '24px 20px', borderRadius: '18px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                          <span style={{ fontSize: '0.95rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: 0.95 }}>Live Order</span>
-                          <span style={{ fontSize: '1.25rem', fontWeight: 900, backgroundColor: 'rgba(255, 255, 255, 0.25)', padding: '4px 10px', borderRadius: '10px' }}>{activeOrderTracker.orderId}</span>
-                        </div>
+                     {/* Live Orders sliding carousel */}
+                     {activeTrackers && activeTrackers.filter(t => t.statusIndex < 5).length > 0 && (
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left', width: '100%' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Active Live Orders</span>
+                           <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Swipe &bull; {activeTrackers.filter(t => t.statusIndex < 5).length} active</span>
+                         </div>
+                         
+                         <div style={{ 
+                           display: 'flex', 
+                           gap: '12px', 
+                           overflowX: 'auto', 
+                           paddingBottom: '8px', 
+                           scrollbarWidth: 'none', 
+                           msOverflowStyle: 'none',
+                           scrollSnapType: 'x mandatory',
+                           width: '100%'
+                         }}>
+                           {activeTrackers.filter(t => t.statusIndex < 5).map(tracker => (
+                             <div 
+                               key={tracker.orderId}
+                               className="live-order-card" 
+                               onClick={() => {
+                                 setSelectedTrackingOrderId(tracker.orderId);
+                                 setActiveTab('track-order');
+                               }}
+                               style={{ 
+                                 padding: '20px 18px', 
+                                 borderRadius: '16px', 
+                                 minWidth: '270px',
+                                 flexShrink: 0,
+                                 scrollSnapAlign: 'start',
+                                 cursor: 'pointer',
+                                 boxShadow: '0 8px 18px rgba(245, 158, 11, 0.12)'
+                               }}
+                             >
+                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                 <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: 0.95 }}>Live Order</span>
+                                 <span style={{ fontSize: '1.15rem', fontWeight: 900, backgroundColor: 'rgba(255, 255, 255, 0.25)', padding: '2px 8px', borderRadius: '8px' }}>{tracker.orderId}</span>
+                               </div>
+                               
+                               <p style={{ margin: '0 0 14px 0', fontSize: '0.78rem', opacity: 0.9, textAlign: 'left' }}>
+                                 {tracker.vendorName} &bull; {tracker.location}
+                               </p>
 
-                        <a 
-                          href="https://maps.google.com/?q=Himalaya+Hostel+Block+Campus"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="order-action-btn btn-solid"
-                          style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            gap: '8px', 
-                            width: '100%',
-                            backgroundColor: '#ffffff',
-                            color: '#855300',
-                            padding: '12px 16px',
-                            borderRadius: '14px',
-                            fontWeight: 800,
-                            fontSize: '0.9rem',
-                            textDecoration: 'none',
-                            border: 'none',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
-                          }}
-                        >
-                          <Map size={18} />
-                          <span>Track on Maps</span>
-                        </a>
-                      </div>
-                    )}
+                               <div style={{ display: 'flex', gap: '8px' }}>
+                                 <a 
+                                   href="https://maps.google.com/?q=Himalaya+Hostel+Block+Campus"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   onClick={(e) => e.stopPropagation()}
+                                   className="order-action-btn btn-solid"
+                                   style={{ 
+                                     flex: 1,
+                                     display: 'flex', 
+                                     alignItems: 'center', 
+                                     justifyContent: 'center', 
+                                     gap: '6px', 
+                                     backgroundColor: '#ffffff',
+                                     color: '#855300',
+                                     padding: '8px 12px',
+                                     borderRadius: '10px',
+                                     fontWeight: 800,
+                                     fontSize: '0.78rem',
+                                     textDecoration: 'none',
+                                     border: 'none',
+                                     boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)'
+                                   }}
+                                 >
+                                   <Map size={14} />
+                                   <span>Track on Maps</span>
+                                 </a>
+                                 
+                                 <button
+                                   className="order-action-btn btn-solid"
+                                   style={{ 
+                                     flex: 0.8,
+                                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                                     color: '#ffffff',
+                                     padding: '8px 12px',
+                                     borderRadius: '10px',
+                                     fontWeight: 800,
+                                     fontSize: '0.78rem',
+                                     border: '1px solid rgba(255, 255, 255, 0.3)'
+                                   }}
+                                 >
+                                   Track &rarr;
+                                 </button>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
                   </div>
 
                   {/* Right Column: Order Again & Explore Kitchens Scroll */}
@@ -686,51 +813,49 @@ const StudentDashboard = () => {
                           </div>
                         ))}
                       </div>
-                      {/* Quick Coupons List Grid */}
-                      <div className="premium-coupon-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Available Coupons</span>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase' }}>Tap to Apply</span>
-                        </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {[
-                            { code: 'CAMPUS50', desc: '50% off on your entire order' },
-                            { code: 'WELCOME10', desc: 'Flat ₹10 discount on bill' }
-                          ].map(coupon => {
-                            const isApplied = activeCoupon?.code === coupon.code;
-                            return (
-                              <div 
-                                key={coupon.code}
-                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '10px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.15)' }}
-                              >
-                                <div style={{ textAlign: 'left' }}>
-                                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b45309', backgroundColor: '#fffbeb', border: '1px dashed #f59e0b', padding: '2px 6px', borderRadius: '6px' }}>{coupon.code}</span>
-                                  <p style={{ margin: '4px 0 0 0', fontSize: '0.68rem', color: '#64748b' }}>{coupon.desc}</p>
-                                </div>
-                                <button 
-                                  onClick={() => {
-                                    if (isApplied) removeCoupon();
-                                    else applyCoupon(coupon.code);
-                                  }}
-                                  style={{ 
-                                    border: 'none', 
-                                    backgroundColor: isApplied ? '#059669' : '#f59e0b', 
-                                    color: '#ffffff', 
-                                    fontSize: '0.7rem', 
-                                    fontWeight: 800, 
-                                    padding: '6px 12px', 
-                                    borderRadius: '8px', 
-                                    cursor: 'pointer' 
-                                  }}
-                                >
-                                  {isApplied ? 'Applied' : 'Apply'}
-                                </button>
-                              </div>
-                            );
-                          })}
+                      {/* Manual Coupon Input */}
+                      <div className="premium-coupon-card" style={{ marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Have a Promo Coupon?</span>
+                          <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                            <input 
+                              type="text" 
+                              value={couponInput}
+                              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                              placeholder="ENTER CODE (e.g. CAMPUS50)" 
+                              style={{ 
+                                flex: 1, 
+                                borderRadius: '10px', 
+                                border: '1px solid rgba(245, 158, 11, 0.25)', 
+                                padding: '8px 12px', 
+                                fontSize: '0.78rem', 
+                                fontWeight: 700, 
+                                textTransform: 'uppercase', 
+                                letterSpacing: '0.8px' 
+                              }}
+                            />
+                            <button 
+                              type="submit" 
+                              style={{ 
+                                border: 'none', 
+                                backgroundColor: '#f59e0b', 
+                                color: '#ffffff', 
+                                fontSize: '0.78rem', 
+                                fontWeight: 800, 
+                                padding: '8px 16px', 
+                                borderRadius: '10px', 
+                                cursor: 'pointer' 
+                              }}
+                            >
+                              Apply
+                            </button>
+                          </form>
+                          {couponError && <span style={{ color: '#ef4444', fontSize: '0.7rem', fontWeight: 600, marginTop: '2px' }}>{couponError}</span>}
+                          {couponSuccess && <span style={{ color: '#059669', fontSize: '0.7rem', fontWeight: 600, marginTop: '2px' }}>{couponSuccess}</span>}
                         </div>
                       </div>
+
+
 
                       {/* Detailed Dotted Bill Summary */}
                       <div className="premium-bill-card">
@@ -972,7 +1097,7 @@ const StudentDashboard = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '28px' }}>
                     <button 
                       className="order-action-btn btn-solid" 
-                      onClick={() => setActiveTab('orders')}
+                      onClick={() => setActiveTab('track-order')}
                       style={{ padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
                     >
                       Track Order Live
@@ -999,21 +1124,177 @@ const StudentDashboard = () => {
                 </div>
               )}
 
+              {/* LIVE ORDER TRACKER VIEW */}
+              {activeTab === 'track-order' && currentTracker && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button 
+                      onClick={() => setActiveTab('orders')}
+                      style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Live Tracker ({currentTracker.orderId})</h2>
+                  </div>
+
+                  {/* ETA & Map Card */}
+                  <div className="order-again-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Estimated Delivery</span>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#b45309', margin: '4px 0 0 0' }}>{currentTracker.eta}</h3>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Current Location</span>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>{currentTracker.location}</p>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${(currentTracker.statusIndex / 5) * 100}%`, 
+                        height: '100%', 
+                        backgroundColor: '#f59e0b', 
+                        transition: 'width 0.5s ease-out' 
+                      }}></div>
+                    </div>
+
+                    {/* Driver Card */}
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '12px', 
+                      padding: '12px', 
+                      backgroundColor: '#f8fafc', 
+                      borderRadius: '12px',
+                      border: '1px solid #f1f5f9'
+                    }}>
+                      <img 
+                        src={currentTracker.driverInfo.photo} 
+                        alt={currentTracker.driverInfo.name} 
+                        style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>{currentTracker.driverInfo.name}</h4>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Rider Agent • {currentTracker.driverInfo.vehicle}</p>
+                      </div>
+                      <a 
+                        href={`tel:${currentTracker.driverInfo.phone}`}
+                        style={{ 
+                          padding: '8px 12px', 
+                          borderRadius: '8px', 
+                          backgroundColor: '#0f172a', 
+                          color: '#ffffff', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 800, 
+                          textDecoration: 'none' 
+                        }}
+                      >
+                        Call
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Stepper Steps */}
+                  <div className="order-again-card" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {[
+                      'Order Confirmed',
+                      'Preparing Food',
+                      'Packed',
+                      'Picked Up',
+                      'Out For Delivery',
+                      'Delivered'
+                    ].map((step, idx) => {
+                      const isCompleted = idx <= currentTracker.statusIndex;
+                      const isCurrent = idx === currentTracker.statusIndex;
+                      
+                      return (
+                        <div key={idx} style={{ display: 'flex', gap: '16px', position: 'relative', textAlign: 'left' }}>
+                          {/* Step line connector */}
+                          {idx < 5 && (
+                            <div style={{ 
+                              position: 'absolute', 
+                              left: '11px', 
+                              top: '24px', 
+                              bottom: '-20px', 
+                              width: '2px', 
+                              backgroundColor: idx < currentTracker.statusIndex ? '#f59e0b' : '#e2e8f0',
+                              zIndex: 1
+                            }}></div>
+                          )}
+
+                          {/* Step Indicator Dot */}
+                          <div style={{ 
+                            width: '24px', 
+                            height: '24px', 
+                            borderRadius: '50%', 
+                            backgroundColor: isCompleted ? '#f59e0b' : '#ffffff', 
+                            border: isCompleted ? 'none' : '2px solid #cbd5e1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            zIndex: 2,
+                            boxShadow: isCurrent ? '0 0 0 4px rgba(245, 158, 11, 0.2)' : 'none'
+                          }}>
+                            {isCompleted ? '✓' : idx + 1}
+                          </div>
+
+                          {/* Step Text details */}
+                          <div style={{ flex: 1, paddingBottom: '8px' }}>
+                            <h4 style={{ 
+                              fontSize: '0.85rem', 
+                              fontWeight: isCurrent ? 800 : 600, 
+                              color: isCurrent ? '#0b1c30' : isCompleted ? '#334155' : '#94a3b8',
+                              margin: 0
+                            }}>
+                              {step}
+                            </h4>
+                            {isCurrent && (
+                              <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>
+                                {idx === 0 && 'The kitchen has accepted and confirmed your order.'}
+                                {idx === 1 && 'Chef is carefully preparing your tiffin container.'}
+                                {idx === 2 && 'Food is packed and hot-insulated for transport.'}
+                                {idx === 3 && 'Rider has collected your meal package.'}
+                                {idx === 4 && `Rider is on the way. ETA: ${currentTracker.eta}.`}
+                                {idx === 5 && 'Order has been successfully hand-delivered.'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* ORDERS TAB VIEW */}
               {activeTab === 'orders' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>My Orders</h2>
                   
-                  {/* Active Token Info */}
-                  {activeOrderTracker && activeOrderTracker.statusIndex < 5 && (
-                    <div className="order-again-card" style={{ borderLeft: '4px solid #f59e0b', padding: '16px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ flex: 1 }}>
+                  {/* Active Tokens Info */}
+                  {activeTrackers && activeTrackers.filter(t => t.statusIndex < 5).map(tracker => (
+                    <div 
+                      key={tracker.orderId}
+                      className="order-again-card" 
+                      onClick={() => {
+                        setSelectedTrackingOrderId(tracker.orderId);
+                        setActiveTab('track-order');
+                      }}
+                      style={{ borderLeft: '4px solid #f59e0b', padding: '16px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: '8px' }}
+                    >
+                      <div style={{ flex: 1, textAlign: 'left' }}>
                         <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', display: 'block', textTransform: 'uppercase', marginBottom: '4px' }}>Active Order Tracker</span>
-                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800 }}>Token {activeOrderTracker.orderId}</h4>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>{activeOrderTracker.vendorName} • ETA: {activeOrderTracker.eta}</p>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800 }}>Token {tracker.orderId}</h4>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>{tracker.vendorName} • ETA: {tracker.eta}</p>
                       </div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f59e0b' }}>VIEW &rarr;</span>
                     </div>
-                  )}
+                  ))}
 
                   {/* Past Orders Queue */}
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: '12px 0 0 0' }}>Order History</h3>
@@ -1073,15 +1354,45 @@ const StudentDashboard = () => {
               {/* PROFILE VIEW */}
               {activeTab === 'profile' && (
                 <div className="profile-page-container">
-                  <div className="profile-chef-header" style={{ padding: '20px 16px' }}>
-                    <img 
-                      src={user.avatar} 
-                      alt="Student Face Photo" 
-                      className="profile-chef-avatar" 
-                      style={{ width: '80px', height: '80px', objectFit: 'cover' }}
-                    />
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '8px' }}>{user.name}</h3>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>CS-2024-042 • alex.johnson@campus.edu</p>
+                  <div className="profile-chef-header" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', width: '80px', height: '80px', marginBottom: '8px' }}>
+                      <img 
+                        src={profileForm.avatar || user.avatar} 
+                        alt="Student Face Photo" 
+                        className="profile-chef-avatar" 
+                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }}
+                      />
+                      <label 
+                        htmlFor="avatar-upload" 
+                        style={{ 
+                          position: 'absolute', 
+                          bottom: 0, 
+                          right: 0, 
+                          width: '28px', 
+                          height: '28px', 
+                          borderRadius: '50%', 
+                          backgroundColor: '#f59e0b', 
+                          color: '#ffffff', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                          border: '2px solid #ffffff'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>photo_camera</span>
+                      </label>
+                      <input 
+                        type="file" 
+                        id="avatar-upload" 
+                        accept="image/*" 
+                        onChange={handleAvatarChange} 
+                        style={{ display: 'none' }} 
+                      />
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '8px' }}>{profileForm.name}</h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>{profileForm.email}</p>
                   </div>
 
                   {/* Profile Edit Form */}
@@ -1100,42 +1411,22 @@ const StudentDashboard = () => {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Email Address</label>
+                        <input 
+                          type="email" 
+                          value={profileForm.email}
+                          disabled
+                          style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Contact Phone</label>
                         <input 
                           type="text" 
                           value={profileForm.phone}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                          style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Hostel Block</label>
-                        <input 
-                          type="text" 
-                          value={profileForm.hostel}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, hostel: e.target.value }))}
-                          style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Room Number</label>
-                        <input 
-                          type="text" 
-                          value={profileForm.roomNumber}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, roomNumber: e.target.value }))}
-                          style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Emergency Phone</label>
-                        <input 
-                          type="text" 
-                          value={profileForm.emergencyContact}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, emergencyContact: e.target.value }))}
-                          style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                          disabled
+                          style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
                         />
                       </div>
 
@@ -1163,6 +1454,28 @@ const StudentDashboard = () => {
                   </form>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                    <button 
+                      onClick={() => navigate('/support-chat')}
+                      style={{ 
+                        width: '100%', 
+                        height: '44px', 
+                        borderRadius: '10px', 
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        backgroundColor: '#0b1c30',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <MessageSquare size={16} />
+                      Help & Support Chat
+                    </button>
+
                     <button 
                       className="profile-logout-btn" 
                       onClick={() => {
@@ -1500,6 +1813,38 @@ const StudentDashboard = () => {
                 }}
               >
                 Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart conflict warning dialog */}
+      {cartConflictModal.isOpen && (
+        <div className="custom-modal-overlay" style={{ zIndex: 10000 }}>
+          <div className="custom-modal-card" style={{ maxWidth: '320px', padding: '24px' }}>
+            <div className="custom-modal-icon-wrapper" style={{ backgroundColor: '#fffbeb', color: '#d97706' }}>
+              <ShoppingBag size={24} />
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '12px 0 6px 0', color: '#0f172a' }}>Replace Cart Items?</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 20px 0', lineHeight: '1.4', textAlign: 'center' }}>
+              Your cart contains items from another kitchen. Do you want to discard your current cart and start a new order from this kitchen?
+            </p>
+            
+            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+              <button 
+                className="custom-modal-btn btn-cancel" 
+                style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem' }}
+                onClick={() => setCartConflictModal({ isOpen: false, meal: null, sellerId: null })}
+              >
+                No, Keep
+              </button>
+              <button 
+                className="custom-modal-btn btn-confirm" 
+                style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#f59e0b', color: '#ffffff' }}
+                onClick={handleConfirmReplaceCart}
+              >
+                Yes, Discard
               </button>
             </div>
           </div>

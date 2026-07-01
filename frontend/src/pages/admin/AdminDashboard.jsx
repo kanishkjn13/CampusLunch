@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Grid, 
@@ -46,12 +46,173 @@ import {
   UploadCloud
 } from 'lucide-react';
 
+const ticketsData = {
+  'TK-8821': {
+    id: 'TK-8821',
+    title: 'Meal Spilled during delivery',
+    priority: 'Urgent',
+    priorityClass: 'urgent',
+    created: 'Oct 12, 10:42 AM',
+    userName: 'John Doe',
+    userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&fit=crop&q=80',
+    userEmail: 'john.doe@gmail.com',
+    userPhone: '+91 98765 43210',
+    orderId: '#99212',
+    orderTotal: '₹340.50',
+    orderVendor: 'The Curry Pot',
+    orderRider: 'K. Sharma',
+    orderStatus: 'DELIVERED',
+    userTier: 'Platinum',
+    userOrdersCount: '152 lifetime orders',
+    userRiskNote: 'No refund requests in the last 12 months. High-value customer.',
+    userHostel: 'Hostel Block 4, Room 302',
+    userEmergency: '+91 98888 77777',
+    userDiet: 'Vegetarian'
+  },
+  'TK-8819': {
+    id: 'TK-8819',
+    title: 'Refund Request: Cold Food',
+    priority: 'High',
+    priorityClass: 'high',
+    created: 'Oct 12, 09:30 AM',
+    userName: 'Sara Riley',
+    userAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&fit=crop&q=80',
+    userEmail: 'sara.riley@yahoo.com',
+    userPhone: '+91 87654 32109',
+    orderId: '#99208',
+    orderTotal: '₹185.00',
+    orderVendor: 'Annapurna Kitchens',
+    orderRider: 'M. Patel',
+    orderStatus: 'DELIVERED',
+    userTier: 'Gold',
+    userOrdersCount: '48 lifetime orders',
+    userRiskNote: '1 prior dispute resolution. Low risk.',
+    userHostel: 'Hostel Block 2, Room 104',
+    userEmergency: '+91 97777 66666',
+    userDiet: 'Jain'
+  },
+  'TK-8815': {
+    id: 'TK-8815',
+    title: 'Vendor App Login Issue',
+    priority: 'Medium',
+    priorityClass: 'medium',
+    created: 'Oct 12, 07:15 AM',
+    userName: 'Spice Garden',
+    userAvatar: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=80&fit=crop&q=80',
+    userEmail: 'support@spicegarden.com',
+    userPhone: '+91 76543 21098',
+    orderId: 'N/A (App login)',
+    orderTotal: 'N/A',
+    orderVendor: 'Spice Garden',
+    orderRider: 'N/A',
+    orderStatus: 'N/A',
+    userTier: 'Vendor Partner',
+    userOrdersCount: '890 processed meals',
+    userRiskNote: 'No platform violations. Premium partner.',
+    userLicense: 'FSSAI-2026-8815-SG',
+    userTimings: '10:00 AM - 08:00 PM'
+  },
+  'TK-8802': {
+    id: 'TK-8802',
+    title: 'New Subscription Inquiry',
+    priority: 'Low',
+    priorityClass: 'low',
+    created: 'Oct 12, 05:00 AM',
+    userName: 'Bob Corp',
+    userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&fit=crop&q=80',
+    userEmail: 'bulk@bobcorp.com',
+    userPhone: '+91 65432 10987',
+    orderId: 'N/A (Inquiry)',
+    orderTotal: 'N/A',
+    orderVendor: 'N/A',
+    orderRider: 'N/A',
+    orderStatus: 'N/A',
+    userTier: 'Enterprise Lead',
+    userOrdersCount: '0 orders (Prospect)',
+    userRiskNote: 'Potential contract size: 50+ subscribers.'
+  }
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedTicket, setSelectedTicket] = useState('TK-8821');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [roundedCornersEnabled, setRoundedCornersEnabled] = useState(true);
+  const [supportMessages, setSupportMessages] = useState([]);
+  const [adminReplyText, setAdminReplyText] = useState('');
+
+  const currentTicketInfo = ticketsData[selectedTicket] || ticketsData['TK-8821'];
+
+  useEffect(() => {
+    // Seed initial messages for all tickets if they don't exist
+    const initialSeed = {
+      'TK-8821': [
+        { id: 1, sender: "admin", text: "Hi there! Welcome to Campus Lunch Live Support. 👋 How can we help you today?", time: "10:30 AM" },
+        { id: 2, sender: "user", text: "Hi support, I just received my order (#99212) from 'The Curry Pot' but the dal container was completely crushed. Half of it is in the bag. Can I get a refund or a replacement? I'm quite hungry!", time: "10:42 AM" },
+        { id: 3, sender: "admin", text: "I'm so sorry to hear that, John! That's definitely not the experience we want for you. I've already reached out to the dispatch team. Would you prefer a fresh replacement or a full refund to your wallet?", time: "10:48 AM" }
+      ],
+      'TK-8819': [
+        { id: 1, sender: "user", text: "My meal was delivered completely cold and it took almost 90 minutes. I would like a refund.", time: "09:30 AM" },
+        { id: 2, sender: "admin", text: "Hello Sara, I am so sorry for the delay. I have initiated a refund of ₹185 to your wallet.", time: "09:40 AM" }
+      ],
+      'TK-8815': [
+        { id: 1, sender: "user", text: "I cannot login to the vendor partner app. It says FSSAI credential verification pending.", time: "07:15 AM" },
+        { id: 2, sender: "admin", text: "Hello Spice Garden, our admin team is reviewing your FSSAI documents. We will approve it shortly.", time: "07:30 AM" }
+      ],
+      'TK-8802': [
+        { id: 1, sender: "user", text: "Do you offer corporate discounts for recurring bulk tiffin subscriptions?", time: "05:00 AM" }
+      ]
+    };
+
+    Object.keys(initialSeed).forEach(tId => {
+      const key = `support_chat_messages_${tId}`;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify(initialSeed[tId]));
+      }
+    });
+  }, []);
+
+  // Sync active ticket's chat state & set up polling
+  useEffect(() => {
+    const activeKey = `support_chat_messages_${selectedTicket}`;
+    const saved = localStorage.getItem(activeKey);
+    if (saved) {
+      setSupportMessages(JSON.parse(saved));
+    }
+
+    const interval = setInterval(() => {
+      const current = localStorage.getItem(activeKey);
+      if (current) {
+        const parsed = JSON.parse(current);
+        setSupportMessages(prev => {
+          if (prev.length !== parsed.length || (prev.length > 0 && prev[prev.length - 1].id !== parsed[parsed.length - 1].id)) {
+            return parsed;
+          }
+          return prev;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [selectedTicket]);
+
+  const handleAdminSendReply = () => {
+    if (!adminReplyText.trim()) return;
+    const newReply = {
+      id: Date.now(),
+      sender: "admin",
+      text: adminReplyText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    const activeKey = `support_chat_messages_${selectedTicket}`;
+    const currentSaved = localStorage.getItem(activeKey);
+    const list = currentSaved ? JSON.parse(currentSaved) : [];
+    const updated = [...list, newReply];
+    localStorage.setItem(activeKey, JSON.stringify(updated));
+    setSupportMessages(updated);
+    setAdminReplyText('');
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('role');
@@ -350,19 +511,27 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="tickets-list">
-                      <div className="ticket-item-card">
+                      <div 
+                        className="ticket-item-card" 
+                        onClick={() => { setActiveTab('support'); setSelectedTicket('TK-8821'); }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="ticket-icon-box bg-pink"><AlertCircle size={18} /></div>
                         <div className="ticket-info">
                           <h4>Late Delivery: Order #8821</h4>
-                          <p>Assigned to: Support Agent 04</p>
+                          <p>Assigned to: Support Agent 04 • Click to View</p>
                         </div>
                       </div>
 
-                      <div className="ticket-item-card">
+                      <div 
+                        className="ticket-item-card" 
+                        onClick={() => { setActiveTab('support'); setSelectedTicket('TK-8819'); }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="ticket-icon-box bg-green"><MessageSquare size={18} /></div>
                         <div className="ticket-info">
                           <h4>Vendor Dispute: Refund Request</h4>
-                          <p>Awaiting vendor response (2h)</p>
+                          <p>Awaiting vendor response (2h) • Click to View</p>
                         </div>
                       </div>
                     </div>
@@ -556,10 +725,10 @@ const AdminDashboard = () => {
                     </div>
                     <div className="header-text-block">
                       <div className="flex items-center gap-2">
-                        <h3>Meal Spilled during delivery</h3>
-                        <span className="ticket-priority-pill urgent font-bold">Urgent</span>
+                        <h3>{currentTicketInfo.title}</h3>
+                        <span className={`ticket-priority-pill ${currentTicketInfo.priorityClass} font-bold`}>{currentTicketInfo.priority}</span>
                       </div>
-                      <p>Ticket #TK-8821 • Created Oct 12, 10:42 AM</p>
+                      <p>Ticket #{currentTicketInfo.id} • Created {currentTicketInfo.created}</p>
                     </div>
                   </div>
 
@@ -574,49 +743,56 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="chat-conversation-feed">
-                  <div className="chat-message-row customer-msg">
-                    <img 
-                      src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&fit=crop&q=80" 
-                      alt="John Doe" 
-                      className="chat-avatar-circle" 
-                    />
-                    <div className="chat-message-bubble-wrapper">
-                      <div className="chat-bubble-header">
-                        <span className="bubble-sender-name">John Doe</span>
-                        <span className="bubble-timestamp">10:42 AM</span>
-                      </div>
-                      <div className="chat-bubble-body">
-                        <p>
-                          Hi support, I just received my order (#99212) from 'The Curry Pot' but the dal container was completely crushed. Half of it is in the bag. Can I get a refund or a replacement? I'm quite hungry!
-                        </p>
-                        <div className="chat-attached-image">
+                  {supportMessages.map(msg => {
+                    if (msg.sender === 'user') {
+                      return (
+                        <div className="chat-message-row customer-msg" key={msg.id}>
                           <img 
-                            src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&fit=crop&q=80" 
-                            alt="Spilled dal container soup" 
+                            src={currentTicketInfo.userAvatar} 
+                            alt={currentTicketInfo.userName} 
+                            className="chat-avatar-circle" 
+                          />
+                          <div className="chat-message-bubble-wrapper">
+                            <div className="chat-bubble-header">
+                              <span className="bubble-sender-name">{currentTicketInfo.userName}</span>
+                              <span className="bubble-timestamp">{msg.time}</span>
+                            </div>
+                            <div className="chat-bubble-body">
+                              <p>{msg.text}</p>
+                              {/* Show dal image container for initial spilled container text ID */}
+                              {msg.id === 2 && (
+                                <div className="chat-attached-image">
+                                  <img 
+                                    src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&fit=crop&q=80" 
+                                    alt="Spilled dal container soup" 
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="chat-message-row support-msg" key={msg.id}>
+                          <div className="chat-message-bubble-wrapper">
+                            <div className="chat-bubble-header justify-end">
+                              <span className="bubble-timestamp">{msg.time}</span>
+                              <span className="bubble-sender-name">Support (You)</span>
+                            </div>
+                            <div className="chat-bubble-body support-bubble">
+                              <p>{msg.text}</p>
+                            </div>
+                          </div>
+                          <img 
+                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&q=80" 
+                            alt="Alex Chen" 
+                            className="chat-avatar-circle" 
                           />
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="chat-message-row support-msg">
-                    <div className="chat-message-bubble-wrapper">
-                      <div className="chat-bubble-header justify-end">
-                        <span className="bubble-timestamp">10:48 AM</span>
-                        <span className="bubble-sender-name">Support (You)</span>
-                      </div>
-                      <div className="chat-bubble-body support-bubble">
-                        <p>
-                          I'm so sorry to hear that, John! That's definitely not the experience we want for you. I've already reached out to the dispatch team. Would you prefer a fresh replacement or a full refund to your wallet?
-                        </p>
-                      </div>
-                    </div>
-                    <img 
-                      src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&q=80" 
-                      alt="Alex Chen" 
-                      className="chat-avatar-circle" 
-                    />
-                  </div>
+                      );
+                    }
+                  })}
                 </div>
 
                 <div className="chat-reply-container">
@@ -634,8 +810,10 @@ const AdminDashboard = () => {
                   </div>
                   
                   <textarea 
-                    placeholder="Type your response to John Doe..." 
+                    placeholder={`Type your response to ${currentTicketInfo.userName}...`} 
                     className="reply-textarea-input"
+                    value={adminReplyText}
+                    onChange={(e) => setAdminReplyText(e.target.value)}
                   ></textarea>
 
                   <div className="chat-reply-footer">
@@ -646,7 +824,7 @@ const AdminDashboard = () => {
 
                     <div className="reply-action-buttons">
                       <button className="save-draft-link">Save Draft</button>
-                      <button className="send-reply-btn">
+                      <button className="send-reply-btn" onClick={handleAdminSendReply}>
                         <span>Send Reply</span>
                         <Send size={14} className="send-arrow-icon" />
                       </button>
@@ -664,23 +842,23 @@ const AdminDashboard = () => {
                       <FileText size={18} />
                     </div>
                     <div>
-                      <h4 className="order-box-id">#99212</h4>
-                      <p className="order-box-total">Total: $24.50</p>
+                      <h4 className="order-box-id">{currentTicketInfo.orderId}</h4>
+                      <p className="order-box-total">Total: {currentTicketInfo.orderTotal}</p>
                     </div>
                   </div>
                   
                   <div className="order-details-rows">
                     <div className="order-detail-row">
                       <span className="row-key">Vendor:</span>
-                      <span className="row-value font-bold">The Curry Pot</span>
+                      <span className="row-value font-bold">{currentTicketInfo.orderVendor}</span>
                     </div>
                     <div className="order-detail-row">
                       <span className="row-key">Rider:</span>
-                      <span className="row-value font-bold text-orange-accent">K. Sharma</span>
+                      <span className="row-value font-bold text-orange-accent">{currentTicketInfo.orderRider}</span>
                     </div>
                     <div className="order-detail-row items-center">
                       <span className="row-key">Status:</span>
-                      <span className="order-status-badge">DELIVERED</span>
+                      <span className="order-status-badge">{currentTicketInfo.orderStatus}</span>
                     </div>
                   </div>
 
@@ -690,20 +868,66 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="details-section-card">
+                  <span className="details-section-label">User Profile Details</span>
+                  <div className="order-details-rows">
+                    <div className="order-detail-row">
+                      <span className="row-key">Full Name:</span>
+                      <span className="row-value font-bold">{currentTicketInfo.userName}</span>
+                    </div>
+                    <div className="order-detail-row">
+                      <span className="row-key">Email:</span>
+                      <span className="row-value font-bold" style={{ wordBreak: 'break-all' }}>{currentTicketInfo.userEmail}</span>
+                    </div>
+                    <div className="order-detail-row">
+                      <span className="row-key">Phone:</span>
+                      <span className="row-value font-bold">{currentTicketInfo.userPhone}</span>
+                    </div>
+                    {currentTicketInfo.userHostel && (
+                      <>
+                        <div className="order-detail-row">
+                          <span className="row-key">Hostel & Room:</span>
+                          <span className="row-value font-bold text-orange-accent">{currentTicketInfo.userHostel}</span>
+                        </div>
+                        <div className="order-detail-row">
+                          <span className="row-key">Emergency:</span>
+                          <span className="row-value font-bold">{currentTicketInfo.userEmergency}</span>
+                        </div>
+                        <div className="order-detail-row">
+                          <span className="row-key">Diet Preference:</span>
+                          <span className="row-value font-bold">{currentTicketInfo.userDiet}</span>
+                        </div>
+                      </>
+                    )}
+                    {currentTicketInfo.userLicense && (
+                      <>
+                        <div className="order-detail-row">
+                          <span className="row-key">FSSAI License:</span>
+                          <span className="row-value font-bold text-orange-accent">{currentTicketInfo.userLicense}</span>
+                        </div>
+                        <div className="order-detail-row">
+                          <span className="row-key">Kitchen Hours:</span>
+                          <span className="row-value font-bold">{currentTicketInfo.userTimings}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="details-section-card">
                   <span className="details-section-label">Customer Insights</span>
                   <div className="details-order-box">
                     <div className="order-box-icon-container bg-gray">
                       <Tag size={18} />
                     </div>
                     <div>
-                      <h4 className="order-box-id">Tier: Platinum</h4>
-                      <p className="order-box-total">152 lifetime orders</p>
+                      <h4 className="order-box-id">Tier: {currentTicketInfo.userTier}</h4>
+                      <p className="order-box-total">{currentTicketInfo.userOrdersCount}</p>
                     </div>
                   </div>
 
                   <div className="customer-risk-note-box">
                     <span className="risk-note-title">Risk Note:</span>
-                    <p className="risk-note-body">No refund requests in the last 12 months. High-value customer.</p>
+                    <p className="risk-note-body">{currentTicketInfo.userRiskNote}</p>
                   </div>
                 </div>
               </div>

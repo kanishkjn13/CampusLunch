@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MapPin, Clock } from 'lucide-react';
-import Card from '../common/Card';
-import Badge from '../common/Badge';
+import Card from '@/components/common/Card';
+import Badge from '@/components/common/Badge';
 
 const VendorCard = ({ vendor }) => {
   return (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+import logo from '@/assets/logos/logo.png';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +11,18 @@ const ForgotPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const role = localStorage.getItem('role');
+    if (role === 'student') {
+      navigate('/student', { replace: true });
+      return;
+    } else if (role === 'vendor') {
+      navigate('/vendor-dashboard', { replace: true });
+      return;
+    } else if (role === 'admin') {
+      navigate('/admin', { replace: true });
+      return;
+    }
+
     window.scrollTo(0, 0);
 
     const originalBg = document.body.style.backgroundColor;
@@ -34,7 +46,7 @@ const ForgotPassword = () => {
       document.body.style.paddingBottom = originalPadding;
       if (!hadLightClass) htmlEl.classList.remove('light');
     };
-  }, []);
+  }, [navigate]);
 
   // Handle Resend Countdown timer
   useEffect(() => {
@@ -85,7 +97,7 @@ const ForgotPassword = () => {
         <div className="auth-left-content">
           <Link to="/" className="auth-left-logo flex items-center gap-2 mb-4">
             <img src={logo} alt="CampusLunch Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
-            <span className="text-white font-bold" style={{ fontSize: '1.5rem', fontFamily: "'Be Vietnam Pro', sans-serif" }}>CampusLunch</span>
+            <span className="text-white font-bold" style={{ fontSize: '1.5rem', fontFamily: "'Be Vietnam Pro', sans-serif" }}>Campus Lunch</span>
           </Link>
           <div className="auth-left-tagline">
             <h2 className="text-3xl font-extrabold text-white leading-tight mb-4" style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}>
@@ -96,7 +108,7 @@ const ForgotPassword = () => {
             </p>
           </div>
           <div className="text-white/60 text-sm mt-auto">
-            &copy; {new Date().getFullYear()} CampusLunch. All rights reserved.
+            &copy; {new Date().getFullYear()} Campus Lunch. All rights reserved.
           </div>
         </div>
       </div>
@@ -130,7 +142,7 @@ const ForgotPassword = () => {
                 textShadow: '0 2px 10px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)' 
               }}
             >
-              CampusLunch
+              Campus Lunch
             </h1>
             <p 
               className="font-body-md text-body-md max-w-[280px] mt-xs font-semibold"

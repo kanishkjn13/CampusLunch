@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Clock, ArrowLeft, CheckCircle } from 'lucide-react';
-import Button from '../../components/common/Button';
-import Card from '../../components/common/Card';
-import Badge from '../../components/common/Badge';
-import { VENDORS, MENU_ITEMS } from '../../data/mockData';
+import Button from '@/components/common/Button';
+import Card from '@/components/common/Card';
+import Badge from '@/components/common/Badge';
+import { VENDORS, MENU_ITEMS } from '@/data/mockData';
 
 const VendorDetails = () => {
   const { id } = useParams();

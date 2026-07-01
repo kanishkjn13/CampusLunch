@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import Layout from './components/layout/Layout';
-import Landing from './pages/Landing';
+import Landing from './pages/public/Landing';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -11,11 +11,11 @@ import VendorDetails from './pages/student/VendorDetails';
 import VendorDashboard from './pages/vendor/VendorDashboard';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
-import AboutUs from './pages/AboutUs';
-import HelpFaq from './pages/HelpFaq';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import SupportChat from './pages/SupportChat';
+import AboutUs from './pages/public/AboutUs';
+import HelpFaq from './pages/public/HelpFaq';
+import PrivacyPolicy from './pages/public/PrivacyPolicy';
+import TermsOfService from './pages/public/TermsOfService';
+import SupportChat from './pages/public/SupportChat';
 import { StudentProvider } from './context/StudentContext';
 
 function App() {

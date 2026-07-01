@@ -1,0 +1,45 @@
+:root {
+  /* Color Palette - Premium Light Theme */
+  --bg-primary: #f8f9ff;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: #f1f3f9;
+
+  /* Text Colors */
+  --text-primary: #0b1c30;
+  --text-secondary: #534434;
+  --text-muted: #7c6e60;
+
+  /* Brand Accent */
+  --accent-primary: #855300;
+  --accent-primary-dim: rgba(133, 83, 0, 0.1);
+  --accent-primary-hover: #653e00;
+
+  /* Status Colors */
+  --status-success: #00cc66;
+  --status-error: #ff4d4d;
+  --status-warning: #ffcc00;
+
+  /* Extra Dashboard Accents */
+  --accent-blue: #0088ff;
+  --accent-green: #00cc66;
+  --accent-purple: #9933ff;
+  --accent-orange: #855300;
+
+  /* Borders and Effects */
+  --border-color: rgba(0, 0, 0, 0.08);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --elevated-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-bounce: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}

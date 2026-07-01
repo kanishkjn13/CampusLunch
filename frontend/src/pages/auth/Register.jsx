@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+import logo from '@/assets/logos/logo.png';
 
 const Register = () => {
   const location = useLocation();
@@ -15,6 +15,7 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [license, setLicense] = useState('');
+  const [dietPreference, setDietPreference] = useState('Vegetarian');
   const [formStep, setFormStep] = useState(1);
   
   const [loading, setLoading] = useState(false);
@@ -95,8 +96,17 @@ const Register = () => {
   }, [formStep, role]);
 
   useEffect(() => {
-    // Scroll to top
-    window.scrollTo(0, 0);
+    const activeRole = localStorage.getItem('role');
+    if (activeRole === 'student') {
+      navigate('/student', { replace: true });
+      return;
+    } else if (activeRole === 'vendor') {
+      navigate('/vendor-dashboard', { replace: true });
+      return;
+    } else if (activeRole === 'admin') {
+      navigate('/admin', { replace: true });
+      return;
+    }
 
     const originalBg = document.body.style.backgroundColor;
     const originalMinHeight = document.body.style.minHeight;
@@ -119,7 +129,7 @@ const Register = () => {
       document.body.style.paddingBottom = originalPadding;
       if (!hadLightClass) htmlEl.classList.remove('light');
     };
-  }, []);
+  }, [navigate]);
 
   const handleRegister = (e) => {
     if (e) e.preventDefault();
@@ -171,15 +181,19 @@ const Register = () => {
     setTimeout(() => {
       setLoading(false);
       localStorage.setItem('role', role);
+      localStorage.setItem('name', name);
+      localStorage.setItem('email', email);
+      localStorage.setItem('phone', phone);
+      localStorage.setItem('dietPreference', dietPreference);
       if (role === 'student') {
-        navigate('/student');
+        navigate('/student', { replace: true });
       } else {
         localStorage.setItem('vendor_selfie', selfie); // Store the captured selfie
         localStorage.setItem('vendor_name', name);
         localStorage.setItem('vendor_phone', phone);
         localStorage.setItem('vendor_email', email);
         localStorage.setItem('vendor_license', license || '12345678901234');
-        navigate('/vendor-dashboard');
+        navigate('/vendor-dashboard', { replace: true });
       }
     }, 1200);
   };
@@ -193,16 +207,16 @@ const Register = () => {
         <div className="auth-left-content">
           <Link to="/" className="auth-left-logo flex items-center gap-2 mb-4">
             <img src={logo} alt="CampusLunch Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
-            <span className="font-bold text-white tracking-tight logo-text" style={{ fontSize: '24px', fontFamily: "'Be Vietnam Pro', sans-serif" }}>CampusLunch</span>
+            <span className="font-bold text-white tracking-tight logo-text" style={{ fontSize: '24px', fontFamily: "'Be Vietnam Pro', sans-serif" }}>Campus Lunch</span>
           </Link>
           <h2 className="font-display-lg text-display-lg font-bold text-white mb-md" style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.4)' }}>
             Expand Your Campus Reach
           </h2>
           <p className="font-body-lg text-body-lg text-white/90 max-w-sm mb-lg" style={{ lineHeight: '1.6' }}>
-            Join CampusLunch as a student to order high-quality home tiffins, or onboard your kitchen to manage recurring subscriber orders.
+            Join Campus Lunch as a student to order high-quality home tiffins, or onboard your kitchen to manage recurring subscriber orders.
           </p>
           <div className="text-white/60 text-sm mt-auto">
-            &copy; {new Date().getFullYear()} CampusLunch. All rights reserved.
+            &copy; {new Date().getFullYear()} Campus Lunch. All rights reserved.
           </div>
         </div>
       </div>
@@ -236,7 +250,7 @@ const Register = () => {
                 textShadow: '0 2px 10px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)' 
               }}
             >
-              CampusLunch
+              Campus Lunch
             </h1>
             <p 
               className="font-body-md text-body-md max-w-[280px] mt-xs font-semibold"
@@ -487,6 +501,28 @@ const Register = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Diet Preference Input (Student Only) */}
+                  {role === 'student' && (
+                    <div className="space-y-xs">
+                      <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="diet">Diet Preference</label>
+                      <div className="auth-input-wrapper">
+                        <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">restaurant</span>
+                        <select 
+                          className="w-full h-12 pl-[42px] pr-[36px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input" 
+                          id="diet" 
+                          value={dietPreference}
+                          onChange={(e) => setDietPreference(e.target.value)}
+                          style={{ appearance: 'none', backgroundColor: '#ffffff', cursor: 'pointer' }}
+                        >
+                          <option value="Vegetarian">Vegetarian</option>
+                          <option value="Jain">Jain</option>
+                          <option value="Non-Vegetarian">Non-Vegetarian</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] pointer-events-none">expand_more</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Email Input */}
                   <div className="space-y-xs">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+import logo from '@/assets/logos/logo.png';
 import { 
   Menu, 
   Bell, 
@@ -18,7 +18,8 @@ import {
   Check,
   LogOut,
   Shield,
-  Package
+  Package,
+  MessageSquare
 } from 'lucide-react';
 
 const VendorDashboard = () => {
@@ -155,7 +156,7 @@ const VendorDashboard = () => {
           <aside className="vendor-sidebar">
             <div className="sidebar-brand">
               <img src={logo} alt="CampusLunch Logo" className="sidebar-logo" />
-              <span>CampusLunch</span>
+              <span>Campus Lunch</span>
             </div>
             
             <nav className="sidebar-nav">
@@ -214,8 +215,8 @@ const VendorDashboard = () => {
               {/* Mobile view only logo */}
               <div className="mobile-brand-container">
                 <div className="flex items-center gap-2 logo-container-left">
-                  <img src={logo} alt="CampusLunch Logo" style={{ height: '28px', width: 'auto', objectFit: 'contain' }} />
-                  <span className="vendor-app-logo">CampusLunch</span>
+                  <img src={logo} alt="Campus Lunch Logo" style={{ height: '28px', width: 'auto', objectFit: 'contain' }} />
+                  <span className="vendor-app-logo">Campus Lunch</span>
                 </div>
               </div>
 
@@ -732,6 +733,30 @@ const VendorDashboard = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Help & Support Button */}
+              <button 
+                onClick={() => navigate('/support-chat')}
+                style={{ 
+                  width: '100%', 
+                  height: '46px', 
+                  borderRadius: '12px', 
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  backgroundColor: '#0b1c30',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginBottom: '12px'
+                }}
+              >
+                <MessageSquare size={16} />
+                Help & Support Chat
+              </button>
 
               {/* Logout Button */}
               <button 

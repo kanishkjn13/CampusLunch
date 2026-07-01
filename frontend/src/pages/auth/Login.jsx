@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+import logo from '@/assets/logos/logo.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +11,18 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const role = localStorage.getItem('role');
+    if (role === 'student') {
+      navigate('/student', { replace: true });
+      return;
+    } else if (role === 'vendor') {
+      navigate('/vendor-dashboard', { replace: true });
+      return;
+    } else if (role === 'admin') {
+      navigate('/admin', { replace: true });
+      return;
+    }
+
     // Scroll to top to ensure layout is positioned at top of viewport
     window.scrollTo(0, 0);
 
@@ -37,7 +49,7 @@ const Login = () => {
       document.body.style.paddingBottom = originalPadding;
       if (!hadLightClass) htmlEl.classList.remove('light');
     };
-  }, []);
+  }, [navigate]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -102,9 +114,13 @@ const Login = () => {
     setTimeout(() => {
       setLoading(false);
       localStorage.setItem('role', detectedRole);
-      if (detectedRole === 'student') navigate('/student');
-      else if (detectedRole === 'vendor') navigate('/vendor-dashboard');
-      else navigate('/admin');
+      localStorage.setItem('email', email);
+      const formattedName = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      localStorage.setItem('name', formattedName);
+      localStorage.setItem('phone', '+91 90123 45678');
+      if (detectedRole === 'student') navigate('/student', { replace: true });
+      else if (detectedRole === 'vendor') navigate('/vendor-dashboard', { replace: true });
+      else navigate('/admin', { replace: true });
     }, 1200);
   };
 
@@ -117,7 +133,7 @@ const Login = () => {
         <div className="auth-left-content">
           <Link to="/" className="auth-left-logo flex items-center gap-2 mb-4">
             <img src={logo} alt="CampusLunch Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
-            <span className="text-white font-bold" style={{ fontSize: '1.5rem', fontFamily: "'Be Vietnam Pro', sans-serif" }}>CampusLunch</span>
+            <span className="text-white font-bold" style={{ fontSize: '1.5rem', fontFamily: "'Be Vietnam Pro', sans-serif" }}>Campus Lunch</span>
           </Link>
           <div className="auth-left-tagline">
             <h2 className="text-3xl font-extrabold text-white leading-tight mb-4" style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}>
@@ -130,7 +146,7 @@ const Login = () => {
 
           </div>
           <div className="auth-left-footer text-white/60 text-xs">
-            &copy; {new Date().getFullYear()} CampusLunch. All rights reserved.
+            &copy; {new Date().getFullYear()} Campus Lunch. All rights reserved.
           </div>
         </div>
       </div>
@@ -164,7 +180,7 @@ const Login = () => {
                 textShadow: '0 2px 10px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)' 
               }}
             >
-              CampusLunch
+              Campus Lunch
             </h1>
             <p 
               className="font-body-md text-body-md max-w-[280px] mt-xs font-semibold"

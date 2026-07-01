@@ -1,7 +1,7 @@
 import React from 'react';
-import founderKanishk from '../assets/founder_kanishk.png';
-import founderAarav from '../assets/founder_aarav.png';
-import founderAnanya from '../assets/founder_ananya.png';
+import founderKanishk from '@/assets/images/founder_kanishk.png';
+import founderAarav from '@/assets/images/founder_aarav.png';
+import founderAnanya from '@/assets/images/founder_ananya.png';
 
 const AboutUs = () => {
   return (
@@ -16,13 +16,13 @@ const AboutUs = () => {
           <div className="about-text-content">
             <h3>Our Mission</h3>
             <p>
-              At CampusLunch, we bridge the gap between busy college students and verified local home-chefs. 
+              At Campus Lunch, we bridge the gap between busy college students and verified local home-chefs. 
               Our mission is to ensure that every student has access to healthy, affordable, and nutritious 
               home-cooked meals while empowering local culinary micro-entrepreneurs to thrive.
             </p>
             <p>
               Born out of our own college struggles to find fresh food that doesn't break the bank, 
-              CampusLunch provides a seamless subscription experience, enabling flex plans, transparent rating 
+              Campus Lunch provides a seamless subscription experience, enabling flex plans, transparent rating 
               standards, and hygienic delivery straight to your campus.
             </p>
           </div>
@@ -61,7 +61,7 @@ const AboutUs = () => {
             </div>
             <h4>Aarav Mehta</h4>
             <p className="founder-role">Co-Founder & CTO</p>
-            <p className="founder-bio">Building scalable tech infrastructure and real-time order matching that fuels the CampusLunch network.</p>
+            <p className="founder-bio">Building scalable tech infrastructure and real-time order matching that fuels the Campus Lunch network.</p>
           </div>
           
           <div className="founder-card">

@@ -18,7 +18,17 @@ export const TRACKING_STEPS = [
 ];
 
 export const StudentProvider = ({ children }) => {
-  const [user, setUser] = useState(INITIAL_USER_PROFILE);
+  const [user, setUser] = useState(() => {
+    const activeEmail = localStorage.getItem('email') || INITIAL_USER_PROFILE.email;
+    return {
+      ...INITIAL_USER_PROFILE,
+      name: localStorage.getItem('name') || INITIAL_USER_PROFILE.name,
+      phone: localStorage.getItem('phone') || INITIAL_USER_PROFILE.phone,
+      email: activeEmail,
+      dietPreference: localStorage.getItem('dietPreference') || INITIAL_USER_PROFILE.dietPreference || 'Vegetarian',
+      avatar: localStorage.getItem(`student_avatar_${activeEmail}`) || INITIAL_USER_PROFILE.avatar
+    };
+  });
   const [sellers, setSellers] = useState(INITIAL_SELLERS);
   const [coupons] = useState(INITIAL_COUPONS);
   const [cart, setCart] = useState([]);
@@ -55,20 +65,8 @@ export const StudentProvider = ({ children }) => {
   ]);
 
   // Live order active tracker status
-  const [activeOrderTracker, setActiveOrderTracker] = useState({
-    orderId: '#TK-882',
-    vendorName: 'Dakshin Delights',
-    statusIndex: 4, // Out for Delivery default
-    driverInfo: {
-      name: 'Ramesh Kumar',
-      phone: '+91 9012345678',
-      vehicle: 'Activa (MP-09-AB-1234)',
-      photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&q=80'
-    },
-    eta: '5 mins',
-    progress: 83.3,
-    location: 'Near Himalaya Hostel Road'
-  });
+  const [activeOrderTracker, setActiveOrderTracker] = useState(null);
+  const [activeTrackers, setActiveTrackers] = useState([]);
 
   // Loading indicator helper for checkout or actions
   const [loading, setLoading] = useState(false);
@@ -80,7 +78,12 @@ export const StudentProvider = ({ children }) => {
 
   // Cart operations
   const addToCart = (meal, sellerId) => {
+    let success = true;
     setCart(prev => {
+      if (prev.length > 0 && prev[0].sellerId !== sellerId) {
+        success = false;
+        return prev;
+      }
       const existing = prev.find(item => item.id === meal.id);
       if (existing) {
         return prev.map(item => 
@@ -89,6 +92,7 @@ export const StudentProvider = ({ children }) => {
       }
       return [...prev, { ...meal, quantity: 1, sellerId }];
     });
+    return success;
   };
 
   const updateCartQuantity = (mealId, delta) => {
@@ -145,7 +149,7 @@ export const StudentProvider = ({ children }) => {
   // Real-time tracking progress simulation
   const startOrderTrackingSimulation = (newOrderId, vendorName) => {
     let currentStep = 0;
-    setActiveOrderTracker({
+    const initialTracker = {
       orderId: newOrderId,
       vendorName: vendorName,
       statusIndex: 0,
@@ -158,7 +162,10 @@ export const StudentProvider = ({ children }) => {
       eta: '18 mins',
       progress: 16.6,
       location: 'Vendor Kitchen Gate'
-    });
+    };
+
+    setActiveOrderTracker(initialTracker);
+    setActiveTrackers(prev => [...prev, initialTracker]);
 
     const interval = setInterval(() => {
       currentStep += 1;
@@ -170,19 +177,26 @@ export const StudentProvider = ({ children }) => {
         if (currentStep === 4) loc = 'Near Himalaya Hostel Road';
         if (currentStep === 5) loc = 'Delivered at Room Door';
 
+        const updatedTrackerFields = {
+          statusIndex: currentStep,
+          progress: Math.round(((currentStep + 1) / 6) * 100),
+          eta: currentStep === 5 ? 'Delivered' : `${18 - currentStep * 3} mins`,
+          location: loc
+        };
+
         setActiveOrderTracker(prev => {
-          if (!prev || prev.orderId !== newOrderId) {
-            clearInterval(interval);
-            return prev;
+          if (prev && prev.orderId === newOrderId) {
+            return { ...prev, ...updatedTrackerFields };
           }
-          return {
-            ...prev,
-            statusIndex: currentStep,
-            progress: Math.round(((currentStep + 1) / 6) * 100),
-            eta: currentStep === 5 ? 'Delivered' : `${18 - currentStep * 3} mins`,
-            location: loc
-          };
+          return prev;
         });
+
+        setActiveTrackers(prev => prev.map(t => {
+          if (t.orderId === newOrderId) {
+            return { ...t, ...updatedTrackerFields };
+          }
+          return t;
+        }));
 
         // Push order state notification
         setNotifications(prev => [
@@ -215,40 +229,58 @@ export const StudentProvider = ({ children }) => {
     setLoading(true);
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const newOrderId = '#TK-' + Math.floor(800 + Math.random() * 200);
-    const seller = sellers.find(s => s.id === cart[0]?.sellerId) || { name: 'Local Kitchen' };
 
-    // Subtotal calculations
-    const itemsTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const platformFee = 5;
-    const gst = Math.round(itemsTotal * 0.05);
-    const deliveryFee = 20;
-    const discount = activeCoupon 
-      ? (activeCoupon.discountType === 'percentage' ? Math.round(itemsTotal * (activeCoupon.value / 100)) : activeCoupon.value)
-      : 0;
-    const finalAmount = itemsTotal + platformFee + gst + deliveryFee - discount;
+    const newOrders = [];
+    const orderIds = [];
+    const vendorNames = [];
+    let tiffinIndex = 0;
 
-    const newOrderObj = {
-      id: newOrderId,
-      vendor: seller.name,
-      items: cart.map(item => `${item.quantity}x ${item.name}`).join(', '),
-      date: 'Just now',
-      bill: finalAmount,
-      paymentMethod: paymentMethod,
-      paymentStatus: 'Paid',
-      deliveryStatus: 'Confirmed'
-    };
+    cart.forEach((item) => {
+      const seller = sellers.find(s => s.id === item.sellerId) || { name: 'Local Kitchen' };
+      for (let q = 0; q < item.quantity; q++) {
+        const randomOffset = Math.floor(Math.random() * 25);
+        const newOrderId = '#TK-' + (800 + tiffinIndex * 35 + randomOffset);
+        tiffinIndex++;
 
-    setOrders(prev => [newOrderObj, ...prev]);
-    
-    // Start live status simulation
-    startOrderTrackingSimulation(newOrderId, seller.name);
+        // Calculate individual bill (item price + platform fee + GST + delivery fee split)
+        const totalItemsInCart = cart.reduce((sum, i) => sum + i.quantity, 0);
+        const itemsTotal = item.price;
+        const platformFee = Math.round(5 / totalItemsInCart);
+        const gst = Math.round(itemsTotal * 0.05);
+        const deliveryFee = Math.round(20 / totalItemsInCart);
+        const discount = activeCoupon 
+          ? (activeCoupon.discountType === 'percentage' ? Math.round(itemsTotal * (activeCoupon.value / 100)) : Math.round(activeCoupon.value / totalItemsInCart))
+          : 0;
+        const finalAmount = itemsTotal + platformFee + gst + deliveryFee - discount;
+
+        const newOrderObj = {
+          id: newOrderId,
+          vendor: seller.name,
+          items: `1x ${item.name}`,
+          date: 'Just now',
+          bill: finalAmount,
+          paymentMethod: paymentMethod,
+          paymentStatus: 'Paid',
+          deliveryStatus: 'Confirmed'
+        };
+
+        newOrders.push(newOrderObj);
+        orderIds.push(newOrderId);
+        vendorNames.push(seller.name);
+
+        // Start live status simulation for this individual order
+        startOrderTrackingSimulation(newOrderId, seller.name);
+      }
+    });
+
+    // Update orders list in state
+    setOrders(prev => [...newOrders, ...prev]);
 
     clearCart();
     setLoading(false);
     
-    return newOrderId;
+    // Return all order IDs and vendor names
+    return { orderIds, vendorNames };
   };
 
   return (
@@ -260,6 +292,8 @@ export const StudentProvider = ({ children }) => {
       activeCoupon,
       orders,
       activeOrderTracker,
+      activeTrackers,
+      setActiveTrackers,
       notifications,
       favorites,
       loading,

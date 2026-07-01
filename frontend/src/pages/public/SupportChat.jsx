@@ -4,24 +4,60 @@ import { useNavigate } from 'react-router-dom';
 
 const SupportChat = () => {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState([
-    { id: 1, sender: 'bot', text: 'Hi there! Welcome to CampusLunch Live Support. 👋 How can we help you today?', time: 'Just Now' }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const feedEndRef = useRef(null);
 
   const quickQuestions = [
-    { q: 'Where is my refund for a failed UPI checkout?', a: 'UPI failures are auto-refunded to the source account within 2-3 business days. If you do not see it, please send the transaction ID to support@campuslunch.com.' },
+    { q: 'Where is my refund for a failed UPI checkout?', a: 'UPI failures are auto-refunded to the source account within 2-3 business days. If you do not see it, please send the transaction ID to support.campuslunch@gmail.com.' },
     { q: 'How do I cancel my tiffin subscription order?', a: 'Under academic guidelines, orders cannot be cancelled once preparation begins. For special cases, you must contact your assigned vendor directly.' },
     { q: 'How do I register as a home kitchen vendor?', a: 'Go to the Join as Vendor page (or /register?role=vendor), submit your FSSAI registration details and kitchen photos. Our admin team will approve it within 24 hours!' },
     { q: 'How do I update my delivery room address?', a: 'Go to the Student Dashboard tab, tap the profile icon on the top right, update your hostel name/room number and click save!' }
   ];
 
+  const role = localStorage.getItem('role');
+  const ticketId = role === 'vendor' ? 'TK-8815' : 'TK-8821';
+  const chatKey = `support_chat_messages_${ticketId}`;
+
+  // Initialize and poll localStorage messages
+  useEffect(() => {
+    const saved = localStorage.getItem(chatKey);
+    if (!saved) {
+      const initial = role === 'vendor' ? [
+        { id: 1, sender: "user", text: "I cannot login to the vendor partner app. It says FSSAI credential verification pending.", time: "07:15 AM" },
+        { id: 2, sender: "admin", text: "Hello Spice Garden, our admin team is reviewing your FSSAI documents. We will approve it shortly.", time: "07:30 AM" }
+      ] : [
+        { id: 1, sender: "admin", text: "Hi there! Welcome to Campus Lunch Live Support. 👋 How can we help you today?", time: "10:30 AM" },
+        { id: 2, sender: "user", text: "Hi support, I just received my order (#99212) from 'The Curry Pot' but the dal container was completely crushed. Half of it is in the bag. Can I get a refund or a replacement? I'm quite hungry!", time: "10:42 AM" },
+        { id: 3, sender: "admin", text: "I'm so sorry to hear that, John! That's definitely not the experience we want for you. I've already reached out to the dispatch team. Would you prefer a fresh replacement or a full refund to your wallet?", time: "10:48 AM" }
+      ];
+      localStorage.setItem(chatKey, JSON.stringify(initial));
+      setMessages(initial);
+    } else {
+      setMessages(JSON.parse(saved));
+    }
+
+    // Set up polling interval to check for admin replies
+    const interval = setInterval(() => {
+      const current = localStorage.getItem(chatKey);
+      if (current) {
+        const parsed = JSON.parse(current);
+        setMessages(prev => {
+          if (prev.length !== parsed.length || (prev.length > 0 && prev[prev.length - 1].id !== parsed[parsed.length - 1].id)) {
+            return parsed;
+          }
+          return prev;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [chatKey, role]);
+
   const handleSendMessage = (text) => {
     if (!text.trim()) return;
 
-    // User Message
     const userMsg = {
       id: Date.now(),
       sender: 'user',
@@ -29,45 +65,31 @@ const SupportChat = () => {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    const currentSaved = localStorage.getItem(chatKey);
+    const list = currentSaved ? JSON.parse(currentSaved) : [];
+    const updated = [...list, userMsg];
+    localStorage.setItem(chatKey, JSON.stringify(updated));
+    setMessages(updated);
     setInputVal('');
-    setIsTyping(true);
 
-    // Simulate Bot response
+    // Smooth scroll to the bottom only when the user sends a message
     setTimeout(() => {
-      let replyText = "Thank you for reaching out! Our support team has been notified of your query and will reply shortly. For urgent assistance, please email support@campuslunch.com.";
-      
-      const lowerText = text.toLowerCase();
-      if (lowerText.includes('refund') || lowerText.includes('money') || lowerText.includes('payment')) {
-        replyText = "Refunds for failed checkouts are processed automatically by the UPI bank gateway. Expect settlement in 2-3 business days.";
-      } else if (lowerText.includes('cancel') || lowerText.includes('subscription')) {
-        replyText = "Active orders are locked once preparation begins. Contact your vendor directly for emergency changes.";
-      } else if (lowerText.includes('vendor') || lowerText.includes('join') || lowerText.includes('kitchen')) {
-        replyText = "To register as a vendor, fill out the form at /register?role=vendor with your kitchen details and FSSAI credentials.";
-      } else if (lowerText.includes('location') || lowerText.includes('address') || lowerText.includes('hostel')) {
-        replyText = "Update your delivery location directly on the student profile panel inside the student dashboard.";
-      }
-
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        sender: 'bot',
-        text: replyText,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
-      setIsTyping(false);
-    }, 1000);
+      feedEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
-
-  useEffect(() => {
-    feedEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
 
   return (
     <div style={{ maxWidth: '600px', margin: '30px auto', padding: '0 16px', fontFamily: 'Outfit, sans-serif' }}>
       
       {/* Back button */}
       <button 
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          const userRole = localStorage.getItem('role');
+          if (userRole === 'student') navigate('/student');
+          else if (userRole === 'vendor') navigate('/vendor-dashboard');
+          else if (userRole === 'admin') navigate('/admin');
+          else navigate('/');
+        }}
         style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -118,7 +140,7 @@ const SupportChat = () => {
               color: '#f59e0b',
               position: 'relative'
             }}>
-              <Bot size={22} />
+              <MessageSquare size={22} />
               <span style={{ 
                 position: 'absolute', 
                 bottom: '1px', 
@@ -131,7 +153,7 @@ const SupportChat = () => {
               }}></span>
             </div>
             <div style={{ textAlign: 'left' }}>
-              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>CampusLunch Support</h3>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Campus Lunch Support</h3>
               <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>Typically replies in 1 minute</p>
             </div>
           </div>
@@ -155,18 +177,18 @@ const SupportChat = () => {
         {/* Messages Feed */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {messages.map(msg => {
-            const isBot = msg.sender === 'bot';
+            const isAdmin = msg.sender === 'admin';
             return (
               <div 
                 key={msg.id} 
                 style={{ 
                   display: 'flex', 
-                  justifyContent: isBot ? 'flex-start' : 'flex-end', 
+                  justifyContent: isAdmin ? 'flex-start' : 'flex-end', 
                   alignItems: 'flex-start',
                   gap: '8px'
                 }}
               >
-                {isBot && (
+                {isAdmin && (
                   <div style={{ 
                     width: '28px', 
                     height: '28px', 
@@ -179,38 +201,29 @@ const SupportChat = () => {
                     fontSize: '0.8rem',
                     flexShrink: 0
                   }}>
-                    🤖
+                    👨‍💼
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '75%' }}>
                   <div style={{ 
                     padding: '12px 16px', 
-                    borderRadius: isBot ? '4px 16px 16px 16px' : '16px 4px 16px 16px', 
-                    backgroundColor: isBot ? '#ffffff' : '#f59e0b',
-                    color: isBot ? '#1e293b' : '#0f172a',
-                    border: isBot ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                    borderRadius: isAdmin ? '4px 16px 16px 16px' : '16px 4px 16px 16px', 
+                    backgroundColor: isAdmin ? '#ffffff' : '#f59e0b',
+                    color: isAdmin ? '#1e293b' : '#0f172a',
+                    border: isAdmin ? '1px solid rgba(0,0,0,0.04)' : 'none',
                     fontSize: '0.85rem',
                     lineHeight: '1.4',
-                    fontWeight: isBot ? 500 : 600,
-                    boxShadow: isBot ? '0 2px 4px rgba(0,0,0,0.01)' : 'none',
+                    fontWeight: isAdmin ? 500 : 600,
+                    boxShadow: isAdmin ? '0 2px 4px rgba(0,0,0,0.01)' : 'none',
                     textAlign: 'left'
                   }}>
                     {msg.text}
                   </div>
-                  <span style={{ fontSize: '0.62rem', color: '#94a3b8', textAlign: isBot ? 'left' : 'right', alignSelf: isBot ? 'flex-start' : 'flex-end' }}>{msg.time}</span>
+                  <span style={{ fontSize: '0.62rem', color: '#94a3b8', textAlign: isAdmin ? 'left' : 'right', alignSelf: isAdmin ? 'flex-start' : 'flex-end' }}>{msg.time}</span>
                 </div>
               </div>
             );
           })}
-
-          {isTyping && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '8px', alignItems: 'center' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justify: 'center', fontSize: '0.8rem' }}>🤖</div>
-              <div style={{ padding: '10px 16px', borderRadius: '4px 16px 16px 16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>
-                Typing...
-              </div>
-            </div>
-          )}
           <div ref={feedEndRef} />
         </div>
 
