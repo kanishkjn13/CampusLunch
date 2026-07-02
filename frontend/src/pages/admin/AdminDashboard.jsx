@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { StudentContext } from '@/context/StudentContext';
 import { 
   Grid, 
   Store, 
@@ -136,6 +137,27 @@ const ticketsData = {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+
+  const context = useContext(StudentContext) || {};
+  const sellers = context.sellers || [];
+  const ratings = context.ratings || [];
+
+  const getSellerRatingInfo = (sellerName) => {
+    const matching = (ratings || []).filter(r => r.vendorName === sellerName);
+    if (matching.length === 0) {
+      return { rating: '0.0', reviews: 0 };
+    }
+    const sum = matching.reduce((acc, r) => acc + (Number(r.foodRating) + Number(r.serviceRating)) / 2, 0);
+    const avg = (sum / matching.length).toFixed(1);
+    return { rating: avg, reviews: matching.length };
+  };
+
+  const globalAvgRating = (() => {
+    if ((ratings || []).length === 0) return '0.0';
+    const sum = ratings.reduce((acc, r) => acc + (Number(r.foodRating) + Number(r.serviceRating)) / 2, 0);
+    return (sum / ratings.length).toFixed(1);
+  })();
+
   const [selectedTicket, setSelectedTicket] = useState('TK-8821');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [roundedCornersEnabled, setRoundedCornersEnabled] = useState(true);
@@ -447,7 +469,7 @@ const AdminDashboard = () => {
               <div className="dashboard-split-row">
                 <div className="verification-queue-column">
                   <div className="queue-header">
-                    <h2>Verification Queue</h2>
+                    <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Verification Queue</h2>
                     <span className="queue-pending-badge">12 PENDING</span>
                   </div>
 
@@ -501,7 +523,7 @@ const AdminDashboard = () => {
                     <div className="tickets-header-row">
                       <div>
                         <span className="tickets-label">RECENT COMPLAINTS</span>
-                        <h2 className="tickets-title">Open Tickets</h2>
+                        <h2 className="dashboard-heading controls-title" style={{ fontSize: '1.25rem' }}>Open Tickets</h2>
                       </div>
                       <div className="tickets-avatars-group">
                         <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&fit=crop&q=80" alt="User 1" />
@@ -541,7 +563,7 @@ const AdminDashboard = () => {
 
               {/* System Controls */}
               <div className="system-controls-section">
-                <h2 className="controls-title">System Controls</h2>
+                <h2 className="dashboard-heading controls-title" style={{ fontSize: '1.25rem' }}>System Controls</h2>
                 <div className="controls-grid">
                   <div className="control-item-card">
                     <div className="control-card-left">
@@ -615,12 +637,82 @@ const AdminDashboard = () => {
                 <div className="kpi-card-white vendors-metric-card">
                   <div className="kpi-card-inner">
                     <span className="kpi-card-label">AVG. RATING</span>
-                    <h3 className="kpi-card-value">4.8</h3>
+                    <h3 className="kpi-card-value">{globalAvgRating}</h3>
                   </div>
-                  <div className="rating-stars-outline">
-                    <Star size={16} className="star-outline-orange" />
-                    <Star size={16} className="star-outline-orange" />
+                  <div className="rating-stars-outline" style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                    {Array.from({ length: Math.round(Number(globalAvgRating)) || 5 }).map((_, i) => (
+                      <Star key={i} size={16} style={{ fill: '#f59e0b', stroke: '#f59e0b' }} />
+                    ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Kitchen Performance Table */}
+              <div style={{ marginTop: '24px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                <h2 className="dashboard-heading" style={{ fontSize: '1.1rem' }}>Kitchen Quality Performance</h2>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                        <th style={{ padding: '12px 8px', fontSize: '0.74rem', fontWeight: 850, color: '#64748b', textTransform: 'uppercase' }}>Kitchen Partner</th>
+                        <th style={{ padding: '12px 8px', fontSize: '0.74rem', fontWeight: 850, color: '#64748b', textTransform: 'uppercase' }}>Distance</th>
+                        <th style={{ padding: '12px 8px', fontSize: '0.74rem', fontWeight: 850, color: '#64748b', textTransform: 'uppercase' }}>Service Slot</th>
+                        <th style={{ padding: '12px 8px', fontSize: '0.74rem', fontWeight: 850, color: '#64748b', textTransform: 'uppercase' }}>Avg Rating</th>
+                        <th style={{ padding: '12px 8px', fontSize: '0.74rem', fontWeight: 850, color: '#64748b', textTransform: 'uppercase' }}>Reviews Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(sellers || []).map(seller => {
+                        const info = getSellerRatingInfo(seller.name);
+                        return (
+                          <tr key={seller.id} style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td style={{ padding: '12px 8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <img src={seller.photo} alt={seller.name} style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} />
+                              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{seller.name}</span>
+                            </td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.78rem', color: '#475569' }}>{seller.distance}</td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.78rem', color: '#475569' }}>{seller.servingTime}</td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.82rem', fontWeight: 800, color: '#f59e0b' }}>★ {info.rating}</td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.78rem', color: '#475569' }}>{info.reviews} reviews</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Global Customer Reviews Feed */}
+              <div style={{ marginTop: '24px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                <h2 className="dashboard-heading" style={{ fontSize: '1.1rem' }}>Global Reviews & Feedback Feed</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {(ratings || []).length === 0 ? (
+                    <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem', border: '1px dashed #cbd5e1', borderRadius: '12px' }}>
+                      <p style={{ margin: 0, fontWeight: 700 }}>No feedback has been submitted yet</p>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.76rem' }}>Customer review submissions will aggregate and appear here in real-time.</p>
+                    </div>
+                  ) : (
+                    (ratings || []).map(review => (
+                      <div key={review.id} style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <div>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{review.studentName}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '6px' }}>rated <strong style={{ color: '#0f172a' }}>{review.vendorName}</strong></span>
+                          </div>
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{review.date}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                          <span style={{ color: '#d97706' }}>Food: ★{review.foodRating}</span>
+                          <span style={{ color: '#2563eb' }}>Service: ★{review.serviceRating}</span>
+                        </div>
+                        {review.comment && (
+                          <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569', fontStyle: 'italic', lineHeight: '1.4' }}>
+                            "{review.comment}"
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

@@ -1835,6 +1835,7 @@
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    z-index: 999 !important;
   }
 }
 
@@ -2097,10 +2098,15 @@
 @media (max-width: 480px) {
   .student-device-wrapper {
     padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
   .student-phone-frame {
     width: 100% !important;
     height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
     border-radius: 0 !important;
     border: none !important;
   }

@@ -165,7 +165,7 @@ const Register = () => {
     if (role === 'vendor' && formStep === 1) {
       // Direct vendor to Step 2: selfie capture
       setFormStep(2);
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 

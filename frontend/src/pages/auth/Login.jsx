@@ -24,7 +24,7 @@ const Login = () => {
     }
 
     // Scroll to top to ensure layout is positioned at top of viewport
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Set body classes exactly as needed for this page to prevent scrollbars
     const originalBg = document.body.style.backgroundColor;

@@ -23,7 +23,7 @@ const ForgotPassword = () => {
       return;
     }
 
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     const originalBg = document.body.style.backgroundColor;
     const originalMinHeight = document.body.style.minHeight;

@@ -41,32 +41,90 @@ export const StudentProvider = ({ children }) => {
   const [favorites, setFavorites] = useState(['m1', 'd1']);
   
   // Orders State
-  const [orders, setOrders] = useState([
-    {
-      id: '#TK-871',
-      vendor: "Maa's Kitchen",
-      items: '2x Deluxe Veg Thali',
-      date: 'Yesterday',
-      bill: 240,
-      paymentMethod: 'Google Pay',
-      paymentStatus: 'Paid',
-      deliveryStatus: 'Delivered'
-    },
-    {
-      id: '#TK-859',
-      vendor: 'Swad Sugandh',
-      items: '1x Special Paneer Combo',
-      date: '2 days ago',
-      bill: 140,
-      paymentMethod: 'PhonePe',
-      paymentStatus: 'Paid',
-      deliveryStatus: 'Delivered'
+  const [orders, setOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tiffin_connect_orders');
+      return (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to parse orders from localStorage:", e);
+      return [];
     }
-  ]);
+  });
 
   // Live order active tracker status
   const [activeOrderTracker, setActiveOrderTracker] = useState(null);
-  const [activeTrackers, setActiveTrackers] = useState([]);
+  const [activeTrackers, setActiveTrackers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tiffin_connect_trackers');
+      return (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to parse trackers from localStorage:", e);
+      return [];
+    }
+  });
+
+  // Ratings State
+  const [ratings, setRatings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tiffin_connect_ratings');
+      return (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to parse ratings from localStorage:", e);
+      return [];
+    }
+  });
+
+  // Kitchen statuses state
+  const [kitchenStatuses, setKitchenStatuses] = useState(() => {
+    const statuses = {};
+    INITIAL_SELLERS.forEach(s => {
+      statuses[s.name] = localStorage.getItem('kitchen_status_' + s.name) !== 'closed';
+    });
+    return statuses;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('tiffin_connect_orders', JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem('tiffin_connect_trackers', JSON.stringify(activeTrackers));
+  }, [activeTrackers]);
+
+  useEffect(() => {
+    localStorage.setItem('tiffin_connect_ratings', JSON.stringify(ratings));
+  }, [ratings]);
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      try {
+        if (e.key === 'tiffin_connect_orders') {
+          const saved = localStorage.getItem('tiffin_connect_orders');
+          if (saved && saved !== 'undefined') setOrders(JSON.parse(saved));
+        }
+        if (e.key === 'tiffin_connect_trackers') {
+          const saved = localStorage.getItem('tiffin_connect_trackers');
+          if (saved && saved !== 'undefined') setActiveTrackers(JSON.parse(saved));
+        }
+        if (e.key === 'tiffin_connect_ratings') {
+          const saved = localStorage.getItem('tiffin_connect_ratings');
+          if (saved && saved !== 'undefined') setRatings(JSON.parse(saved));
+        }
+        if (e.key && e.key.startsWith('kitchen_status_')) {
+          const name = e.key.replace('kitchen_status_', '');
+          const isValOpen = localStorage.getItem(e.key) !== 'closed';
+          setKitchenStatuses(prev => ({
+            ...prev,
+            [name]: isValOpen
+          }));
+        }
+      } catch (err) {
+        console.error("Error parsing storage changed data:", err);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Loading indicator helper for checkout or actions
   const [loading, setLoading] = useState(false);
@@ -78,12 +136,10 @@ export const StudentProvider = ({ children }) => {
 
   // Cart operations
   const addToCart = (meal, sellerId) => {
-    let success = true;
+    if (cart.length > 0 && cart[0].sellerId !== sellerId) {
+      return false;
+    }
     setCart(prev => {
-      if (prev.length > 0 && prev[0].sellerId !== sellerId) {
-        success = false;
-        return prev;
-      }
       const existing = prev.find(item => item.id === meal.id);
       if (existing) {
         return prev.map(item => 
@@ -92,7 +148,7 @@ export const StudentProvider = ({ children }) => {
       }
       return [...prev, { ...meal, quantity: 1, sellerId }];
     });
-    return success;
+    return true;
   };
 
   const updateCartQuantity = (mealId, delta) => {
@@ -148,80 +204,23 @@ export const StudentProvider = ({ children }) => {
 
   // Real-time tracking progress simulation
   const startOrderTrackingSimulation = (newOrderId, vendorName) => {
-    let currentStep = 0;
     const initialTracker = {
       orderId: newOrderId,
       vendorName: vendorName,
       statusIndex: 0,
       driverInfo: {
-        name: 'Ramesh Kumar',
-        phone: '+91 9012345678',
-        vehicle: 'Activa (MP-09-AB-1234)',
-        photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&q=80'
+        name: 'Tiffin Vendor',
+        phone: '+91 98765 43210',
+        vehicle: 'Pickup Counter',
+        photo: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&h=100&fit=crop&q=80'
       },
-      eta: '18 mins',
-      progress: 16.6,
-      location: 'Vendor Kitchen Gate'
+      eta: 'Ready for Pickup',
+      progress: 0,
+      location: 'Tiffin Pickup Point'
     };
 
     setActiveOrderTracker(initialTracker);
     setActiveTrackers(prev => [...prev, initialTracker]);
-
-    const interval = setInterval(() => {
-      currentStep += 1;
-      if (currentStep <= 5) {
-        let loc = 'Vendor Kitchen Gate';
-        if (currentStep === 1) loc = 'Preparing Food at Kitchen';
-        if (currentStep === 2) loc = 'Order Packed, Waiting for Driver';
-        if (currentStep === 3) loc = 'Driver Picked Up, Heading to Campus';
-        if (currentStep === 4) loc = 'Near Himalaya Hostel Road';
-        if (currentStep === 5) loc = 'Delivered at Room Door';
-
-        const updatedTrackerFields = {
-          statusIndex: currentStep,
-          progress: Math.round(((currentStep + 1) / 6) * 100),
-          eta: currentStep === 5 ? 'Delivered' : `${18 - currentStep * 3} mins`,
-          location: loc
-        };
-
-        setActiveOrderTracker(prev => {
-          if (prev && prev.orderId === newOrderId) {
-            return { ...prev, ...updatedTrackerFields };
-          }
-          return prev;
-        });
-
-        setActiveTrackers(prev => prev.map(t => {
-          if (t.orderId === newOrderId) {
-            return { ...t, ...updatedTrackerFields };
-          }
-          return t;
-        }));
-
-        // Push order state notification
-        setNotifications(prev => [
-          {
-            id: Date.now(),
-            type: 'order',
-            title: 'Order Status Update',
-            message: `Your order ${newOrderId} is now: ${TRACKING_STEPS[currentStep]}`,
-            time: 'Just now',
-            unread: true
-          },
-          ...prev
-        ]);
-
-        if (currentStep === 5) {
-          clearInterval(interval);
-          // Mark in list as delivered
-          setOrders(prev => prev.map(o => 
-            o.id === newOrderId ? { ...o, deliveryStatus: 'Delivered' } : o
-          ));
-        }
-      } else {
-        clearInterval(interval);
-      }
-    }, 12000); // advances step every 12 seconds for testing simulation speed
   };
 
   // Place checkout order
@@ -256,6 +255,7 @@ export const StudentProvider = ({ children }) => {
         const newOrderObj = {
           id: newOrderId,
           vendor: seller.name,
+          customer: user ? user.name : 'Student',
           items: `1x ${item.name}`,
           date: 'Just now',
           bill: finalAmount,
@@ -308,7 +308,10 @@ export const StudentProvider = ({ children }) => {
       markAllNotificationsRead,
       deleteNotification,
       placeOrder,
-      setOrders
+      setOrders,
+      ratings,
+      setRatings,
+      kitchenStatuses
     }}>
       {children}
     </StudentContext.Provider>

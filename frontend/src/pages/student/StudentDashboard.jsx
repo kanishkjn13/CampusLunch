@@ -2,6 +2,8 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
+import Footer from '@/components/layout/Footer';
+import { jsPDF } from 'jspdf';
 import { 
   Search, 
   Menu, 
@@ -23,8 +25,175 @@ import {
   Trash2, 
   Share2, 
   CheckCircle,
-  MessageSquare
+  MessageSquare,
+  Phone
 } from 'lucide-react';
+
+const downloadReceiptPdf = (receiptData) => {
+  const tokenCount = receiptData.tokenMappings ? receiptData.tokenMappings.length : 1;
+  const displayTokenId = receiptData.tokenMappings && receiptData.tokenMappings.length > 0 ? receiptData.tokenMappings[0].tokenId : (receiptData.orderId || '#TK-UNKNOWN');
+  // Decrease formatHeight as barcode is removed
+  const formatHeight = 160 + (tokenCount * 6.5);
+  
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: [80, formatHeight]
+  });
+
+  // Background
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, 80, formatHeight, 'F');
+
+  // Header Banner
+  doc.setFillColor(11, 28, 48);
+  doc.rect(0, 0, 80, 20, 'F');
+
+  // Logo Badge Vector
+  doc.setFillColor(34, 197, 94); // green indicator
+  doc.circle(14, 10, 5.5, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text('TC', 14, 12.8, { align: 'center' });
+
+  // Brand Name and Subtitle
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('TIFFIN CONNECT', 22, 9);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.text('Campus Marketplace Receipt', 22, 13);
+
+  // Receipt details header
+  doc.setTextColor(11, 28, 48);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('INVOICE RECEIPT', 8, 27);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.text(receiptData.date, 72, 27, { align: 'right' });
+
+  // Divider
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.25);
+  doc.line(8, 29, 72, 29);
+
+  // Meta details card
+  doc.setFillColor(248, 250, 252);
+  doc.rect(8, 33, 64, 21, 'F');
+  doc.setDrawColor(241, 245, 249);
+  doc.rect(8, 33, 64, 21, 'S');
+
+  // Meta details content
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('BILL TO:', 12, 38);
+  doc.setFont('Helvetica', 'normal');
+  doc.setTextColor(51, 65, 85);
+  doc.setFontSize(7.5);
+  doc.text(`${receiptData.customerName} (${receiptData.customerPhone})`, 12, 42);
+  doc.text(receiptData.customerLocation, 12, 46);
+  doc.text(`Slot: ${receiptData.deliverySlot}`, 12, 50);
+
+  // Prepared By Card
+  doc.setFillColor(248, 250, 252);
+  doc.rect(8, 57, 64, 11, 'F');
+  doc.setDrawColor(241, 245, 249);
+  doc.rect(8, 57, 64, 11, 'S');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('PREPARED BY:', 12, 61);
+  doc.setFont('Helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(8);
+  const cleanVendorName = receiptData.vendor.split(' & ').filter((v, i, a) => a.indexOf(v) === i).join(' & ');
+  doc.text(cleanVendorName, 12, 65);
+
+  // Items List Card
+  const listHeight = 10 + (tokenCount * 6.5);
+  const listY = 71;
+  doc.setFillColor(248, 250, 252);
+  doc.rect(8, listY, 64, listHeight, 'F');
+  doc.setDrawColor(241, 245, 249);
+  doc.rect(8, listY, 64, listHeight, 'S');
+
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('TIFFIN TOKENS', 12, listY + 5);
+
+  let itemY = listY + 11;
+  if (receiptData.tokenMappings) {
+    receiptData.tokenMappings.forEach((mapping) => {
+      doc.setFont('Helvetica', 'bold');
+      doc.setTextColor(51, 65, 85);
+      doc.setFontSize(7.5);
+      doc.text(`1x ${mapping.itemName}`, 12, itemY);
+      doc.setFont('Helvetica', 'bold');
+      doc.setTextColor(180, 83, 9);
+      doc.setFontSize(8);
+      doc.text(mapping.tokenId, 68, itemY, { align: 'right' });
+      itemY += 6;
+    });
+  }
+
+  // Cost details
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+
+  let y = listY + listHeight + 7;
+  const addCostRow = (label, val, isBold = false, color = [51, 65, 85]) => {
+    doc.setFont('Helvetica', isBold ? 'bold' : 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, 8, y);
+    doc.setTextColor(color[0], color[1], color[2]);
+    doc.text(`Rs. ${val}`, 72, y, { align: 'right' });
+    y += 4.5;
+  };
+
+  addCostRow('Subtotal', receiptData.subtotal);
+  addCostRow('GST (5%)', receiptData.gst);
+  addCostRow('Delivery Partner Fee', receiptData.deliveryFee);
+  addCostRow('Platform Handling Fee', receiptData.platformFee);
+  if (receiptData.discount > 0) {
+    addCostRow('Discount Applied', `-${receiptData.discount}`, true, [22, 163, 74]);
+  }
+
+  // Dashed divider
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineDashPattern([1.5, 1], 0);
+  doc.line(8, y, 72, y);
+  doc.setLineDashPattern([], 0);
+
+  y += 5;
+
+  // Grand Total
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('TOTAL PAID', 8, y);
+  doc.text(`Rs. ${receiptData.amount}`, 72, y, { align: 'right' });
+
+  y += 4;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Paid via ${receiptData.paymentMethod}`, 8, y);
+
+  y += 9;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.text('THANK YOU FOR YOUR ORDER!', 40, y, { align: 'center' });
+
+  doc.save(`receipt-${displayTokenId}.pdf`);
+};
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -46,13 +215,27 @@ const StudentDashboard = () => {
     applyCoupon,
     removeCoupon,
     placeOrder,
-    setOrders
+    setOrders,
+    ratings,
+    setRatings,
+    kitchenStatuses
   } = useContext(StudentContext);
 
   // Layout Tab Navigation
   const [activeTab, setActiveTab] = useState('home'); 
   const [selectedTrackingOrderId, setSelectedTrackingOrderId] = useState(null);
   const currentTracker = activeTrackers.find(t => t.orderId === selectedTrackingOrderId) || activeTrackers.filter(t => t.statusIndex < 5)[0] || activeTrackers[0] || activeOrderTracker;
+  const currentSeller = currentTracker && sellers ? (sellers.find(s => s.name === currentTracker.vendorName) || { phone: '+91 98765 43210' }) : null;
+
+  const getSellerRatingInfo = (sellerName) => {
+    const matching = (ratings || []).filter(r => r.vendorName === sellerName);
+    if (matching.length === 0) {
+      return { rating: '0.0', reviews: 0 };
+    }
+    const sum = matching.reduce((acc, r) => acc + (Number(r.foodRating) + Number(r.serviceRating)) / 2, 0);
+    const avg = (sum / matching.length).toFixed(1);
+    return { rating: avg, reviews: matching.length };
+  };
   // Detail navigation states
   const [selectedSellerId, setSelectedSellerId] = useState(null);
   const [selectedMeal, setSelectedMeal] = useState(null); // Detailed menu item modal state
@@ -147,7 +330,10 @@ const StudentDashboard = () => {
       ...seller,
       meals: matchedMeals
     };
-  }).filter(seller => seller.meals.length > 0);
+  }).filter(seller => {
+    const isClosed = kitchenStatuses && kitchenStatuses[seller.name] === false;
+    return seller.meals.length > 0 && !isClosed;
+  });
 
   // Add Item to cart helper with toast alert
   const handleAddToCart = (meal, sellerId) => {
@@ -218,14 +404,51 @@ const StudentDashboard = () => {
       setPaymentStep(i);
     }
     
+    // Capture cart calculations before placeOrder clears the cart
+    const cartSummary = cart.map(item => `${item.quantity}x ${item.name}`).join(', ');
+    const billAmount = cartTotal;
+    const billSubtotal = cartSubtotal;
+    const billGst = gst;
+    const billDeliveryFee = deliveryFee;
+    const billPlatformFee = platformFee;
+    const billDiscount = discountAmount;
+    const payApp = selectedUpiApp;
+    
+    // Capture individual cart items list for mapping tokens later
+    const tempCartItems = cart.map(item => ({ name: item.name, quantity: item.quantity }));
+
     try {
       const { orderIds, vendorNames } = await placeOrder(checkoutForm, selectedUpiApp);
+      
+      const tokenMappings = [];
+      let idIndex = 0;
+      tempCartItems.forEach((item) => {
+        for (let q = 0; q < item.quantity; q++) {
+          tokenMappings.push({
+            itemName: item.name,
+            tokenId: orderIds[idIndex] || '#TK-ERR'
+          });
+          idIndex++;
+        }
+      });
+
       setPaymentSuccessData({
         orderId: orderIds.join(', '),
-        paymentId: 'PAY' + Math.floor(100000 + Math.random() * 900000),
-        transactionId: 'TXN' + Math.floor(1000000000 + Math.random() * 9000000000),
-        eta: checkoutForm.deliverySlot.includes('Lunch') ? '1:15 PM' : '8:30 PM',
-        vendor: vendorNames.join(' & ')
+        vendor: [...new Set(vendorNames)].join(' & '),
+        items: cartSummary,
+        tokenMappings: tokenMappings,
+        amount: billAmount,
+        subtotal: billSubtotal,
+        gst: billGst,
+        deliveryFee: billDeliveryFee,
+        platformFee: billPlatformFee,
+        discount: billDiscount,
+        paymentMethod: payApp,
+        customerName: user.name,
+        customerPhone: checkoutForm.phone || user.phone,
+        customerLocation: `${checkoutForm.hostel}, Room ${checkoutForm.roomNumber}`,
+        deliverySlot: checkoutForm.deliverySlot,
+        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', Today'
       });
       setPaymentProcessing(false);
       setActiveTab('order-success');
@@ -260,6 +483,34 @@ const StudentDashboard = () => {
 
     updateUserProfile(syncedData);
     setProfileForm(syncedData);
+  }, []);
+
+  useEffect(() => {
+    // Lock body scroll to prevent window bounce and lockups on mobile
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+    const originalHeight = document.body.style.height;
+
+    if (window.innerWidth <= 767) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.height = '100%';
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.style.height = originalHeight;
+      
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
+    };
   }, []);
 
   // Handle avatar upload from gallery
@@ -393,8 +644,12 @@ const StudentDashboard = () => {
               </div>
             </header>
 
-            {/* Scrollable Container */}
-            <div className="student-app-scroll-container">
+            <div 
+              className="student-app-scroll-container"
+              style={{
+                paddingBottom: (activeTab === 'cart' && cart.length > 0) ? '180px' : '90px'
+              }}
+            >
               
               {/* HOME VIEW */}
               {activeTab === 'home' && (
@@ -467,7 +722,9 @@ const StudentDashboard = () => {
                            scrollbarWidth: 'none', 
                            msOverflowStyle: 'none',
                            scrollSnapType: 'x mandatory',
-                           width: '100%'
+                           width: '100%',
+                           scrollBehavior: 'smooth',
+                           WebkitOverflowScrolling: 'touch'
                          }}>
                            {activeTrackers.filter(t => t.statusIndex < 5).map(tracker => (
                              <div 
@@ -496,48 +753,27 @@ const StudentDashboard = () => {
                                  {tracker.vendorName} &bull; {tracker.location}
                                </p>
 
-                               <div style={{ display: 'flex', gap: '8px' }}>
-                                 <a 
-                                   href="https://maps.google.com/?q=Himalaya+Hostel+Block+Campus"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   onClick={(e) => e.stopPropagation()}
+                               <div style={{ display: 'flex', width: '100%' }}>
+                                 <button 
                                    className="order-action-btn btn-solid"
                                    style={{ 
                                      flex: 1,
                                      display: 'flex', 
                                      alignItems: 'center', 
                                      justifyContent: 'center', 
-                                     gap: '6px', 
+                                     gap: '8px', 
                                      backgroundColor: '#ffffff',
                                      color: '#855300',
-                                     padding: '8px 12px',
+                                     padding: '10px 0',
                                      borderRadius: '10px',
                                      fontWeight: 800,
-                                     fontSize: '0.78rem',
-                                     textDecoration: 'none',
+                                     fontSize: '0.8rem',
                                      border: 'none',
-                                     boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)'
+                                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
                                    }}
                                  >
-                                   <Map size={14} />
-                                   <span>Track on Maps</span>
-                                 </a>
-                                 
-                                 <button
-                                   className="order-action-btn btn-solid"
-                                   style={{ 
-                                     flex: 0.8,
-                                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                                     color: '#ffffff',
-                                     padding: '8px 12px',
-                                     borderRadius: '10px',
-                                     fontWeight: 800,
-                                     fontSize: '0.78rem',
-                                     border: '1px solid rgba(255, 255, 255, 0.3)'
-                                   }}
-                                 >
-                                   Track &rarr;
+                                   <MapPin size={16} />
+                                   <span>Track Live Location</span>
                                  </button>
                                </div>
                              </div>
@@ -553,7 +789,7 @@ const StudentDashboard = () => {
                     {orders.length > 0 && (
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Order Again</h3>
+                          <h3 className="dashboard-heading" style={{ fontSize: '0.95rem' }}>Order Again</h3>
                           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#d97706', cursor: 'pointer' }} onClick={() => setActiveTab('orders')}>See History</span>
                         </div>
 
@@ -587,7 +823,7 @@ const StudentDashboard = () => {
 
                     {/* Grouped Catalog - Horizontal Scrolls under Seller Headings */}
                     <div>
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px 0' }}>Explore Kitchens</h3>
+                      <h3 className="dashboard-heading" style={{ fontSize: '0.95rem' }}>Explore Kitchens</h3>
                       
                       {filteredSellers.map(seller => (
                         <div key={seller.id} className="seller-section" style={{ marginBottom: '24px' }}>
@@ -597,7 +833,7 @@ const StudentDashboard = () => {
                               <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{seller.name}</h4>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                                 <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                                  ★ {seller.rating} ({seller.reviews} reviews)
+                                  ★ {getSellerRatingInfo(seller.name).rating} ({getSellerRatingInfo(seller.name).reviews} reviews)
                                 </span>
                                 <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#cbd5e1' }}></span>
                                 <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{seller.servingTime}</span>
@@ -615,7 +851,7 @@ const StudentDashboard = () => {
                           </div>
 
                           {/* Horizontal scroll list */}
-                          <div className="horizontal-meal-scroll" style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>
+                          <div className="horizontal-meal-scroll" style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
                             {seller.meals.map(meal => (
                               <div 
                                 key={meal.id} 
@@ -948,9 +1184,6 @@ const StudentDashboard = () => {
                         <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '1px dashed #e2e8f0', paddingBottom: '16px' }}>
                           <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Secure Checkout</span>
                           <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0' }}>₹{cartTotal}</h2>
-                          <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700, backgroundColor: '#ecfdf5', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '6px' }}>
-                            ✓ 128-bit Encrypted SSL
-                          </span>
                         </div>
 
                         <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 14px 0', color: '#475569', textAlign: 'left' }}>Select UPI Payment App</h3>
@@ -1069,48 +1302,128 @@ const StudentDashboard = () => {
                   <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 24px 0' }}>Your payment is processed. Kitchen is preparing your order.</p>
 
                   {/* Order Receipt Card */}
-                  <div className="order-again-card" style={{ padding: '16px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', margin: '0 0 6px 0' }}>Order Receipt</h4>
+                  <div className="order-again-card" style={{ 
+                    padding: '24px 20px', 
+                    textAlign: 'left', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'stretch',
+                    gap: '14px', 
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '16px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.02)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    maxWidth: '420px',
+                    margin: '0 auto'
+                  }}>
+                    {/* Top colored stripe */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '6px',
+                      backgroundColor: '#0b1c30'
+                    }}></div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginTop: '6px' }}>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', color: '#1e293b', letterSpacing: '0.05em', margin: 0 }}>Order Receipt</h4>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{paymentSuccessData.date}</span>
+                    </div>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                      <span style={{ color: '#64748b' }}>Order Token ID</span>
-                      <span style={{ fontWeight: 800, color: '#0f172a' }}>{paymentSuccessData.orderId}</span>
+                    {/* Customer & Delivery details */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                      <div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Bill To</span>
+                        <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem', display: 'block' }}>{paymentSuccessData.customerName}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block', marginTop: '2px' }}>{paymentSuccessData.customerLocation}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>{paymentSuccessData.customerPhone}</span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Kitchen Details</span>
+                        <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem', display: 'block' }}>{paymentSuccessData.vendor.split(' & ').filter((v, i, a) => a.indexOf(v) === i).join(' & ')}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block', marginTop: '2px' }}>Slot: {paymentSuccessData.deliverySlot}</span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                      <span style={{ color: '#64748b' }}>Kitchen Name</span>
-                      <span style={{ fontWeight: 700, color: '#0f172a' }}>{paymentSuccessData.vendor}</span>
+
+                    {/* Items/Tokens List */}
+                    <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Tiffin Tokens</span>
+                      {paymentSuccessData.tokenMappings && paymentSuccessData.tokenMappings.map((mapping, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', borderBottom: idx < paymentSuccessData.tokenMappings.length - 1 ? '1px solid #f1f5f9' : 'none', paddingBottom: idx < paymentSuccessData.tokenMappings.length - 1 ? '6px' : '0' }}>
+                          <span style={{ fontWeight: 700, color: '#334155' }}>1x {mapping.itemName}</span>
+                          <span style={{ fontWeight: 850, color: '#b45309', backgroundColor: '#fef3c7', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem' }}>{mapping.tokenId}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                      <span style={{ color: '#64748b' }}>Transaction ID</span>
-                      <span style={{ color: '#475569', fontSize: '0.72rem' }}>{paymentSuccessData.transactionId}</span>
+
+                    {/* Cost Breakdown */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', color: '#64748b' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Subtotal</span>
+                        <span style={{ fontWeight: 600, color: '#334155' }}>₹{paymentSuccessData.subtotal}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>GST (5%)</span>
+                        <span style={{ fontWeight: 600, color: '#334155' }}>₹{paymentSuccessData.gst}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Delivery Partner Fee</span>
+                        <span style={{ fontWeight: 600, color: '#334155' }}>₹{paymentSuccessData.deliveryFee}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Platform Handling Fee</span>
+                        <span style={{ fontWeight: 600, color: '#334155' }}>₹{paymentSuccessData.platformFee}</span>
+                      </div>
+                      {paymentSuccessData.discount > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                          <span>Discount Applied</span>
+                          <span style={{ fontWeight: 700 }}>-₹{paymentSuccessData.discount}</span>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                      <span style={{ color: '#64748b' }}>Payment ID</span>
-                      <span style={{ color: '#475569', fontSize: '0.72rem' }}>{paymentSuccessData.paymentId}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                      <span style={{ color: '#64748b' }}>Delivery ETA</span>
-                      <span style={{ fontWeight: 700, color: '#d97706' }}>{paymentSuccessData.eta}</span>
+
+                    {/* Dashed Separator */}
+                    <div style={{ borderTop: '1px dashed #cbd5e1', margin: '4px 0 2px 0' }}></div>
+
+                    {/* Grand Total */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a' }}>Total Paid</span>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: '2px' }}>via {paymentSuccessData.paymentMethod}</span>
+                      </div>
+                      <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>₹{paymentSuccessData.amount}</span>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '28px' }}>
                     <button 
                       className="order-action-btn btn-solid" 
-                      onClick={() => setActiveTab('track-order')}
+                      onClick={() => {
+                        const activeTrack = activeTrackers.filter(t => t.statusIndex < 5)[0];
+                        if (activeTrack) {
+                          setSelectedTrackingOrderId(activeTrack.orderId);
+                          setActiveTab('track-order');
+                        } else {
+                          setActiveTab('orders');
+                        }
+                      }}
                       style={{ padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
                     >
-                      Track Order Live
+                      Vendor Live Location
                     </button>
                     
                     <button 
                       className="order-action-btn" 
                       onClick={() => {
-                        triggerToast('Receipt downloaded successfully!');
+                        downloadReceiptPdf(paymentSuccessData);
+                        triggerToast('Downloading PDF Receipt...');
                       }}
                       style={{ padding: '10px 0', borderRadius: '12px', fontWeight: 800, border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569' }}
                     >
-                      Download Receipt
+                      Download Receipt (PDF)
                     </button>
 
                     <button 
@@ -1125,7 +1438,7 @@ const StudentDashboard = () => {
               )}
 
               {/* LIVE ORDER TRACKER VIEW */}
-              {activeTab === 'track-order' && currentTracker && (
+              {activeTab === 'track-order' && currentTracker && currentSeller && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <button 
@@ -1134,147 +1447,71 @@ const StudentDashboard = () => {
                     >
                       <ArrowLeft size={20} />
                     </button>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Live Tracker ({currentTracker.orderId})</h2>
+                    <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Vendor Live Location ({currentTracker.orderId})</h2>
                   </div>
 
-                  {/* ETA & Map Card */}
-                  <div className="order-again-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Estimated Delivery</span>
-                        <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#b45309', margin: '4px 0 0 0' }}>{currentTracker.eta}</h3>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Current Location</span>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>{currentTracker.location}</p>
-                      </div>
-                    </div>
+                  {/* Interactive Google Map */}
+                  <div className="order-again-card" style={{ padding: '0px', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9' }}>
+                    <iframe 
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3683.0805315481755!2d75.8953181!3d22.7531235!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x396302a247d519b5%3A0xb36de176249e0c52!2sIndore%20Institute%20of%20Technology!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
+                      width="100%" 
+                      height="320" 
+                      style={{ border: 0 }} 
+                      allowFullScreen="" 
+                      loading="lazy" 
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
+                  </div>
 
-                    {/* Progress Bar */}
-                    <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
-                      <div style={{ 
-                        width: `${(currentTracker.statusIndex / 5) * 100}%`, 
-                        height: '100%', 
-                        backgroundColor: '#f59e0b', 
-                        transition: 'width 0.5s ease-out' 
-                      }}></div>
-                    </div>
-
-                    {/* Driver Card */}
+                  {/* Vendor Contact details */}
+                  <div className="order-again-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid #f1f5f9' }}>
                     <div style={{ 
+                      width: '46px', 
+                      height: '46px', 
+                      borderRadius: '50%', 
+                      backgroundColor: '#fef3c7', 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: '12px', 
-                      padding: '12px', 
-                      backgroundColor: '#f8fafc', 
-                      borderRadius: '12px',
-                      border: '1px solid #f1f5f9'
+                      justifyContent: 'center',
+                      color: '#d97706',
+                      fontWeight: 950,
+                      fontSize: '1.25rem'
                     }}>
-                      <img 
-                        src={currentTracker.driverInfo.photo} 
-                        alt={currentTracker.driverInfo.name} 
-                        style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>{currentTracker.driverInfo.name}</h4>
-                        <p style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Rider Agent • {currentTracker.driverInfo.vehicle}</p>
-                      </div>
-                      <a 
-                        href={`tel:${currentTracker.driverInfo.phone}`}
-                        style={{ 
-                          padding: '8px 12px', 
-                          borderRadius: '8px', 
-                          backgroundColor: '#0f172a', 
-                          color: '#ffffff', 
-                          fontSize: '0.75rem', 
-                          fontWeight: 800, 
-                          textDecoration: 'none' 
-                        }}
-                      >
-                        Call
-                      </a>
+                      {currentTracker.vendorName.charAt(0)}
                     </div>
-                  </div>
-
-                  {/* Stepper Steps */}
-                  <div className="order-again-card" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {[
-                      'Order Confirmed',
-                      'Preparing Food',
-                      'Packed',
-                      'Picked Up',
-                      'Out For Delivery',
-                      'Delivered'
-                    ].map((step, idx) => {
-                      const isCompleted = idx <= currentTracker.statusIndex;
-                      const isCurrent = idx === currentTracker.statusIndex;
-                      
-                      return (
-                        <div key={idx} style={{ display: 'flex', gap: '16px', position: 'relative', textAlign: 'left' }}>
-                          {/* Step line connector */}
-                          {idx < 5 && (
-                            <div style={{ 
-                              position: 'absolute', 
-                              left: '11px', 
-                              top: '24px', 
-                              bottom: '-20px', 
-                              width: '2px', 
-                              backgroundColor: idx < currentTracker.statusIndex ? '#f59e0b' : '#e2e8f0',
-                              zIndex: 1
-                            }}></div>
-                          )}
-
-                          {/* Step Indicator Dot */}
-                          <div style={{ 
-                            width: '24px', 
-                            height: '24px', 
-                            borderRadius: '50%', 
-                            backgroundColor: isCompleted ? '#f59e0b' : '#ffffff', 
-                            border: isCompleted ? 'none' : '2px solid #cbd5e1',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ffffff',
-                            fontSize: '0.7rem',
-                            fontWeight: 800,
-                            zIndex: 2,
-                            boxShadow: isCurrent ? '0 0 0 4px rgba(245, 158, 11, 0.2)' : 'none'
-                          }}>
-                            {isCompleted ? '✓' : idx + 1}
-                          </div>
-
-                          {/* Step Text details */}
-                          <div style={{ flex: 1, paddingBottom: '8px' }}>
-                            <h4 style={{ 
-                              fontSize: '0.85rem', 
-                              fontWeight: isCurrent ? 800 : 600, 
-                              color: isCurrent ? '#0b1c30' : isCompleted ? '#334155' : '#94a3b8',
-                              margin: 0
-                            }}>
-                              {step}
-                            </h4>
-                            {isCurrent && (
-                              <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>
-                                {idx === 0 && 'The kitchen has accepted and confirmed your order.'}
-                                {idx === 1 && 'Chef is carefully preparing your tiffin container.'}
-                                {idx === 2 && 'Food is packed and hot-insulated for transport.'}
-                                {idx === 3 && 'Rider has collected your meal package.'}
-                                {idx === 4 && `Rider is on the way. ETA: ${currentTracker.eta}.`}
-                                {idx === 5 && 'Order has been successfully hand-delivered.'}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <h3 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>{currentTracker.vendorName}</h3>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>Pickup Point: {currentTracker.location}</p>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', fontWeight: 600, color: '#475569' }}>Phone: {currentSeller.phone || '+91 98765 43210'}</p>
+                    </div>
+                    <a 
+                      href={`tel:${currentSeller.phone || '9876543210'}`}
+                      style={{ 
+                        padding: '10px 16px', 
+                        borderRadius: '10px', 
+                        backgroundColor: '#0f172a', 
+                        color: '#ffffff', 
+                        fontSize: '0.78rem', 
+                        fontWeight: 800, 
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Phone size={14} />
+                      Call
+                    </a>
                   </div>
                 </div>
               )}
 
+
+
               {/* ORDERS TAB VIEW */}
               {activeTab === 'orders' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>My Orders</h2>
+                  <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>My Orders</h2>
                   
                   {/* Active Tokens Info */}
                   {activeTrackers && activeTrackers.filter(t => t.statusIndex < 5).map(tracker => (
@@ -1290,63 +1527,92 @@ const StudentDashboard = () => {
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', display: 'block', textTransform: 'uppercase', marginBottom: '4px' }}>Active Order Tracker</span>
                         <h4 style={{ fontSize: '1.05rem', fontWeight: 800 }}>Token {tracker.orderId}</h4>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>{tracker.vendorName} • ETA: {tracker.eta}</p>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>{tracker.vendorName} • Pickup Point: {tracker.location}</p>
                       </div>
                       <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f59e0b' }}>VIEW &rarr;</span>
                     </div>
                   ))}
 
                   {/* Past Orders Queue */}
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: '12px 0 0 0' }}>Order History</h3>
+                  <h3 className="dashboard-heading" style={{ fontSize: '0.95rem' }}>Order History</h3>
                   <div className="student-rated-list-grid">
-                    {orders.map(order => (
-                      <div key={order.id} className="order-again-card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                          <div style={{ flex: 1 }}>
-                            <h4 style={{ fontSize: '0.85rem', fontWeight: 800 }}>Token {order.id}</h4>
-                            <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>{order.vendor} • {order.date} • {order.items}</p>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginTop: '4px' }}>Bill Paid: ₹{order.bill} via {order.paymentMethod}</span>
+                    {orders.filter(o => o.deliveryStatus === 'Delivered' || o.deliveryStatus === 'Cancelled').length === 0 ? (
+                      <div className="order-again-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', border: '2px dashed #cbd5e1', borderRadius: '12px', color: '#64748b', textAlign: 'center', background: '#f8fafc', width: '100%', gridColumn: '1 / -1' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', color: '#94a3b8', marginBottom: '8px' }}>shopping_bag</span>
+                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#475569' }}>No past orders yet</p>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>Delivered orders will be displayed in your order history.</p>
+                      </div>
+                    ) : (
+                      orders.filter(o => o.deliveryStatus === 'Delivered' || o.deliveryStatus === 'Cancelled').map(order => (
+                        <div key={order.id} className="order-again-card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                            <div style={{ flex: 1 }}>
+                              <h4 style={{ fontSize: '0.85rem', fontWeight: 800 }}>Token {order.id}</h4>
+                              <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>{order.vendor} • {order.date} • {order.items}</p>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginTop: '4px' }}>Bill Paid: ₹{order.bill} via {order.paymentMethod}</span>
+                            </div>
+                            
+                            <span style={{ 
+                              fontWeight: 800, 
+                              color: order.deliveryStatus === 'Cancelled' ? '#ef4444' : '#059669', 
+                              fontSize: '0.78rem' 
+                            }}>
+                              {order.deliveryStatus.toUpperCase()}
+                            </span>
                           </div>
                           
-                          <span style={{ 
-                            fontWeight: 800, 
-                            color: order.deliveryStatus === 'Cancelled' ? '#ef4444' : '#059669', 
-                            fontSize: '0.78rem' 
-                          }}>
-                            {order.deliveryStatus.toUpperCase()}
-                          </span>
-                        </div>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid rgba(0, 0, 0, 0.04)', paddingTop: '8px', width: '100%' }}>
-                          {order.deliveryStatus === 'Delivered' && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid rgba(0, 0, 0, 0.04)', paddingTop: '8px', width: '100%' }}>
+                            {order.deliveryStatus === 'Delivered' && (
+                              <button 
+                                className="order-action-btn btn-solid"
+                                style={{ padding: '6px 12px', fontSize: '0.72rem', borderRadius: '8px', fontWeight: 800 }}
+                                onClick={() => setRatingModal({
+                                  isOpen: true,
+                                  orderId: order.id,
+                                  vendorName: order.vendor,
+                                  foodRating: 0,
+                                  serviceRating: 0,
+                                  comment: ''
+                                })}
+                              >
+                                Rate Vendor & Services
+                              </button>
+                            )}
+                            
                             <button 
-                              className="order-action-btn btn-solid"
-                              style={{ padding: '6px 12px', fontSize: '0.72rem', borderRadius: '8px', fontWeight: 800 }}
-                              onClick={() => setRatingModal({
-                                isOpen: true,
-                                orderId: order.id,
-                                vendorName: order.vendor,
-                                foodRating: 0,
-                                serviceRating: 0,
-                                comment: ''
-                              })}
+                              className="order-action-btn"
+                              onClick={() => {
+                                const totalBill = order.bill;
+                                const estSubtotal = Math.max(10, Math.round(totalBill / 1.05) - 25);
+                                const estGst = Math.round(estSubtotal * 0.05);
+                                downloadReceiptPdf({
+                                  orderId: order.id,
+                                  vendor: order.vendor,
+                                  items: order.items,
+                                  tokenMappings: [{ itemName: order.items.replace(/^\d+x /, ''), tokenId: order.id }],
+                                  amount: totalBill,
+                                  subtotal: estSubtotal,
+                                  gst: estGst,
+                                  deliveryFee: 20,
+                                  platformFee: 5,
+                                  discount: 0,
+                                  paymentMethod: order.paymentMethod || 'Google Pay',
+                                  customerName: profileForm.name || user.name || 'Student',
+                                  customerPhone: profileForm.phone || user.phone || '9876543210',
+                                  customerLocation: profileForm.hostel ? `${profileForm.hostel}, Room ${profileForm.roomNumber}` : 'Hostel B, Room 302',
+                                  deliverySlot: 'Lunch 12:30 PM',
+                                  date: order.date
+                                });
+                                triggerToast('Downloading PDF Receipt...');
+                              }}
+                              style={{ padding: '6px 12px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', fontWeight: 800 }}
                             >
-                              Rate Vendor & Services
+                              Receipt
                             </button>
-                          )}
-                          
-                          <button 
-                            className="order-action-btn"
-                            onClick={() => {
-                              triggerToast('Receipt downloaded successfully!');
-                            }}
-                            style={{ padding: '6px 12px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', fontWeight: 800 }}
-                          >
-                            Receipt
-                          </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -1482,7 +1748,7 @@ const StudentDashboard = () => {
                         localStorage.removeItem('role');
                         navigate('/');
                       }}
-                      style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem' }}
+                      style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', marginTop: '8px', marginBottom: '4px' }}
                     >
                       <LogOut size={16} />
                       Logout Account
@@ -1491,14 +1757,14 @@ const StudentDashboard = () => {
                     <button 
                       className="profile-logout-btn" 
                       onClick={() => setShowDeleteConfirm(true)}
-                      style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', color: '#ef4444', borderColor: '#fee2e2', backgroundColor: '#fff5f5' }}
+                      style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', color: '#ef4444', borderColor: '#fee2e2', backgroundColor: '#fff5f5', marginTop: '4px', marginBottom: '8px' }}
                     >
                       Delete Account
                     </button>
                   </div>
                 </div>
               )}
-
+              <Footer />
             </div>
 
             {/* Relocated Premium Sticky Bottom Bar (Sticks fixed at bottom of viewport above the nav) */}
@@ -1773,6 +2039,21 @@ const StudentDashboard = () => {
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem', opacity: (ratingModal.foodRating > 0 && ratingModal.serviceRating > 0) ? 1 : 0.5 }}
                 disabled={!(ratingModal.foodRating > 0 && ratingModal.serviceRating > 0)}
                 onClick={() => {
+                  if (setRatings) {
+                    setRatings(prev => [
+                      {
+                        id: Date.now(),
+                        date: new Date().toLocaleDateString(),
+                        orderId: ratingModal.orderId,
+                        vendorName: ratingModal.vendorName,
+                        foodRating: ratingModal.foodRating,
+                        serviceRating: ratingModal.serviceRating,
+                        comment: ratingModal.comment,
+                        studentName: profileForm.name || user.name || 'Student'
+                      },
+                      ...(prev || [])
+                    ]);
+                  }
                   triggerToast(`Feedback for ${ratingModal.vendorName} submitted successfully!`);
                   setRatingModal({ isOpen: false, orderId: null, vendorName: '', foodRating: 0, serviceRating: 0, comment: '' });
                 }}
