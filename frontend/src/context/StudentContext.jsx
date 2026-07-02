@@ -29,7 +29,15 @@ export const StudentProvider = ({ children }) => {
       avatar: localStorage.getItem(`student_avatar_${activeEmail}`) || INITIAL_USER_PROFILE.avatar
     };
   });
-  const [sellers, setSellers] = useState(INITIAL_SELLERS);
+  const [sellers, setSellers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tiffin_connect_sellers');
+      return (saved && saved !== 'undefined') ? JSON.parse(saved) : INITIAL_SELLERS;
+    } catch (e) {
+      console.error("Failed to parse sellers from localStorage:", e);
+      return INITIAL_SELLERS;
+    }
+  });
   const [coupons] = useState(INITIAL_COUPONS);
   const [cart, setCart] = useState([]);
   const [activeCoupon, setActiveCoupon] = useState(null);
@@ -40,11 +48,61 @@ export const StudentProvider = ({ children }) => {
   // Favorites State (Array of food ids or seller ids)
   const [favorites, setFavorites] = useState(['m1', 'd1']);
   
-  // Orders State
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('tiffin_connect_orders');
-      return (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
+      if (saved && saved !== 'undefined') {
+        const parsed = JSON.parse(saved);
+        const isValid = Array.isArray(parsed) && parsed.every(o => typeof o.items === 'string');
+        if (isValid && parsed.some(o => o.id === 'ORD-88490')) {
+          return parsed;
+        }
+      }
+      // Seed some realistic historical completed orders with items formatted as a string
+      const historical = [
+        {
+          id: 'ORD-88514',
+          vendor: 'Spice Garden',
+          items: '2x South Indian Deluxe Thali',
+          bill: 220,
+          deliveryStatus: 'Delivered',
+          paymentStatus: 'Paid',
+          customerName: 'John Doe',
+          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toLocaleDateString() // 5 days ago (This Week)
+        },
+        {
+          id: 'ORD-88490',
+          vendor: 'Spice Garden',
+          items: '2x Chole Bhature Combo',
+          bill: 160,
+          deliveryStatus: 'Delivered',
+          paymentStatus: 'Paid',
+          customerName: 'Kunal Sen',
+          date: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toLocaleDateString() // 9 days ago (Last Week)
+        },
+        {
+          id: 'ORD-88412',
+          vendor: 'The Curry Pot',
+          items: '2x Kadai Paneer Combo',
+          bill: 310,
+          deliveryStatus: 'Delivered',
+          paymentStatus: 'Paid',
+          customerName: 'Sara Riley',
+          date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toLocaleDateString() // 10 days ago
+        },
+        {
+          id: 'ORD-88310',
+          vendor: 'Spice Garden',
+          items: '3x Homestyle Lunch Pack',
+          bill: 450,
+          deliveryStatus: 'Delivered',
+          paymentStatus: 'Paid',
+          customerName: 'Amit Sharma',
+          date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toLocaleDateString() // 40 days ago (Older - All-Time)
+        }
+      ];
+      localStorage.setItem('tiffin_connect_orders', JSON.stringify(historical));
+      return historical;
     } catch (e) {
       console.error("Failed to parse orders from localStorage:", e);
       return [];
@@ -96,6 +154,29 @@ export const StudentProvider = ({ children }) => {
   }, [ratings]);
 
   useEffect(() => {
+    localStorage.setItem('tiffin_connect_sellers', JSON.stringify(sellers));
+  }, [sellers]);
+
+  // Reset stock at 12:00 AM daily
+  const checkMidnightReset = () => {
+    const todayStr = new Date().toDateString();
+    const lastReset = localStorage.getItem('last_stock_reset');
+    
+    if (lastReset !== todayStr) {
+      setSellers(INITIAL_SELLERS);
+      localStorage.setItem('tiffin_connect_sellers', JSON.stringify(INITIAL_SELLERS));
+      localStorage.setItem('last_stock_reset', todayStr);
+      console.log("Daily midnight stock reset executed successfully.");
+    }
+  };
+
+  useEffect(() => {
+    checkMidnightReset();
+    const interval = setInterval(checkMidnightReset, 30000); // Check every 30s for date boundary crossings
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     const handleStorageChange = (e) => {
       try {
         if (e.key === 'tiffin_connect_orders') {
@@ -104,11 +185,24 @@ export const StudentProvider = ({ children }) => {
         }
         if (e.key === 'tiffin_connect_trackers') {
           const saved = localStorage.getItem('tiffin_connect_trackers');
-          if (saved && saved !== 'undefined') setActiveTrackers(JSON.parse(saved));
+          if (saved && saved !== 'undefined') {
+            const parsed = JSON.parse(saved);
+            setActiveTrackers(parsed);
+            // Also sync activeOrderTracker status
+            setActiveOrderTracker(prev => {
+              if (!prev) return null;
+              const matched = parsed.find(t => t.orderId === prev.orderId);
+              return matched || prev;
+            });
+          }
         }
         if (e.key === 'tiffin_connect_ratings') {
           const saved = localStorage.getItem('tiffin_connect_ratings');
           if (saved && saved !== 'undefined') setRatings(JSON.parse(saved));
+        }
+        if (e.key === 'tiffin_connect_sellers') {
+          const saved = localStorage.getItem('tiffin_connect_sellers');
+          if (saved && saved !== 'undefined') setSellers(JSON.parse(saved));
         }
         if (e.key && e.key.startsWith('kitchen_status_')) {
           const name = e.key.replace('kitchen_status_', '');
@@ -139,16 +233,30 @@ export const StudentProvider = ({ children }) => {
     if (cart.length > 0 && cart[0].sellerId !== sellerId) {
       return false;
     }
+    const seller = sellers.find(s => s.id === sellerId);
+    const contextMeal = seller ? seller.meals.find(m => m.id === meal.id) : null;
+    const stockLimit = contextMeal ? (contextMeal.availableQty ?? 999) : 999;
+
+    let addedSuccessfully = true;
+
     setCart(prev => {
       const existing = prev.find(item => item.id === meal.id);
       if (existing) {
+        if (existing.quantity >= stockLimit) {
+          addedSuccessfully = false;
+          return prev;
+        }
         return prev.map(item => 
           item.id === meal.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
+      if (stockLimit <= 0) {
+        addedSuccessfully = false;
+        return prev;
+      }
       return [...prev, { ...meal, quantity: 1, sellerId }];
     });
-    return true;
+    return addedSuccessfully;
   };
 
   const updateCartQuantity = (mealId, delta) => {
@@ -156,6 +264,14 @@ export const StudentProvider = ({ children }) => {
       return prev.map(item => {
         if (item.id === mealId) {
           const nextQty = item.quantity + delta;
+          if (delta > 0) {
+            const seller = sellers.find(s => s.id === item.sellerId);
+            const contextMeal = seller ? seller.meals.find(m => m.id === mealId) : null;
+            const stockLimit = contextMeal ? (contextMeal.availableQty ?? 999) : 999;
+            if (nextQty > stockLimit) {
+              return item; // Cap quantity at stock limit
+            }
+          }
           return nextQty > 0 ? { ...item, quantity: nextQty } : null;
         }
         return item;
@@ -273,6 +389,26 @@ export const StudentProvider = ({ children }) => {
       }
     });
 
+    // Reduce stock quantities in sellers list based on cart items purchased
+    setSellers(prevSellers => prevSellers.map(s => {
+      const sellerCartItems = cart.filter(item => item.sellerId === s.id);
+      if (sellerCartItems.length > 0) {
+        return {
+          ...s,
+          meals: (s.meals || []).map(m => {
+            const matchingCartItem = sellerCartItems.find(item => item.id === m.id);
+            if (matchingCartItem) {
+              const currentStock = m.availableQty || 0;
+              const nextStock = Math.max(0, currentStock - matchingCartItem.quantity);
+              return { ...m, availableQty: nextStock };
+            }
+            return m;
+          })
+        };
+      }
+      return s;
+    }));
+
     // Update orders list in state
     setOrders(prev => [...newOrders, ...prev]);
 
@@ -287,6 +423,7 @@ export const StudentProvider = ({ children }) => {
     <StudentContext.Provider value={{
       user,
       sellers,
+      setSellers,
       coupons,
       cart,
       activeCoupon,

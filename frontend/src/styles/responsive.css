@@ -2328,3 +2328,39 @@
     bottom: 72px !important; /* sit exactly above the 72px mobile bottom nav */
   }
 }
+
+/* ==========================================================================
+   Tiffin Availability Form & Card Responsive Enhancements
+   ========================================================================== */
+@media (max-width: 767px) {
+  .availability-container {
+    padding: 0 !important;
+  }
+  .availability-items-list {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .availability-item-card {
+    padding: 12px 14px !important;
+  }
+  
+  /* Form Responsive Styles */
+  .add-tiffin-form {
+    padding: 16px 8px !important;
+    border-radius: 16px !important;
+    gap: 14px !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+  }
+  .add-tiffin-grid-2col {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  .add-tiffin-form input,
+  .add-tiffin-form select,
+  .add-tiffin-form textarea {
+    padding: 10px 12px !important;
+    font-size: 0.82rem !important;
+  }
+}
