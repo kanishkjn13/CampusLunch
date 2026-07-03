@@ -12,7 +12,8 @@ from .serializers import (
     LogoutSerializer,
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
-    ResetPasswordSerializer
+    ResetPasswordSerializer,
+    CurrentUserSerializer
 )  
 
 
@@ -93,13 +94,7 @@ class LoginView(CreateAPIView):
                 "message": "Login successful.",
                 "access": data["access"],
                 "refresh": data["refresh"],
-                "user": {
-                    "id": str(user.id),
-                    "full_name": user.full_name,
-                    "email": user.email,
-                    "phone": user.phone,
-                    "role": user.role,
-                },
+                "user": CurrentUserSerializer(user).data,
             },
             status=status.HTTP_200_OK,
         )
@@ -191,6 +186,22 @@ class ResetPasswordView(GenericAPIView):
             status=status.HTTP_200_OK,
         )
 
+
+
+class CurrentUserView(GenericAPIView):
+
+    serializer_class = CurrentUserSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(request.user)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
 
 
 
