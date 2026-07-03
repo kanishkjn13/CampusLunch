@@ -309,7 +309,9 @@ class ForgotPasswordSerializer(serializers.Serializer):
 
         except User.DoesNotExist:
             raise serializers.ValidationError(
-                "No account found with this email."
+               {
+    "message": "If an account with that email exists, a password reset link has been sent."
+}
             )
 
         self.user = user
@@ -384,3 +386,19 @@ class ResetPasswordSerializer(serializers.Serializer):
         self.user.save()
 
         return self.user
+
+
+# profile current user
+# Current User Serializer
+class CurrentUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+
+        fields = [
+            "id",
+            "full_name",
+            "email",
+            "phone",
+            "role",
+        ]
