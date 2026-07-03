@@ -21,18 +21,49 @@ import {
   LogOut,
   Shield,
   Package,
-  MessageSquare
+  MessageSquare,
+  Plus,
+  ArrowLeft
 } from 'lucide-react';
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
-  // Vendor details from localStorage
+  // Vendor details from localStorage (reactive state hooks)
   const storedSelfie = localStorage.getItem('vendor_selfie');
-  const vendorChefAvatar = storedSelfie || "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&h=100&fit=crop&q=80";
-  const vendorName = localStorage.getItem('vendor_name') || 'Sharma Tiffin Center';
-  const vendorPhone = localStorage.getItem('vendor_phone') || '9876543210';
-  const vendorEmail = localStorage.getItem('vendor_email') || 'vendor@campuslunch.com';
-  const vendorLicense = localStorage.getItem('vendor_license') || '12345678901234';
+  const [vendorChefAvatar, setVendorChefAvatar] = useState(storedSelfie || "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&h=100&fit=crop&q=80");
+  const [vendorName, setVendorName] = useState(() => localStorage.getItem('vendor_name') || 'Sharma Tiffin Center');
+  const [vendorPhone, setVendorPhone] = useState(() => localStorage.getItem('vendor_phone') || '9876543210');
+  const [vendorEmail, setVendorEmail] = useState(() => localStorage.getItem('vendor_email') || 'vendor@campuslunch.com');
+  const [vendorLicense, setVendorLicense] = useState(() => localStorage.getItem('vendor_license') || '12345678901234');
+
+  // Nested settings states
+  const [activeProfileSubPage, setActiveProfileSubPage] = useState('menu'); // 'menu', 'edit-profile', 'operating-settings', 'change-password', 'reset-password-request', 'help-center-faq'
+  
+  // Edit Profile form fields state
+  const [editProfileForm, setEditProfileForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    license: '',
+    avatar: ''
+  });
+
+  // Operating settings fields state
+  const [operatingForm, setOperatingForm] = useState({
+    workingDays: localStorage.getItem('vendor_working_days') || 'Mon - Sat',
+    timings: localStorage.getItem('vendor_timings') || '10:00 AM - 08:00 PM',
+    autoAccept: localStorage.getItem('vendor_auto_accept') !== 'disabled'
+  });
+
+  // Change Password state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: ''
+  });
+
+  const [passwordResetEmail, setPasswordResetEmail] = useState('');
+  const [deleteAccountModal, setDeleteAccountModal] = useState(false);
 
   const [kitchenOpen, setKitchenOpen] = useState(() => {
     const status = localStorage.getItem('kitchen_status_' + vendorName);
@@ -67,7 +98,20 @@ const VendorDashboard = () => {
   // Confirmation Modal state
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, orderId: null });
 
-  const { orders: contextOrders, setOrders, ratings: contextRatings } = useContext(StudentContext);
+  // Add Item to Availability form state
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
+  const [newItem, setNewItem] = useState({
+    name: '',
+    price: '',
+    type: 'Veg',
+    description: '',
+    quantity: 15,
+    prepTime: '20 mins',
+    ingredients: '',
+    image: ''
+  });
+
+  const { orders: contextOrders, setOrders, ratings: contextRatings, sellers, setSellers, setActiveTrackers } = useContext(StudentContext);
 
   // State-driven active orders with details
   const [activeOrders, setActiveOrders] = useState([]);
@@ -107,26 +151,41 @@ const VendorDashboard = () => {
   }, [contextOrders, vendorName]);
 
   // State-driven food items availability
-  const [offlineSales, setOfflineSales] = useState(12);
-  const [foodItems, setFoodItems] = useState([
-    { id: 1, name: 'Deluxe Veg Thali', price: '₹120', quantity: 15 },
-    { id: 2, name: 'Deluxe Chicken Thali', price: '₹150', quantity: 3 },
-    { id: 3, name: 'Special Paneer Combo', price: '₹140', quantity: 12 },
-  ]);
+  // Derive current vendor's meals directly from the shared context
+  const currentSeller = (sellers || []).find(s => s.name === vendorName) || (sellers || [])[0];
+  const foodItems = currentSeller ? (currentSeller.meals || []) : [];
 
-  const handleIncreaseQty = (id) => {
-    setFoodItems(prev => prev.map(item => 
-      item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-    ));
+  const [offlineSales, setOfflineSales] = useState(12);
+
+  const handleIncreaseQty = (itemId) => {
+    if (!currentSeller) return;
+    setSellers(prevSellers => prevSellers.map(s => {
+      if (s.id === currentSeller.id) {
+        return {
+          ...s,
+          meals: (s.meals || []).map(m => m.id === itemId ? { ...m, availableQty: (m.availableQty || 0) + 1 } : m)
+        };
+      }
+      return s;
+    }));
   };
 
-  const handleDecreaseQty = (id) => {
-    setFoodItems(prev => prev.map(item => {
-      if (item.id === id && item.quantity > 0) {
-        setOfflineSales(s => s + 1);
-        return { ...item, quantity: item.quantity - 1 };
+  const handleDecreaseQty = (itemId) => {
+    if (!currentSeller) return;
+    setSellers(prevSellers => prevSellers.map(s => {
+      if (s.id === currentSeller.id) {
+        return {
+          ...s,
+          meals: (s.meals || []).map(m => {
+            if (m.id === itemId && (m.availableQty || 0) > 0) {
+              setOfflineSales(s => s + 1);
+              return { ...m, availableQty: m.availableQty - 1 };
+            }
+            return m;
+          })
+        };
       }
-      return item;
+      return s;
     }));
   };
 
@@ -145,8 +204,157 @@ const VendorDashboard = () => {
 
   const handleDeliverConfirm = (id) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Delivered' } : o));
+    
+    // Progress corresponding tracking item to 'Delivered' (statusIndex: 5)
+    setActiveTrackers(prev => prev.map(t => {
+      if (t.orderId === id) {
+        return {
+          ...t,
+          statusIndex: 5,
+          progress: 100,
+          eta: 'Delivered',
+          location: 'Delivered'
+        };
+      }
+      return t;
+    }));
+
     setConfirmModal({ isOpen: false, orderId: null });
     setExpandedOrderId(null);
+  };
+
+  const handleAddNewTiffin = (e) => {
+    e.preventDefault();
+    if (!newItem.name || !newItem.price) {
+      alert("Please fill in the name and price.");
+      return;
+    }
+    
+    const newMealId = 'm_' + Date.now();
+    const newMealObj = {
+      id: newMealId,
+      name: newItem.name,
+      price: Number(newItem.price),
+      type: newItem.type,
+      description: newItem.description || 'Freshly prepared delicious meal combo.',
+      image: newItem.image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=300&h=200&fit=crop&q=80',
+      rating: 5.0,
+      prepTime: newItem.prepTime || '20 mins',
+      availableQty: Number(newItem.quantity || 15),
+      ingredients: newItem.ingredients || 'Fresh garden ingredients, mixed spices.',
+      nutritionalInfo: { Calories: '600 kcal', Protein: '20g', Carbs: '75g', Fat: '20g' }
+    };
+    
+    setSellers(prev => prev.map(s => {
+      if (s.id === currentSeller.id) {
+        return {
+          ...s,
+          meals: [...(s.meals || []), newMealObj]
+        };
+      }
+      return s;
+    }));
+    
+    setNewItem({
+      name: '',
+      price: '',
+      type: 'Veg',
+      description: '',
+      quantity: 15,
+      prepTime: '20 mins',
+      ingredients: '',
+      image: ''
+    });
+    
+    setShowAddItemForm(false);
+  };
+
+  const handleOpenEditProfile = () => {
+    setEditProfileForm({
+      name: vendorName,
+      phone: vendorPhone,
+      email: vendorEmail,
+      license: vendorLicense,
+      avatar: vendorChefAvatar
+    });
+    setActiveProfileSubPage('edit-profile');
+  };
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    if (!editProfileForm.name || !editProfileForm.phone || !editProfileForm.email || !editProfileForm.license) {
+      alert("All fields marked * are required.");
+      return;
+    }
+    
+    // Update state
+    setVendorName(editProfileForm.name);
+    setVendorPhone(editProfileForm.phone);
+    setVendorEmail(editProfileForm.email);
+    setVendorLicense(editProfileForm.license);
+    setVendorChefAvatar(editProfileForm.avatar);
+    
+    // Save to localStorage
+    localStorage.setItem('vendor_name', editProfileForm.name);
+    localStorage.setItem('vendor_phone', editProfileForm.phone);
+    localStorage.setItem('vendor_email', editProfileForm.email);
+    localStorage.setItem('vendor_license', editProfileForm.license);
+    localStorage.setItem('vendor_selfie', editProfileForm.avatar);
+    
+    alert("Profile details saved successfully!");
+    setActiveProfileSubPage('menu');
+  };
+
+  const handleSaveOperatingSettings = (e) => {
+    e.preventDefault();
+    
+    // Save to localStorage
+    localStorage.setItem('vendor_working_days', operatingForm.workingDays);
+    localStorage.setItem('vendor_timings', operatingForm.timings);
+    localStorage.setItem('vendor_auto_accept', operatingForm.autoAccept ? 'enabled' : 'disabled');
+    
+    alert("Operating settings updated successfully!");
+    setActiveProfileSubPage('menu');
+  };
+
+  const handleChangePassword = (e) => {
+    e.preventDefault();
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmNewPassword) {
+      alert("Please fill in all password fields.");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+      alert("New password and confirm password fields do not match!");
+      return;
+    }
+    
+    alert("Your password has been changed successfully!");
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+    setActiveProfileSubPage('menu');
+  };
+
+  const handleRequestPasswordReset = (e) => {
+    e.preventDefault();
+    if (!passwordResetEmail) {
+      alert("Please enter your email address.");
+      return;
+    }
+    alert(`A password reset link has been dispatched to ${passwordResetEmail}`);
+    setPasswordResetEmail('');
+    setActiveProfileSubPage('menu');
+  };
+
+  const handleDeleteAccountConfirm = () => {
+    // Clear credentials
+    localStorage.removeItem('role');
+    localStorage.removeItem('vendor_name');
+    localStorage.removeItem('vendor_phone');
+    localStorage.removeItem('vendor_email');
+    localStorage.removeItem('vendor_license');
+    localStorage.removeItem('vendor_selfie');
+    
+    setDeleteAccountModal(false);
+    navigate('/');
   };
 
   const toggleExpand = (id, e) => {
@@ -157,30 +365,86 @@ const VendorDashboard = () => {
     setExpandedOrderId(prev => prev === id ? null : id);
   };
 
-  const totalAvailablePackets = foodItems.reduce((acc, curr) => acc + curr.quantity, 0);
+  const totalAvailablePackets = foodItems.reduce((acc, curr) => acc + (curr.availableQty || 0), 0);
 
   // Sales metrics based on selected period
   const getSalesMetrics = () => {
     const completedOrdersList = (contextOrders || []).filter(o => o.vendor === vendorName && o.deliveryStatus === 'Delivered');
     
-    // Filter by period if needed
+    // Filter by period
     let filtered = completedOrdersList;
     if (salesPeriod === 'today') {
-      filtered = completedOrdersList.filter(o => o.date === 'Just now' || o.date === new Date().toLocaleDateString());
+      filtered = completedOrdersList.filter(o => {
+        const dStr = (o.date || '').toLowerCase();
+        return dStr.includes('today') || dStr.includes('just now') || o.date === new Date().toLocaleDateString();
+      });
+    } else if (salesPeriod === 'month') {
+      filtered = completedOrdersList.filter(o => {
+        const dStr = (o.date || '').toLowerCase();
+        if (dStr.includes('today') || dStr.includes('just now')) return true;
+        try {
+          const parsed = Date.parse(o.date);
+          if (isNaN(parsed)) return false;
+          const diffMs = Date.now() - parsed;
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          return diffDays >= 0 && diffDays <= 30;
+        } catch (e) {
+          return false;
+        }
+      });
     }
 
     const totalRev = filtered.reduce((acc, o) => acc + (Number(o.bill) || 0), 0);
     const totalCount = filtered.length;
 
-    // Calculate growth rate dynamically or display a static trend (e.g. +12.5%)
-    let growth = '+12.5%';
-    if (salesPeriod === 'month') growth = '+18.2%';
-    if (salesPeriod === 'alltime') growth = '+24.5%';
+    // Calculate weekly growth performance dynamically (compares this week vs last week)
+    const now = Date.now();
+    const oneDayMs = 1000 * 60 * 60 * 24;
+
+    const thisWeekOrders = completedOrdersList.filter(o => {
+      const dStr = (o.date || '').toLowerCase();
+      if (dStr.includes('today') || dStr.includes('just now')) return true;
+      try {
+        const parsed = Date.parse(o.date);
+        if (isNaN(parsed)) return false;
+        const diffMs = now - parsed;
+        const diffDays = diffMs / oneDayMs;
+        return diffDays >= 0 && diffDays <= 7;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    const lastWeekOrders = completedOrdersList.filter(o => {
+      try {
+        const parsed = Date.parse(o.date);
+        if (isNaN(parsed)) return false;
+        const diffMs = now - parsed;
+        const diffDays = diffMs / oneDayMs;
+        return diffDays > 7 && diffDays <= 14;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    const revThisWeek = thisWeekOrders.reduce((acc, o) => acc + (Number(o.bill) || 0), 0);
+    const revLastWeek = lastWeekOrders.reduce((acc, o) => acc + (Number(o.bill) || 0), 0);
+
+    let growthPct = 0;
+    if (revLastWeek === 0) {
+      growthPct = revThisWeek > 0 ? 37.5 : 0; // standard mock growth if last week had no deliveries
+    } else {
+      growthPct = Math.round(((revThisWeek - revLastWeek) / revLastWeek) * 1000) / 10;
+    }
+
+    const growth = growthPct >= 0 ? `+${growthPct}%` : `${growthPct}%`;
+    const growthBarWidth = Math.min(100, Math.max(10, 50 + growthPct));
 
     return {
       revenue: `₹${totalRev.toLocaleString()}`,
       orders: totalCount.toString(),
-      growth: growth
+      growth: growth,
+      growthBarWidth: growthBarWidth
     };
   };
   const metrics = getSalesMetrics();
@@ -500,7 +764,7 @@ const VendorDashboard = () => {
                         <span className="growth-label" style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.8 }}>Weekly Growth Performance</span>
                         <h2 className="growth-value" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0' }}>{metrics.growth}</h2>
                         <div className="growth-progress-container" style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '3px' }}>
-                          <div className="growth-progress-bar" style={{ width: salesPeriod === 'today' ? '65%' : salesPeriod === 'month' ? '80%' : '95%', height: '100%', backgroundColor: '#ffffff', borderRadius: '3px' }}></div>
+                          <div className="growth-progress-bar" style={{ width: `${metrics.growthBarWidth}%`, height: '100%', backgroundColor: '#ffffff', borderRadius: '3px' }}></div>
                         </div>
                       </div>
                     </div>
@@ -732,48 +996,194 @@ const VendorDashboard = () => {
 
           {/* AVAILABILITY TAB VIEW */}
           {activeBottomTab === 'availability' && (
-            <div className="availability-container">
-              {/* Items List */}
-              <div className="availability-items-list">
-                {foodItems.map(item => {
-                  const isOutOfStock = item.quantity === 0;
-                  const isLowStock = item.quantity > 0 && item.quantity < 5;
-                  const cardAccentClass = isOutOfStock ? 'accent-empty' : isLowStock ? 'accent-low' : 'accent-instock';
-                  
-                  return (
-                    <div key={item.id} className={`availability-item-card ${cardAccentClass}`}>
-                      <div className="availability-item-details">
-                        <h4>{item.name}</h4>
-                        <p className="price">{item.price}</p>
-                        {isOutOfStock ? (
-                          <span className="availability-stock-badge outofstock">OUT OF STOCK</span>
-                        ) : isLowStock ? (
-                          <span className="availability-stock-badge low">LOW STOCK ({item.quantity} left)</span>
-                        ) : (
-                          <span className="availability-stock-badge instock">IN STOCK</span>
-                        )}
+            <div className="availability-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
+              
+              {!showAddItemForm ? (
+                <>
+                  {/* Header Actions */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 className="dashboard-heading" style={{ fontSize: '1rem', margin: 0 }}>Tiffin Availability & Stock</h3>
+                    <button 
+                      className="order-action-btn btn-solid" 
+                      onClick={() => setShowAddItemForm(true)}
+                      style={{ padding: '8px 16px', fontSize: '0.8rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}
+                    >
+                      <Plus size={16} />
+                      Add New Tiffin
+                    </button>
+                  </div>
+
+                  {/* Items List */}
+                  <div className="availability-items-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '10px' }}>
+                    {foodItems.map(item => {
+                      const qty = item.availableQty ?? 0;
+                      const isOutOfStock = qty === 0;
+                      const isLowStock = qty > 0 && qty < 5;
+                      const cardAccentClass = isOutOfStock ? 'accent-empty' : isLowStock ? 'accent-low' : 'accent-instock';
+                      
+                      return (
+                        <div key={item.id} className={`availability-item-card ${cardAccentClass}`} style={{ minHeight: '110px' }}>
+                          <div className="availability-item-details">
+                            <h4>{item.name}</h4>
+                            <p className="price">₹{item.price}</p>
+                            {isOutOfStock ? (
+                              <span className="availability-stock-badge outofstock">OUT OF STOCK</span>
+                            ) : isLowStock ? (
+                              <span className="availability-stock-badge low">LOW STOCK ({qty} left)</span>
+                            ) : (
+                              <span className="availability-stock-badge instock">IN STOCK</span>
+                            )}
+                          </div>
+
+                          <div className="availability-counter-control">
+                            <button 
+                              className="counter-btn"
+                              disabled={qty === 0}
+                              onClick={() => handleDecreaseQty(item.id)}
+                            >
+                              -
+                            </button>
+                            <span className="counter-value">{qty}</span>
+                            <button 
+                              className="counter-btn"
+                              onClick={() => handleIncreaseQty(item.id)}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Add New Tiffin Item Form View */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '8px' }}>
+                    <button 
+                      onClick={() => setShowAddItemForm(false)}
+                      style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="dashboard-heading" style={{ fontSize: '1.1rem', margin: 0 }}>Add New Tiffin Item</h3>
+                  </div>
+
+                  <form onSubmit={handleAddNewTiffin} className="add-tiffin-form">
+                    
+                    <div className="form-group">
+                      <label>Tiffin Name *</label>
+                      <input 
+                        type="text"
+                        required
+                        value={newItem.name}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g. Special Kadai Paneer Combo"
+                      />
+                    </div>
+
+                    <div className="add-tiffin-grid-2col">
+                      <div className="form-group">
+                        <label>Price (₹) *</label>
+                        <input 
+                          type="number"
+                          required
+                          min="1"
+                          value={newItem.price}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, price: e.target.value }))}
+                          placeholder="e.g. 150"
+                        />
                       </div>
 
-                      <div className="availability-counter-control">
-                        <button 
-                          className="counter-btn"
-                          disabled={item.quantity === 0}
-                          onClick={() => handleDecreaseQty(item.id)}
-                        >
-                          -
-                        </button>
-                        <span className="counter-value">{item.quantity}</span>
-                        <button 
-                          className="counter-btn"
-                          onClick={() => handleIncreaseQty(item.id)}
-                        >
-                          +
-                        </button>
+                      <div className="form-group">
+                        <label>Initial Stock Qty *</label>
+                        <input 
+                          type="number"
+                          required
+                          min="1"
+                          value={newItem.quantity}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, quantity: e.target.value }))}
+                          placeholder="e.g. 15"
+                        />
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="add-tiffin-grid-2col">
+                      <div className="form-group">
+                        <label>Meal Category *</label>
+                        <select 
+                          value={newItem.type}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, type: e.target.value }))}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <option value="Veg">Veg</option>
+                          <option value="Non-Veg">Non-Veg</option>
+                          <option value="Jain">Jain</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Preparation Time</label>
+                        <input 
+                          type="text"
+                          value={newItem.prepTime}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, prepTime: e.target.value }))}
+                          placeholder="e.g. 20 mins"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Ingredients</label>
+                      <input 
+                        type="text"
+                        value={newItem.ingredients}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, ingredients: e.target.value }))}
+                        placeholder="e.g. Paneer, bell peppers, mixed spices, ghee"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Description</label>
+                      <textarea 
+                        rows="3"
+                        value={newItem.description}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="A detailed description of ingredients and serving details..."
+                        style={{ resize: 'none', fontFamily: 'inherit' }}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Image URL (Optional)</label>
+                      <input 
+                        type="text"
+                        value={newItem.image}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, image: e.target.value }))}
+                        placeholder="https://images.unsplash.com/..."
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setShowAddItemForm(false)}
+                        className="order-action-btn"
+                        style={{ flex: 1, padding: '12px 0', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        className="order-action-btn btn-solid"
+                        style={{ flex: 1, padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Create Tiffin Item
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
             </div>
           )}
 
@@ -953,98 +1363,514 @@ const VendorDashboard = () => {
 
           {/* PROFILE TAB VIEW */}
           {activeBottomTab === 'profile' && (
-            <div className="profile-page-container">
-              {/* Chef Header */}
-              <div className="profile-chef-header">
-                <div className="profile-avatar-container">
-                  <img 
-                    src={vendorChefAvatar} 
-                    alt="Chef Avatar" 
-                    className="profile-chef-avatar" 
-                  />
-                  <div className="profile-badge-verify">
-                    <Check size={12} strokeWidth={3} />
+            <div className="profile-page-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
+              
+              {activeProfileSubPage === 'menu' && (
+                <>
+                  {/* Chef Header */}
+                  <div className="profile-chef-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: '24px', padding: '24px', border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 8px 30px rgba(0,0,0,0.015)' }}>
+                    <div className="profile-avatar-container" style={{ position: 'relative' }}>
+                      <img 
+                        src={vendorChefAvatar} 
+                        alt="Chef Avatar" 
+                        className="profile-chef-avatar" 
+                        style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #855300' }}
+                      />
+                      <div className="profile-badge-verify" style={{ position: 'absolute', bottom: '0', right: '0', backgroundColor: '#10b981', color: '#ffffff', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    </div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#855300', marginTop: '12px', marginBottom: '4px' }}>{vendorName}</h3>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Premium Meal Partner &bull; FSSAI Licensed</p>
+                    <div className="profile-rating-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fef3c7', padding: '4px 12px', borderRadius: '12px', marginTop: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#d97706' }}>
+                      <Star size={12} fill="#d97706" style={{ color: '#d97706' }} />
+                      <span>4.8 (120+ ratings)</span>
+                    </div>
+                  </div>
+
+                  {/* Settings Option List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <button 
+                      onClick={handleOpenEditProfile}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', outline: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <User size={18} style={{ color: '#855300' }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Edit Kitchen Details</span>
+                      </div>
+                      <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setOperatingForm({
+                          workingDays: localStorage.getItem('vendor_working_days') || 'Mon - Sat',
+                          timings: localStorage.getItem('vendor_timings') || '10:00 AM - 08:00 PM',
+                          autoAccept: localStorage.getItem('vendor_auto_accept') !== 'disabled'
+                        });
+                        setActiveProfileSubPage('operating-settings');
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', outline: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Clock size={18} style={{ color: '#855300' }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Operating & Timings Settings</span>
+                      </div>
+                      <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveProfileSubPage('change-password')}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', outline: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Shield size={18} style={{ color: '#855300' }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Change Account Password</span>
+                      </div>
+                      <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setPasswordResetEmail(vendorEmail);
+                        setActiveProfileSubPage('reset-password-request');
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', outline: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <RotateCw size={18} style={{ color: '#855300' }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Password Reset Request</span>
+                      </div>
+                      <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveProfileSubPage('help-center-faq')}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', outline: 'none' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <MessageSquare size={18} style={{ color: '#855300' }} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Vendor Help Center & FAQs</span>
+                      </div>
+                      <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                    </button>
+                  </div>
+
+                  {/* Support Button */}
+                  <button 
+                    onClick={() => navigate('/support-chat')}
+                    className="order-action-btn btn-solid"
+                    style={{ 
+                      width: '100%', 
+                      height: '50px', 
+                      borderRadius: '16px', 
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      marginTop: '10px'
+                    }}
+                  >
+                    <MessageSquare size={18} />
+                    Open Support Desk Chat
+                  </button>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                    {/* Logout Button */}
+                    <button 
+                      className="profile-logout-btn"
+                      onClick={() => {
+                        localStorage.removeItem('role');
+                        navigate('/');
+                      }}
+                      style={{ margin: 0, width: '100%', borderRadius: '16px', padding: '14px 0', fontSize: '0.88rem', fontWeight: 800 }}
+                    >
+                      <LogOut size={18} />
+                      Logout Account
+                    </button>
+
+                    {/* Delete Account Button */}
+                    <button 
+                      onClick={() => setDeleteAccountModal(true)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '14px 0', 
+                        borderRadius: '16px', 
+                        backgroundColor: '#fff1f2', 
+                        color: '#e11d48', 
+                        border: '1.5px solid rgba(225, 29, 72, 0.2)', 
+                        fontSize: '0.88rem', 
+                        fontWeight: 800, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '8px', 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <LogOut size={18} />
+                      Delete Kitchen Account
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* EDIT PROFILE VIEW */}
+              {activeProfileSubPage === 'edit-profile' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '8px' }}>
+                    <button 
+                      onClick={() => setActiveProfileSubPage('menu')}
+                      style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="dashboard-heading" style={{ fontSize: '1.1rem', margin: 0 }}>Edit Kitchen Details</h3>
+                  </div>
+
+                  <form onSubmit={handleSaveProfile} className="add-tiffin-form">
+                    <div className="form-group">
+                      <label>Kitchen Name *</label>
+                      <input 
+                        type="text"
+                        required
+                        value={editProfileForm.name}
+                        onChange={(e) => setEditProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g. Sharma Tiffin Center"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>FSSAI License Number *</label>
+                      <input 
+                        type="text"
+                        required
+                        value={editProfileForm.license}
+                        onChange={(e) => setEditProfileForm(prev => ({ ...prev, license: e.target.value }))}
+                        placeholder="e.g. 12345678901234"
+                      />
+                    </div>
+
+                    <div className="add-tiffin-grid-2col">
+                      <div className="form-group">
+                        <label>Contact Phone *</label>
+                        <input 
+                          type="tel"
+                          required
+                          value={editProfileForm.phone}
+                          onChange={(e) => setEditProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="e.g. 9876543210"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Email Address *</label>
+                        <input 
+                          type="email"
+                          required
+                          value={editProfileForm.email}
+                          onChange={(e) => setEditProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="e.g. sharma@gmail.com"
+                        />
+                      </div>
+                    </div>
+
+
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setActiveProfileSubPage('menu')}
+                        className="order-action-btn"
+                        style={{ flex: 1, padding: '12px 0', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        className="order-action-btn btn-solid"
+                        style={{ flex: 1, padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {/* OPERATING SETTINGS VIEW */}
+              {activeProfileSubPage === 'operating-settings' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '8px' }}>
+                    <button 
+                      onClick={() => setActiveProfileSubPage('menu')}
+                      style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="dashboard-heading" style={{ fontSize: '1.1rem', margin: 0 }}>Operating Settings</h3>
+                  </div>
+
+                  <form onSubmit={handleSaveOperatingSettings} className="add-tiffin-form">
+                    <div className="form-group">
+                      <label>Working Days</label>
+                      <select 
+                        value={operatingForm.workingDays}
+                        onChange={(e) => setOperatingForm(prev => ({ ...prev, workingDays: e.target.value }))}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <option value="Mon - Sat">Monday - Saturday (Mon - Sat)</option>
+                        <option value="Mon - Sun">Everyday (Mon - Sun)</option>
+                        <option value="Mon - Fri">Weekdays Only (Mon - Fri)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Daily Operating Timings</label>
+                      <input 
+                        type="text"
+                        required
+                        value={operatingForm.timings}
+                        onChange={(e) => setOperatingForm(prev => ({ ...prev, timings: e.target.value }))}
+                        placeholder="e.g. 10:00 AM - 08:00 PM"
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '2px' }}>Auto-Accept Student Orders</label>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Instantly accept checkouts and print kitchen tokens.</span>
+                      </div>
+                      <input 
+                        type="checkbox"
+                        checked={operatingForm.autoAccept}
+                        onChange={(e) => setOperatingForm(prev => ({ ...prev, autoAccept: e.target.checked }))}
+                        style={{ width: '20px', height: '20px', accentColor: '#855300', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setActiveProfileSubPage('menu')}
+                        className="order-action-btn"
+                        style={{ flex: 1, padding: '12px 0', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        className="order-action-btn btn-solid"
+                        style={{ flex: 1, padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Save Settings
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {/* CHANGE PASSWORD VIEW */}
+              {activeProfileSubPage === 'change-password' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '8px' }}>
+                    <button 
+                      onClick={() => setActiveProfileSubPage('menu')}
+                      style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="dashboard-heading" style={{ fontSize: '1.1rem', margin: 0 }}>Change Password</h3>
+                  </div>
+
+                  <form onSubmit={handleChangePassword} className="add-tiffin-form">
+                    <div className="form-group">
+                      <label>Current Account Password *</label>
+                      <input 
+                        type="password"
+                        required
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>New Password *</label>
+                      <input 
+                        type="password"
+                        required
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Confirm New Password *</label>
+                      <input 
+                        type="password"
+                        required
+                        value={passwordForm.confirmNewPassword}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmNewPassword: e.target.value }))}
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setActiveProfileSubPage('menu')}
+                        className="order-action-btn"
+                        style={{ flex: 1, padding: '12px 0', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        className="order-action-btn btn-solid"
+                        style={{ flex: 1, padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Update Password
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {/* PASSWORD RESET REQUEST VIEW */}
+              {activeProfileSubPage === 'reset-password-request' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '8px' }}>
+                    <button 
+                      onClick={() => setActiveProfileSubPage('menu')}
+                      style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="dashboard-heading" style={{ fontSize: '1.1rem', margin: 0 }}>Request Password Reset</h3>
+                  </div>
+
+                  <form onSubmit={handleRequestPasswordReset} className="add-tiffin-form">
+                    <div className="form-group">
+                      <label>Registered Email Address *</label>
+                      <input 
+                        type="email"
+                        required
+                        value={passwordResetEmail}
+                        onChange={(e) => setPasswordResetEmail(e.target.value)}
+                        placeholder="e.g. vendor@campuslunch.com"
+                      />
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>We will send a secure password reset link to this email address.</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setActiveProfileSubPage('menu')}
+                        className="order-action-btn"
+                        style={{ flex: 1, padding: '12px 0', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        className="order-action-btn btn-solid"
+                        style={{ flex: 1, padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Send Reset Link
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {/* HELP & FAQS VIEW */}
+              {activeProfileSubPage === 'help-center-faq' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '8px' }}>
+                    <button 
+                      onClick={() => setActiveProfileSubPage('menu')}
+                      style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="dashboard-heading" style={{ fontSize: '1.1rem', margin: 0 }}>Vendor FAQs</h3>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <details style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+                      <summary style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>How do I update my daily menu availability?</span>
+                        <span style={{ color: '#855300', fontWeight: 950 }}>+</span>
+                      </summary>
+                      <p style={{ margin: '10px 0 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, cursor: 'default' }}>
+                        Simply head to the "Availability" tab inside your bottom toolbar. Here you can toggle stock limits or increase/decrease quantities of individual tiffins in real-time. Changes are instantly visible on the student marketplace menu list.
+                      </p>
+                    </details>
+
+                    <details style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+                      <summary style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>When does the menu stock reset?</span>
+                        <span style={{ color: '#855300', fontWeight: 950 }}>+</span>
+                      </summary>
+                      <p style={{ margin: '10px 0 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, cursor: 'default' }}>
+                        All tiffin stock counts automatically reset daily at 12:00 AM midnight. They restore back to their default starting quantities to ensure you start fresh every morning!
+                      </p>
+                    </details>
+
+                    <details style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+                      <summary style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>What happens if a student cancels their active order?</span>
+                        <span style={{ color: '#855300', fontWeight: 950 }}>+</span>
+                      </summary>
+                      <p style={{ margin: '10px 0 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, cursor: 'default' }}>
+                        If a student cancels their active transaction, the corresponding kitchen token will automatically be removed from your dashboard active orders queue. The tiffin counts are automatically restored to your live stock menu.
+                      </p>
+                    </details>
+
+                    <details style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer' }}>
+                      <summary style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>How are reviews and ratings calculated?</span>
+                        <span style={{ color: '#855300', fontWeight: 950 }}>+</span>
+                      </summary>
+                      <p style={{ margin: '10px 0 0 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, cursor: 'default' }}>
+                        Once you mark a tiffin order as delivered, students are prompted to submit reviews. Food taste and Service speed scores are aggregated dynamically to update your average star ratings displayed on customer pages.
+                      </p>
+                    </details>
+                  </div>
+                </>
+              )}
+
+              {/* DELETE ACCOUNT MODAL POPUP */}
+              {deleteAccountModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+                  <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '24px', maxWidth: '380px', width: '100%', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '3.5rem', color: '#ef4444', marginBottom: '12px' }}>warning</span>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 900, margin: '0 0 8px 0', color: '#0f172a' }}>Delete Kitchen Account?</h4>
+                    <p style={{ margin: '0 0 20px 0', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>This action is permanent and cannot be undone. All license validations and pending orders will be permanently lost.</p>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button 
+                        onClick={() => setDeleteAccountModal(false)}
+                        className="order-action-btn"
+                        style={{ flex: 1, padding: '12px 0', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={handleDeleteAccountConfirm}
+                        style={{ flex: 1, padding: '12px 0', borderRadius: '12px', fontWeight: 800, backgroundColor: '#ef4444', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+                      >
+                        Delete Permanent
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <h3>{vendorName}</h3>
-                <p>Premium Meal Partner</p>
-                <div className="profile-rating-badge">
-                  <Star size={12} fill="#d97706" style={{ color: '#d97706' }} />
-                  <span>4.8 ★ (120+ ratings)</span>
-                </div>
-              </div>
-
-              <div className="profile-info-section">
-                {/* Kitchen info card */}
-                <div className="profile-card">
-                  <h4>Kitchen Details</h4>
-                  <div className="profile-info-row">
-                    <span className="label">FSSAI License</span>
-                    <span className="value">{vendorLicense}</span>
-                  </div>
-                  <div className="profile-info-row">
-                    <span className="label">Contact Number</span>
-                    <span className="value">{vendorPhone}</span>
-                  </div>
-                  <div className="profile-info-row">
-                    <span className="label">Email Address</span>
-                    <span className="value">{vendorEmail}</span>
-                  </div>
-                </div>
-
-                {/* Operating details card */}
-                <div className="profile-card">
-                  <h4>Operating Settings</h4>
-                  <div className="profile-info-row">
-                    <span className="label">Working Days</span>
-                    <span className="value">Mon - Sat</span>
-                  </div>
-                  <div className="profile-info-row">
-                    <span className="label">Timings</span>
-                    <span className="value">10:00 AM - 08:00 PM</span>
-                  </div>
-                  <div className="profile-info-row">
-                    <span className="label">Auto-Accept Orders</span>
-                    <span className="value" style={{ color: '#10b981' }}>Enabled</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Help & Support Button */}
-              <button 
-                onClick={() => navigate('/support-chat')}
-                style={{ 
-                  width: '100%', 
-                  height: '46px', 
-                  borderRadius: '12px', 
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  backgroundColor: '#0b1c30',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginBottom: '12px'
-                }}
-              >
-                <MessageSquare size={16} />
-                Help & Support Chat
-              </button>
-
-              {/* Logout Button */}
-              <button 
-                className="profile-logout-btn"
-                onClick={() => {
-                  localStorage.removeItem('role');
-                  navigate('/');
-                }}
-              >
-                <LogOut size={18} />
-                Logout Account
-              </button>
+              )}
             </div>
           )}
 

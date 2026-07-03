@@ -50,7 +50,7 @@ import {
 const ticketsData = {
   'TK-8821': {
     id: 'TK-8821',
-    title: 'Meal Spilled during delivery',
+    title: 'General Support Inquiry',
     priority: 'Urgent',
     priorityClass: 'urgent',
     created: 'Oct 12, 10:42 AM',
@@ -72,7 +72,7 @@ const ticketsData = {
   },
   'TK-8819': {
     id: 'TK-8819',
-    title: 'Refund Request: Cold Food',
+    title: 'Account Settings Help',
     priority: 'High',
     priorityClass: 'high',
     created: 'Oct 12, 09:30 AM',
@@ -94,7 +94,7 @@ const ticketsData = {
   },
   'TK-8815': {
     id: 'TK-8815',
-    title: 'Vendor App Login Issue',
+    title: 'Chef Vendor Dashboard Support',
     priority: 'Medium',
     priorityClass: 'medium',
     created: 'Oct 12, 07:15 AM',
@@ -115,7 +115,7 @@ const ticketsData = {
   },
   'TK-8802': {
     id: 'TK-8802',
-    title: 'New Subscription Inquiry',
+    title: 'Corporate Subscription Plan Query',
     priority: 'Low',
     priorityClass: 'low',
     created: 'Oct 12, 05:00 AM',
@@ -164,26 +164,29 @@ const AdminDashboard = () => {
   const [supportMessages, setSupportMessages] = useState([]);
   const [adminReplyText, setAdminReplyText] = useState('');
 
+  const handleResolveTicket = () => {
+    localStorage.setItem(`ticket_status_${selectedTicket}`, 'closed');
+    localStorage.removeItem(`support_chat_messages_${selectedTicket}`);
+    setSupportMessages([]);
+    alert(`Ticket #${selectedTicket} has been resolved and closed. The user's chat session will refresh.`);
+  };
+
   const currentTicketInfo = ticketsData[selectedTicket] || ticketsData['TK-8821'];
 
   useEffect(() => {
     // Seed initial messages for all tickets if they don't exist
     const initialSeed = {
       'TK-8821': [
-        { id: 1, sender: "admin", text: "Hi there! Welcome to Campus Lunch Live Support. 👋 How can we help you today?", time: "10:30 AM" },
-        { id: 2, sender: "user", text: "Hi support, I just received my order (#99212) from 'The Curry Pot' but the dal container was completely crushed. Half of it is in the bag. Can I get a refund or a replacement? I'm quite hungry!", time: "10:42 AM" },
-        { id: 3, sender: "admin", text: "I'm so sorry to hear that, John! That's definitely not the experience we want for you. I've already reached out to the dispatch team. Would you prefer a fresh replacement or a full refund to your wallet?", time: "10:48 AM" }
+        { id: 1, sender: "admin", text: "Hi there! Welcome to Campus Lunch Live Support. 👋 How can we help you today?", time: "10:30 AM" }
       ],
       'TK-8819': [
-        { id: 1, sender: "user", text: "My meal was delivered completely cold and it took almost 90 minutes. I would like a refund.", time: "09:30 AM" },
-        { id: 2, sender: "admin", text: "Hello Sara, I am so sorry for the delay. I have initiated a refund of ₹185 to your wallet.", time: "09:40 AM" }
+        { id: 1, sender: "admin", text: "Hello Sara! Welcome to Campus Lunch Live Support. 👋 How can we help you today?", time: "09:30 AM" }
       ],
       'TK-8815': [
-        { id: 1, sender: "user", text: "I cannot login to the vendor partner app. It says FSSAI credential verification pending.", time: "07:15 AM" },
-        { id: 2, sender: "admin", text: "Hello Spice Garden, our admin team is reviewing your FSSAI documents. We will approve it shortly.", time: "07:30 AM" }
+        { id: 1, sender: "admin", text: "Hello Spice Garden! Welcome to Campus Lunch Kitchen Support. How can we assist you with your orders or kitchen status today?", time: "07:15 AM" }
       ],
       'TK-8802': [
-        { id: 1, sender: "user", text: "Do you offer corporate discounts for recurring bulk tiffin subscriptions?", time: "05:00 AM" }
+        { id: 1, sender: "admin", text: "Hello Bob! Welcome to Campus Lunch Corporate Support. How can we assist you today?", time: "05:00 AM" }
       ]
     };
 
@@ -743,8 +746,8 @@ const AdminDashboard = () => {
                       <span className="ticket-id-tag">#TK-8821</span>
                       <span className="ticket-priority-pill urgent">URGENT</span>
                     </div>
-                    <h4>Meal Spilled during delivery</h4>
-                    <p className="ticket-card-snippet">Order #99212 - Customer reporting the container was...</p>
+                    <h4>General Support Inquiry</h4>
+                    <p className="ticket-card-snippet">Hi there! Welcome to Campus Lunch Live Support. 👋 How can we help...</p>
                     <div className="ticket-card-footer">
                       <div className="ticket-user-initials bg-peach-tint">JD</div>
                       <span className="ticket-user-name">John Doe</span>
@@ -761,8 +764,8 @@ const AdminDashboard = () => {
                       <span className="ticket-id-tag">#TK-8819</span>
                       <span className="ticket-priority-pill high">HIGH</span>
                     </div>
-                    <h4>Refund Request: Cold Food</h4>
-                    <p className="ticket-card-snippet">Customer claims delivery took over 90 minutes. Temperatur...</p>
+                    <h4>Account Settings Help</h4>
+                    <p className="ticket-card-snippet">Hello Sara! Welcome to Campus Lunch Live Support. 👋 How can we help...</p>
                     <div className="ticket-card-footer">
                       <div className="ticket-user-initials bg-blue-tint">SR</div>
                       <span className="ticket-user-name">Sara Riley</span>
@@ -779,8 +782,8 @@ const AdminDashboard = () => {
                       <span className="ticket-id-tag">#TK-8815</span>
                       <span className="ticket-priority-pill medium">MEDIUM</span>
                     </div>
-                    <h4>Vendor App Login Issue</h4>
-                    <p className="ticket-card-snippet">Spice Garden (Vendor ID: SG-02) unable to update stock vi...</p>
+                    <h4>Chef Vendor Dashboard Support</h4>
+                    <p className="ticket-card-snippet">Hello Spice Garden! Welcome to Campus Lunch Kitchen Support. How can...</p>
                     <div className="ticket-card-footer">
                       <div className="ticket-user-initials bg-purple-tint">SG</div>
                       <span className="ticket-user-name">Spice Garden</span>
@@ -797,8 +800,8 @@ const AdminDashboard = () => {
                       <span className="ticket-id-tag">#TK-8802</span>
                       <span className="ticket-priority-pill low">LOW</span>
                     </div>
-                    <h4>New Subscription Inquiry</h4>
-                    <p className="ticket-card-snippet">Enterprise query for corporate bulk lunches. Interested in...</p>
+                    <h4>Corporate Subscription Plan Query</h4>
+                    <p className="ticket-card-snippet">Hello Bob! Welcome to Campus Lunch Corporate Support. How can...</p>
                     <div className="ticket-card-footer">
                       <div className="ticket-user-initials bg-gray-tint">BC</div>
                       <span className="ticket-user-name">Bob Corp</span>
@@ -827,7 +830,7 @@ const AdminDashboard = () => {
                   <div className="chat-header-actions">
                     <button className="chat-action-btn" title="Print"><Printer size={18} /></button>
                     <button className="chat-action-btn" title="More"><MoreVertical size={18} /></button>
-                    <button className="resolve-ticket-btn">
+                    <button className="resolve-ticket-btn" onClick={handleResolveTicket}>
                       <Check size={14} />
                       <span>Resolve</span>
                     </button>

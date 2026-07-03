@@ -26,7 +26,12 @@ import {
   Share2, 
   CheckCircle,
   MessageSquare,
-  Phone
+  Phone,
+  Bell,
+  CreditCard,
+  HelpCircle,
+  Lock,
+  RefreshCw
 } from 'lucide-react';
 
 const downloadReceiptPdf = (receiptData) => {
@@ -223,6 +228,13 @@ const StudentDashboard = () => {
 
   // Layout Tab Navigation
   const [activeTab, setActiveTab] = useState('home'); 
+  const [profileSubTab, setProfileSubTab] = useState('menu');
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [smsUpdates, setSmsUpdates] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedTrackingOrderId, setSelectedTrackingOrderId] = useState(null);
   const currentTracker = activeTrackers.find(t => t.orderId === selectedTrackingOrderId) || activeTrackers.filter(t => t.statusIndex < 5)[0] || activeTrackers[0] || activeOrderTracker;
   const currentSeller = currentTracker && sellers ? (sellers.find(s => s.name === currentTracker.vendorName) || { phone: '+91 98765 43210' }) : null;
@@ -337,15 +349,32 @@ const StudentDashboard = () => {
 
   // Add Item to cart helper with toast alert
   const handleAddToCart = (meal, sellerId) => {
-    const success = addToCart(meal, sellerId);
-    if (success) {
-      triggerToast(`${meal.name} added to cart!`);
-    } else {
+    // 1. Check conflicting kitchen first
+    if (cart.length > 0 && cart[0].sellerId !== sellerId) {
       setCartConflictModal({
         isOpen: true,
         meal,
         sellerId
       });
+      return;
+    }
+
+    // 2. Check stock limit constraints
+    const seller = sellers.find(s => s.id === sellerId);
+    const contextMeal = seller ? seller.meals.find(m => m.id === meal.id) : null;
+    const stockLimit = contextMeal ? (contextMeal.availableQty ?? 999) : 999;
+    
+    const existingInCart = cart.find(item => item.id === meal.id);
+    const currentQtyInCart = existingInCart ? existingInCart.quantity : 0;
+
+    if (currentQtyInCart >= stockLimit) {
+      triggerToast(`Sorry, cannot add more. Only ${stockLimit} items left in stock.`);
+      return;
+    }
+
+    const success = addToCart(meal, sellerId);
+    if (success) {
+      triggerToast(`${meal.name} added to cart!`);
     }
   };
 
@@ -354,8 +383,16 @@ const StudentDashboard = () => {
     if (cartConflictModal.meal && cartConflictModal.sellerId) {
       // Add after a slight delay to ensure state clearance of first cart
       setTimeout(() => {
-        addToCart(cartConflictModal.meal, cartConflictModal.sellerId);
-        triggerToast(`${cartConflictModal.meal.name} added to cart!`);
+        const seller = sellers.find(s => s.id === cartConflictModal.sellerId);
+        const contextMeal = seller ? seller.meals.find(m => m.id === cartConflictModal.meal.id) : null;
+        const stockLimit = contextMeal ? (contextMeal.availableQty ?? 999) : 999;
+
+        if (stockLimit <= 0) {
+          triggerToast(`Sorry, this item is currently out of stock.`);
+        } else {
+          addToCart(cartConflictModal.meal, cartConflictModal.sellerId);
+          triggerToast(`${cartConflictModal.meal.name} added to cart!`);
+        }
       }, 50);
     }
     setCartConflictModal({ isOpen: false, meal: null, sellerId: null });
@@ -874,13 +911,24 @@ const StudentDashboard = () => {
                                   onClick={() => setSelectedMeal({ ...meal, sellerId: seller.id })}
                                   style={{ width: '100%', height: '95px', objectFit: 'cover', cursor: 'pointer' }} 
                                 />
-                                <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', gap: '8px' }}>
-                                  <h5 
-                                    onClick={() => setSelectedMeal({ ...meal, sellerId: seller.id })}
-                                    style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: '1.2', height: '28px', overflow: 'hidden', cursor: 'pointer' }}
-                                  >
-                                    {meal.name}
-                                  </h5>
+                                <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', gap: '6px' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <h5 
+                                      onClick={() => setSelectedMeal({ ...meal, sellerId: seller.id })}
+                                      style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: '1.2', height: '28px', overflow: 'hidden', cursor: 'pointer' }}
+                                    >
+                                      {meal.name}
+                                    </h5>
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                      {meal.availableQty === 0 ? (
+                                        <span style={{ fontSize: '0.64rem', fontWeight: 700, color: '#ef4444' }}>Out of stock</span>
+                                      ) : meal.availableQty < 5 ? (
+                                        <span style={{ fontSize: '0.64rem', fontWeight: 700, color: '#d97706' }}>Low stock ({meal.availableQty} left)</span>
+                                      ) : (
+                                        <span style={{ fontSize: '0.64rem', fontWeight: 700, color: '#059669' }}>In stock ({meal.availableQty} left)</span>
+                                      )}
+                                    </div>
+                                  </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#855300' }}>₹{meal.price}</span>
                                     <button 
@@ -956,13 +1004,23 @@ const StudentDashboard = () => {
                             style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }}
                           />
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
                               <h4 
                                 onClick={() => setSelectedMeal({ ...meal, sellerId: activeSeller.id })}
                                 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, cursor: 'pointer' }}
                               >
                                 {meal.name}
                               </h4>
+                              <span style={{ 
+                                fontSize: '0.64rem', 
+                                fontWeight: 700, 
+                                color: meal.availableQty === 0 ? '#ef4444' : meal.availableQty < 5 ? '#d97706' : '#059669',
+                                backgroundColor: meal.availableQty === 0 ? '#fef2f2' : meal.availableQty < 5 ? '#fffbeb' : '#ecfdf5',
+                                padding: '1px 6px',
+                                borderRadius: '4px'
+                              }}>
+                                {meal.availableQty === 0 ? 'Out of stock' : meal.availableQty < 5 ? `Low stock (${meal.availableQty} left)` : `In stock (${meal.availableQty} left)`}
+                              </span>
                             </div>
                             <p style={{ margin: '4px 0 6px 0', fontSize: '0.72rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{meal.description}</p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1450,6 +1508,75 @@ const StudentDashboard = () => {
                     <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Vendor Live Location ({currentTracker.orderId})</h2>
                   </div>
 
+                  {/* Status Progress Stepper */}
+                  <div className="order-again-card" style={{ padding: '16px 20px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b' }}>Order Status</span>
+                      <span 
+                        style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 900, 
+                          color: currentTracker.statusIndex === 5 ? '#10b981' : '#f59e0b',
+                          backgroundColor: currentTracker.statusIndex === 5 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                          padding: '4px 10px',
+                          borderRadius: '99px',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        {currentTracker.statusIndex === 5 ? 'Delivered' : currentTracker.eta}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
+                      <div 
+                        style={{ 
+                          width: `${currentTracker.statusIndex === 5 ? 100 : (currentTracker.statusIndex * 20)}%`, 
+                          height: '100%', 
+                          backgroundColor: currentTracker.statusIndex === 5 ? '#10b981' : '#855300', 
+                          borderRadius: '99px',
+                          transition: 'width 0.4s ease' 
+                        }}
+                      />
+                    </div>
+
+                    {/* Stepper Labels */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', fontWeight: 800, color: '#94a3b8' }}>
+                      <span style={{ color: currentTracker.statusIndex >= 0 ? '#855300' : 'inherit' }}>Ordered</span>
+                      <span style={{ color: currentTracker.statusIndex >= 1 ? '#855300' : 'inherit' }}>Preparing</span>
+                      <span style={{ color: currentTracker.statusIndex >= 3 ? '#855300' : 'inherit' }}>In Transit</span>
+                      <span style={{ color: currentTracker.statusIndex === 5 ? '#10b981' : 'inherit' }}>Delivered</span>
+                    </div>
+                  </div>
+
+                  {/* Delivered Success & Ratings Actions Card */}
+                  {currentTracker.statusIndex === 5 && (
+                    <div className="order-again-card" style={{ padding: '20px', border: '1px solid rgba(16, 185, 129, 0.2)', backgroundColor: 'rgba(16, 185, 129, 0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', textAlign: 'center' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: '#10b981' }}>check_circle</span>
+                      <div>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 900, margin: '0 0 4px 0', color: '#0f172a' }}>Tiffin Handed Over Successfully!</h4>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>Enjoy your fresh warm meal. Please share your feedback to help us maintain food quality.</p>
+                      </div>
+                      <button 
+                        className="order-action-btn btn-solid" 
+                        onClick={() => {
+                          setRatingModal({
+                            isOpen: true,
+                            orderId: currentTracker.orderId,
+                            vendorName: currentTracker.vendorName,
+                            foodRating: 0,
+                            serviceRating: 0,
+                            comment: ''
+                          });
+                          setActiveTab('orders');
+                        }}
+                        style={{ padding: '8px 24px', fontSize: '0.8rem', borderRadius: '10px', fontWeight: 800 }}
+                      >
+                        Rate Tiffin Order
+                      </button>
+                    </div>
+                  )}
+
                   {/* Interactive Google Map */}
                   <div className="order-again-card" style={{ padding: '0px', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9' }}>
                     <iframe 
@@ -1620,150 +1747,459 @@ const StudentDashboard = () => {
               {/* PROFILE VIEW */}
               {activeTab === 'profile' && (
                 <div className="profile-page-container">
-                  <div className="profile-chef-header" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ position: 'relative', width: '80px', height: '80px', marginBottom: '8px' }}>
-                      <img 
-                        src={profileForm.avatar || user.avatar} 
-                        alt="Student Face Photo" 
-                        className="profile-chef-avatar" 
-                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }}
-                      />
-                      <label 
-                        htmlFor="avatar-upload" 
-                        style={{ 
-                          position: 'absolute', 
-                          bottom: 0, 
-                          right: 0, 
-                          width: '28px', 
-                          height: '28px', 
-                          borderRadius: '50%', 
-                          backgroundColor: '#f59e0b', 
-                          color: '#ffffff', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                          border: '2px solid #ffffff'
-                        }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>photo_camera</span>
-                      </label>
-                      <input 
-                        type="file" 
-                        id="avatar-upload" 
-                        accept="image/*" 
-                        onChange={handleAvatarChange} 
-                        style={{ display: 'none' }} 
-                      />
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '8px' }}>{profileForm.name}</h3>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>{profileForm.email}</p>
-                  </div>
-
-                  {/* Profile Edit Form */}
-                  <form onSubmit={handleSaveProfile} className="profile-info-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 6px 0' }}>Edit Details</h4>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Full Name</label>
-                        <input 
-                          type="text" 
-                          value={profileForm.name}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                          style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                  
+                  {/* MAIN MENU TAB */}
+                  {profileSubTab === 'menu' && (
+                    <>
+                      {/* Header block */}
+                      <div className="profile-chef-header" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.04)', marginBottom: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                        <img 
+                          src={profileForm.avatar || user.avatar} 
+                          alt="Student Avatar" 
+                          style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%', border: '3px solid #855300', padding: '2px' }}
                         />
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#855300', marginTop: '10px', marginBottom: '2px' }}>{profileForm.name}</h3>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{profileForm.email}</p>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Email Address</label>
-                        <input 
-                          type="email" 
-                          value={profileForm.email}
-                          disabled
-                          style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Contact Phone</label>
-                        <input 
-                          type="text" 
-                          value={profileForm.phone}
-                          disabled
-                          style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Diet Preference</label>
-                        <select 
-                          value={profileForm.dietPreference}
-                          onChange={(e) => setProfileForm(prev => ({ ...prev, dietPreference: e.target.value }))}
-                          style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#ffffff' }}
+                      {/* Menu List */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                        
+                        <button 
+                          onClick={() => setProfileSubTab('edit-profile')}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
                         >
-                          <option value="Vegetarian">Vegetarian</option>
-                          <option value="Jain">Jain</option>
-                          <option value="Non-Vegetarian">Non-Vegetarian</option>
-                        </select>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <User size={18} style={{ color: '#855300' }} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Edit Profile & Preferences</span>
+                          </div>
+                          <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                        </button>
+
+                        <button 
+                          onClick={() => setProfileSubTab('notifications')}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Bell size={18} style={{ color: '#855300' }} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Notification Settings</span>
+                          </div>
+                          <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                        </button>
+
+                        <button 
+                          onClick={() => setProfileSubTab('change-password')}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Lock size={18} style={{ color: '#855300' }} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Change Password</span>
+                          </div>
+                          <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                        </button>
+
+                        <button 
+                          onClick={() => setProfileSubTab('reset-password')}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <RefreshCw size={18} style={{ color: '#855300' }} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Password Reset Request</span>
+                          </div>
+                          <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                        </button>
+
+                        <button 
+                          onClick={() => setProfileSubTab('support')}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <HelpCircle size={18} style={{ color: '#855300' }} />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Help Center & FAQ</span>
+                          </div>
+                          <ChevronRight size={16} style={{ color: '#94a3b8' }} />
+                        </button>
+                      </div>
+
+                      {/* Action buttons with custom tight spacing */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <button 
+                          className="profile-logout-btn" 
+                          onClick={() => {
+                            localStorage.removeItem('role');
+                            navigate('/');
+                          }}
+                          style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', marginTop: '0', marginBottom: '0' }}
+                        >
+                          <LogOut size={16} />
+                          Logout Account
+                        </button>
+
+                        <button 
+                          className="profile-logout-btn" 
+                          onClick={() => setShowDeleteConfirm(true)}
+                          style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', color: '#ef4444', borderColor: '#fee2e2', backgroundColor: '#fff5f5', marginTop: '0', marginBottom: '0' }}
+                        >
+                          Delete Account
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* EDIT PROFILE SUB-PAGE */}
+                  {profileSubTab === 'edit-profile' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <button 
+                        onClick={() => setProfileSubTab('menu')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
+                      >
+                        <ArrowLeft size={16} />
+                        Back to Profile Menu
+                      </button>
+
+                      <div className="profile-chef-header" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', width: '80px', height: '80px', marginBottom: '8px' }}>
+                          <img 
+                            src={profileForm.avatar || user.avatar} 
+                            alt="Student Face Photo" 
+                            className="profile-chef-avatar" 
+                            style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }}
+                          />
+                          <label 
+                            htmlFor="avatar-upload" 
+                            style={{ 
+                              position: 'absolute', 
+                              bottom: 0, 
+                              right: 0, 
+                              width: '28px', 
+                              height: '28px', 
+                              borderRadius: '50%', 
+                              backgroundColor: '#f59e0b', 
+                              color: '#ffffff', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                              border: '2px solid #ffffff'
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>photo_camera</span>
+                          </label>
+                          <input 
+                            type="file" 
+                            id="avatar-upload" 
+                            accept="image/*" 
+                            onChange={handleAvatarChange} 
+                            style={{ display: 'none' }} 
+                          />
+                        </div>
+                      </div>
+
+                      <form onSubmit={handleSaveProfile} className="profile-info-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 6px 0', color: '#1e293b' }}>Personal Information</h4>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Full Name</label>
+                            <input 
+                              type="text" 
+                              value={profileForm.name}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                              style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Email Address</label>
+                            <input 
+                              type="email" 
+                              value={profileForm.email}
+                              disabled
+                              style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Contact Phone</label>
+                            <input 
+                              type="text" 
+                              value={profileForm.phone}
+                              disabled
+                              style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Diet Preference</label>
+                            <select 
+                              value={profileForm.dietPreference}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, dietPreference: e.target.value }))}
+                              style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#ffffff' }}
+                            >
+                              <option value="Vegetarian">Vegetarian</option>
+                              <option value="Jain">Jain</option>
+                              <option value="Non-Vegetarian">Non-Vegetarian</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <button 
+                          type="submit" 
+                          className="order-action-btn btn-solid" 
+                          style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
+                        >
+                          Save Changes
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* NOTIFICATION SETTINGS SUB-PAGE */}
+                  {profileSubTab === 'notifications' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <button 
+                        onClick={() => setProfileSubTab('menu')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
+                      >
+                        <ArrowLeft size={16} />
+                        Back to Profile Menu
+                      </button>
+
+                      <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>Manage Notifications</h4>
+                        
+                        {/* Toggle 1 */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>Push Notifications</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>For real-time delivery tracking alerts</span>
+                          </div>
+                          <button 
+                            onClick={() => setPushNotifications(!pushNotifications)}
+                            style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: pushNotifications ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
+                          >
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ffffff', position: 'absolute', left: pushNotifications ? '20px' : '4px', top: '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}></div>
+                          </button>
+                        </div>
+
+                        {/* Toggle 2 */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>Email Alerts</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>For billing receipts and transaction logs</span>
+                          </div>
+                          <button 
+                            onClick={() => setEmailAlerts(!emailAlerts)}
+                            style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: emailAlerts ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
+                          >
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ffffff', position: 'absolute', left: emailAlerts ? '20px' : '4px', top: '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}></div>
+                          </button>
+                        </div>
+
+                        {/* Toggle 3 */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>SMS Updates</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Receive driver arrival notices over SMS</span>
+                          </div>
+                          <button 
+                            onClick={() => setSmsUpdates(!smsUpdates)}
+                            style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: smsUpdates ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
+                          >
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ffffff', position: 'absolute', left: smsUpdates ? '20px' : '4px', top: '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}></div>
+                          </button>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => {
+                          triggerToast('Notification preferences updated successfully!');
+                          setProfileSubTab('menu');
+                        }}
+                        className="order-action-btn btn-solid" 
+                        style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
+                      >
+                        Apply Changes
+                      </button>
+                    </div>
+                  )}
+
+                  {/* CHANGE PASSWORD SUB-PAGE */}
+                  {profileSubTab === 'change-password' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <button 
+                        onClick={() => {
+                          setProfileSubTab('menu');
+                          setCurrentPassword('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                        }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
+                      >
+                        <ArrowLeft size={16} />
+                        Back to Profile Menu
+                      </button>
+
+                      <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b', textAlign: 'left' }}>Change Password</h4>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Current Password</label>
+                          <input 
+                            type="password" 
+                            placeholder="Enter current password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>New Password</label>
+                          <input 
+                            type="password" 
+                            placeholder="Enter new password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Confirm New Password</label>
+                          <input 
+                            type="password" 
+                            placeholder="Confirm new password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => {
+                          if (!currentPassword || !newPassword || !confirmPassword) {
+                            triggerToast('Please fill in all password fields.');
+                            return;
+                          }
+                          if (newPassword !== confirmPassword) {
+                            triggerToast('New passwords do not match!');
+                            return;
+                          }
+                          triggerToast('Password updated successfully!');
+                          setProfileSubTab('menu');
+                          setCurrentPassword('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                        }}
+                        className="order-action-btn btn-solid" 
+                        style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
+                      >
+                        Update Password
+                      </button>
+                    </div>
+                  )}
+
+                  {/* RESET PASSWORD SUB-PAGE */}
+                  {profileSubTab === 'reset-password' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <button 
+                        onClick={() => setProfileSubTab('menu')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
+                      >
+                        <ArrowLeft size={16} />
+                        Back to Profile Menu
+                      </button>
+
+                      <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>Reset Password Request</h4>
+                        <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0, lineHeight: '1.5' }}>
+                          If you forgot your password or want to reset it securely, we can email you a temporary login code or a secure reset link.
+                        </p>
+
+                        <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Registered Email Address</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>{user.email}</span>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => {
+                          triggerToast('Password reset link sent to ' + user.email);
+                          setProfileSubTab('menu');
+                        }}
+                        className="order-action-btn btn-solid" 
+                        style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
+                      >
+                        Send Reset Link
+                      </button>
+                    </div>
+                  )}
+
+                  {/* HELP & SUPPORT SUB-PAGE */}
+                  {profileSubTab === 'support' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <button 
+                        onClick={() => setProfileSubTab('menu')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
+                      >
+                        <ArrowLeft size={16} />
+                        Back to Profile Menu
+                      </button>
+
+                      <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 4px 0', color: '#1e293b' }}>Frequently Asked Questions</h4>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <details style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                            <summary style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', outline: 'none' }}>Where do I pick up my orders?</summary>
+                            <p style={{ margin: '6px 0 0 0', fontSize: '0.72rem', color: '#64748b', lineHeight: '1.4' }}>All orders are delivered at designated cafeteria tables in main campus buildings. Go to the kitchen status tracker to see the exact pick-up point.</p>
+                          </details>
+
+                          <details style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                            <summary style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', outline: 'none' }}>Can I cancel a placed order?</summary>
+                            <p style={{ margin: '6px 0 0 0', fontSize: '0.72rem', color: '#64748b', lineHeight: '1.4' }}>Orders can only be cancelled before the kitchen marks them as 'Preparing Food'. Once food preparation starts, cancellations are blocked.</p>
+                          </details>
+
+                          <details style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                            <summary style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', outline: 'none' }}>How does the Jain diet filter work?</summary>
+                            <p style={{ margin: '6px 0 0 0', fontSize: '0.72rem', color: '#64748b', lineHeight: '1.4' }}>Toggling the Jain preference on your home feed automatically excludes meals containing onions, garlic, potatoes, or root vegetables.</p>
+                          </details>
+                        </div>
+                      </div>
+
+                      <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>Need further assistance?</h4>
+                        <button 
+                          onClick={() => navigate('/support-chat')}
+                          style={{ 
+                            width: '100%', 
+                            height: '44px', 
+                            borderRadius: '10px', 
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            backgroundColor: '#0b1c30',
+                            color: '#ffffff',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <MessageSquare size={16} />
+                          Help & Support Chat
+                        </button>
                       </div>
                     </div>
+                  )}
 
-                    <button 
-                      type="submit" 
-                      className="order-action-btn btn-solid" 
-                      style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
-                    >
-                      Save Changes
-                    </button>
-                  </form>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                    <button 
-                      onClick={() => navigate('/support-chat')}
-                      style={{ 
-                        width: '100%', 
-                        height: '44px', 
-                        borderRadius: '10px', 
-                        fontSize: '0.85rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        backgroundColor: '#0b1c30',
-                        color: '#ffffff',
-                        fontWeight: 700,
-                        border: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <MessageSquare size={16} />
-                      Help & Support Chat
-                    </button>
-
-                    <button 
-                      className="profile-logout-btn" 
-                      onClick={() => {
-                        localStorage.removeItem('role');
-                        navigate('/');
-                      }}
-                      style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', marginTop: '8px', marginBottom: '4px' }}
-                    >
-                      <LogOut size={16} />
-                      Logout Account
-                    </button>
-
-                    <button 
-                      className="profile-logout-btn" 
-                      onClick={() => setShowDeleteConfirm(true)}
-                      style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', color: '#ef4444', borderColor: '#fee2e2', backgroundColor: '#fff5f5', marginTop: '4px', marginBottom: '8px' }}
-                    >
-                      Delete Account
-                    </button>
-                  </div>
                 </div>
               )}
+```
               <Footer />
             </div>
 
