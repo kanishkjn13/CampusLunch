@@ -173,19 +173,16 @@ const Register = () => {
     // Mock API Registration
     setTimeout(() => {
       setLoading(false);
-      localStorage.setItem('role', role);
       localStorage.setItem('name', name);
       localStorage.setItem('email', email);
       localStorage.setItem('phone', phone);
-      if (role === 'student') {
-        navigate('/student', { replace: true });
-      } else {
+      if (role !== 'student') {
         localStorage.setItem('vendor_selfie', selfie); // Store the captured selfie
         localStorage.setItem('vendor_name', name);
         localStorage.setItem('vendor_phone', phone);
         localStorage.setItem('vendor_email', email);
-        navigate('/vendor-dashboard', { replace: true });
       }
+      navigate('/login', { replace: true, state: { message: 'Registration successful! Please sign in with your credentials.' } });
     }, 1200);
   };
 

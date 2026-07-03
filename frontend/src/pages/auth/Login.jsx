@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 
 const Login = () => {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,6 +56,7 @@ const Login = () => {
   const handleLogin = (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -115,12 +118,32 @@ const Login = () => {
       setLoading(false);
       localStorage.setItem('role', detectedRole);
       localStorage.setItem('email', email);
-      const formattedName = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      localStorage.setItem('name', formattedName);
-      localStorage.setItem('phone', '+91 90123 45678');
-      if (detectedRole === 'student') navigate('/student', { replace: true });
-      else if (detectedRole === 'vendor') navigate('/vendor-dashboard', { replace: true });
-      else navigate('/admin', { replace: true });
+      
+      if (detectedRole === 'student') {
+        const registeredEmail = localStorage.getItem('email');
+        if (!registeredEmail || registeredEmail.toLowerCase() !== email.toLowerCase()) {
+          const formattedName = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          localStorage.setItem('name', formattedName);
+          localStorage.setItem('phone', '+91 90123 45678');
+        }
+        navigate('/student', { replace: true });
+      } else if (detectedRole === 'vendor') {
+        const registeredVendorEmail = localStorage.getItem('vendor_email');
+        if (registeredVendorEmail && registeredVendorEmail.toLowerCase() === email.toLowerCase()) {
+          localStorage.setItem('name', localStorage.getItem('vendor_name') || '');
+          localStorage.setItem('phone', localStorage.getItem('vendor_phone') || '');
+        } else {
+          const formattedName = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          localStorage.setItem('name', formattedName);
+          localStorage.setItem('phone', '+91 90123 45678');
+        }
+        navigate('/vendor-dashboard', { replace: true });
+      } else {
+        const formattedName = email.split('@')[0].split('.').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        localStorage.setItem('name', formattedName);
+        localStorage.setItem('phone', '+91 90123 45678');
+        navigate('/admin', { replace: true });
+      }
     }, 1200);
   };
 
@@ -207,6 +230,18 @@ const Login = () => {
                 Back to Home
               </Link>
             </div>
+            {successMessage && (
+              <div 
+                className="mb-md p-sm text-center font-body-md text-body-md font-bold rounded-xl"
+                style={{ 
+                  background: 'rgba(16, 185, 129, 0.12)', 
+                  color: '#065f46', 
+                  border: '1px solid rgba(16, 185, 129, 0.2)' 
+                }}
+              >
+                {successMessage}
+              </div>
+            )}
             {error && (
               <div 
                 className="mb-md p-sm text-center font-body-md text-body-md font-bold rounded-xl"

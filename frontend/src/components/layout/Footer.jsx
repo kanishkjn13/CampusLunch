@@ -23,8 +23,8 @@ const Footer = ({ compact }) => {
       {isCompact ? (
         <footer style={{ 
           padding: '16px 0', 
-          backgroundColor: '#ffffff', 
-          borderTop: '1px solid rgba(133, 83, 0, 0.06)',
+          backgroundColor: 'var(--footer-bg)', 
+          borderTop: '1px solid var(--footer-border)',
           width: '100%',
           marginTop: 'auto'
         }}>
@@ -38,7 +38,7 @@ const Footer = ({ compact }) => {
             {/* Left Block: Logo + Copyright */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <img src={logo} alt="CampusLunch Logo" style={{ height: '20px', width: 'auto', objectFit: 'contain' }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 650, color: '#855300' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 650, color: 'var(--footer-accent)' }}>
                 &copy; {new Date().getFullYear()} CampusLunch
               </span>
             </div>
@@ -52,8 +52,8 @@ const Footer = ({ compact }) => {
                 width: '28px', 
                 height: '28px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(133, 83, 0, 0.05)',
-                color: '#855300',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                color: 'var(--footer-accent)',
                 border: 'none',
                 transition: 'all 0.2s'
               }}>
@@ -70,8 +70,8 @@ const Footer = ({ compact }) => {
                 width: '28px', 
                 height: '28px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(133, 83, 0, 0.05)',
-                color: '#855300',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                color: 'var(--footer-accent)',
                 border: 'none',
                 transition: 'all 0.2s'
               }}>
@@ -86,8 +86,8 @@ const Footer = ({ compact }) => {
                 width: '28px', 
                 height: '28px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(133, 83, 0, 0.05)',
-                color: '#855300',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                color: 'var(--footer-accent)',
                 border: 'none',
                 transition: 'all 0.2s'
               }}>

@@ -5,6 +5,14 @@
   --bg-card: #ffffff;
   --bg-hover: #f1f3f9;
 
+  /* Footer Colors */
+  --footer-bg: #0b1c30;
+  --footer-text: #ffffff;
+  --footer-muted: rgba(255, 255, 255, 0.7);
+  --footer-heading: #ffffff;
+  --footer-accent: #f59e0b;
+  --footer-border: rgba(255, 255, 255, 0.08);
+
   /* Text Colors */
   --text-primary: #0b1c30;
   --text-secondary: #534434;
