@@ -236,7 +236,20 @@ const StudentDashboard = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedTrackingOrderId, setSelectedTrackingOrderId] = useState(null);
-  const currentTracker = activeTrackers.find(t => t.orderId === selectedTrackingOrderId) || activeTrackers.filter(t => t.statusIndex < 5)[0] || activeTrackers[0] || activeOrderTracker;
+  
+  const getActiveTrackersList = () => {
+    if (!activeTrackers) return [];
+    return activeTrackers.filter(t => {
+      if (t.statusIndex >= 5) return false;
+      const ord = orders.find(o => o.id === t.orderId);
+      if (ord && (ord.deliveryStatus === 'Delivered' || ord.deliveryStatus === 'Cancelled')) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  const currentTracker = activeTrackers.find(t => t.orderId === selectedTrackingOrderId) || getActiveTrackersList()[0] || activeTrackers[0] || activeOrderTracker;
   const currentSeller = currentTracker && sellers ? (sellers.find(s => s.name === currentTracker.vendorName) || { phone: '+91 98765 43210' }) : null;
 
   const getSellerRatingInfo = (sellerName) => {
@@ -291,7 +304,6 @@ const StudentDashboard = () => {
     name: localStorage.getItem('name') || user.name,
     phone: localStorage.getItem('phone') || user.phone,
     email: localStorage.getItem('email') || 'alex.johnson@campus.edu',
-    dietPreference: user.dietPreference || 'Vegetarian',
     avatar: localStorage.getItem('student_avatar') || user.avatar
   });
    const [profileSuccess, setProfileSuccess] = useState(false);
@@ -507,14 +519,12 @@ const StudentDashboard = () => {
     const savedName = localStorage.getItem('name');
     const savedPhone = localStorage.getItem('phone');
     const savedEmail = localStorage.getItem('email');
-    const savedDiet = localStorage.getItem('dietPreference');
     const savedAvatar = savedEmail ? localStorage.getItem(`student_avatar_${savedEmail}`) : null;
     
     const syncedData = {
       name: savedName || user.name,
       phone: savedPhone || user.phone,
       email: savedEmail || user.email,
-      dietPreference: savedDiet || user.dietPreference || 'Vegetarian',
       avatar: savedAvatar || user.avatar
     };
 
@@ -743,27 +753,27 @@ const StudentDashboard = () => {
                       </button>
                     </div>
 
-                     {/* Live Orders sliding carousel */}
-                     {activeTrackers && activeTrackers.filter(t => t.statusIndex < 5).length > 0 && (
-                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left', width: '100%' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                           <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Active Live Orders</span>
-                           <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Swipe &bull; {activeTrackers.filter(t => t.statusIndex < 5).length} active</span>
-                         </div>
-                         
-                         <div style={{ 
-                           display: 'flex', 
-                           gap: '12px', 
-                           overflowX: 'auto', 
-                           paddingBottom: '8px', 
-                           scrollbarWidth: 'none', 
-                           msOverflowStyle: 'none',
-                           scrollSnapType: 'x mandatory',
-                           width: '100%',
-                           scrollBehavior: 'smooth',
-                           WebkitOverflowScrolling: 'touch'
-                         }}>
-                           {activeTrackers.filter(t => t.statusIndex < 5).map(tracker => (
+                      {/* Live Orders sliding carousel */}
+                      {getActiveTrackersList().length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left', width: '100%' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Active Live Orders</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Swipe &bull; {getActiveTrackersList().length} active</span>
+                          </div>
+                          
+                          <div style={{ 
+                            display: 'flex', 
+                            gap: '12px', 
+                            overflowX: 'auto', 
+                            paddingBottom: '8px', 
+                            scrollbarWidth: 'none', 
+                            msOverflowStyle: 'none',
+                            scrollSnapType: 'x mandatory',
+                            width: '100%',
+                            scrollBehavior: 'smooth',
+                            WebkitOverflowScrolling: 'touch'
+                          }}>
+                            {getActiveTrackersList().map(tracker => (
                              <div 
                                key={tracker.orderId}
                                className="live-order-card" 
@@ -1460,7 +1470,7 @@ const StudentDashboard = () => {
                     <button 
                       className="order-action-btn btn-solid" 
                       onClick={() => {
-                        const activeTrack = activeTrackers.filter(t => t.statusIndex < 5)[0];
+                        const activeTrack = getActiveTrackersList()[0];
                         if (activeTrack) {
                           setSelectedTrackingOrderId(activeTrack.orderId);
                           setActiveTab('track-order');
@@ -1641,7 +1651,16 @@ const StudentDashboard = () => {
                   <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>My Orders</h2>
                   
                   {/* Active Tokens Info */}
-                  {activeTrackers && activeTrackers.filter(t => t.statusIndex < 5).map(tracker => (
+                  {getActiveTrackersList().length === 0 && (
+                    <div className="order-again-card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', border: '1.5px dashed rgba(133, 83, 0, 0.25)', borderRadius: '16px', backgroundColor: '#fffbeb', color: '#855300', textAlign: 'left', marginBottom: '12px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '1.8rem', color: '#d97706' }}>info</span>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>No active orders for now</h4>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#b45309', fontWeight: 500 }}>Your active live tracking states will appear here once you place a new tiffin checkout.</p>
+                      </div>
+                    </div>
+                  )}
+                  {getActiveTrackersList().map(tracker => (
                     <div 
                       key={tracker.orderId}
                       className="order-again-card" 
@@ -1671,28 +1690,37 @@ const StudentDashboard = () => {
                       </div>
                     ) : (
                       orders.filter(o => o.deliveryStatus === 'Delivered' || o.deliveryStatus === 'Cancelled').map(order => (
-                        <div key={order.id} className="order-again-card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                            <div style={{ flex: 1 }}>
-                              <h4 style={{ fontSize: '0.85rem', fontWeight: 800 }}>Token {order.id}</h4>
-                              <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>{order.vendor} • {order.date} • {order.items}</p>
-                              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginTop: '4px' }}>Bill Paid: ₹{order.bill} via {order.paymentMethod}</span>
+                        <div key={order.id} className="order-again-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', borderRadius: '18px', border: '1px solid rgba(0,0,0,0.03)', backgroundColor: '#ffffff', boxShadow: '0 4px 15px rgba(0,0,0,0.005)' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', textAlign: 'left' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                              <h4 style={{ fontSize: '0.92rem', fontWeight: 900, margin: 0, color: '#1e293b' }}>Token {order.id}</h4>
+                              <span style={{ 
+                                fontWeight: 800, 
+                                color: order.deliveryStatus === 'Cancelled' ? '#e11d48' : '#10b981', 
+                                backgroundColor: order.deliveryStatus === 'Cancelled' ? '#fff1f2' : '#f0fdf4',
+                                padding: '4px 10px',
+                                borderRadius: '8px',
+                                fontSize: '0.68rem',
+                                letterSpacing: '0.5px'
+                              }}>
+                                {order.deliveryStatus.toUpperCase()}
+                              </span>
                             </div>
-                            
-                            <span style={{ 
-                              fontWeight: 800, 
-                              color: order.deliveryStatus === 'Cancelled' ? '#ef4444' : '#059669', 
-                              fontSize: '0.78rem' 
-                            }}>
-                              {order.deliveryStatus.toUpperCase()}
-                            </span>
+                            <div style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.03)', paddingBottom: '6px' }}>
+                              <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', fontWeight: 800 }}>{order.vendor}</p>
+                              <p style={{ margin: '3px 0 0 0', fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>{order.date} &bull; {order.items}</p>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Paid amount</span>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#0f172a' }}>₹{order.bill} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>via {order.paymentMethod}</span></span>
+                            </div>
                           </div>
                           
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid rgba(0, 0, 0, 0.04)', paddingTop: '8px', width: '100%' }}>
+                          <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(0, 0, 0, 0.04)', paddingTop: '8px', width: '100%', marginTop: '2px' }}>
                             {order.deliveryStatus === 'Delivered' && (
                               <button 
                                 className="order-action-btn btn-solid"
-                                style={{ padding: '6px 12px', fontSize: '0.72rem', borderRadius: '8px', fontWeight: 800 }}
+                                style={{ flex: 2, padding: '10px 0', fontSize: '0.75rem', borderRadius: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                                 onClick={() => setRatingModal({
                                   isOpen: true,
                                   orderId: order.id,
@@ -1732,7 +1760,7 @@ const StudentDashboard = () => {
                                 });
                                 triggerToast('Downloading PDF Receipt...');
                               }}
-                              style={{ padding: '6px 12px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', fontWeight: 800 }}
+                              style={{ flex: 1, padding: '10px 0', fontSize: '0.75rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               Receipt
                             </button>
@@ -1930,18 +1958,7 @@ const StudentDashboard = () => {
                             />
                           </div>
 
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Diet Preference</label>
-                            <select 
-                              value={profileForm.dietPreference}
-                              onChange={(e) => setProfileForm(prev => ({ ...prev, dietPreference: e.target.value }))}
-                              style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#ffffff' }}
-                            >
-                              <option value="Vegetarian">Vegetarian</option>
-                              <option value="Jain">Jain</option>
-                              <option value="Non-Vegetarian">Non-Vegetarian</option>
-                            </select>
-                          </div>
+
                         </div>
 
                         <button 
@@ -2163,10 +2180,7 @@ const StudentDashboard = () => {
                             <p style={{ margin: '6px 0 0 0', fontSize: '0.72rem', color: '#64748b', lineHeight: '1.4' }}>Orders can only be cancelled before the kitchen marks them as 'Preparing Food'. Once food preparation starts, cancellations are blocked.</p>
                           </details>
 
-                          <details style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                            <summary style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', outline: 'none' }}>How does the Jain diet filter work?</summary>
-                            <p style={{ margin: '6px 0 0 0', fontSize: '0.72rem', color: '#64748b', lineHeight: '1.4' }}>Toggling the Jain preference on your home feed automatically excludes meals containing onions, garlic, potatoes, or root vegetables.</p>
-                          </details>
+
                         </div>
                       </div>
 
@@ -2196,10 +2210,8 @@ const StudentDashboard = () => {
                       </div>
                     </div>
                   )}
-
                 </div>
               )}
-```
               <Footer />
             </div>
 

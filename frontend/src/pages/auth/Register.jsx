@@ -14,8 +14,6 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [license, setLicense] = useState('');
-  const [dietPreference, setDietPreference] = useState('Vegetarian');
   const [formStep, setFormStep] = useState(1);
   
   const [loading, setLoading] = useState(false);
@@ -156,11 +154,6 @@ const Register = () => {
       return;
     }
 
-    if (role === 'vendor' && license.trim() && license.trim().length !== 14) {
-      setError('FSSAI License number must be exactly 14 digits');
-      return;
-    }
-
     // Step splitting!
     if (role === 'vendor' && formStep === 1) {
       // Direct vendor to Step 2: selfie capture
@@ -184,7 +177,6 @@ const Register = () => {
       localStorage.setItem('name', name);
       localStorage.setItem('email', email);
       localStorage.setItem('phone', phone);
-      localStorage.setItem('dietPreference', dietPreference);
       if (role === 'student') {
         navigate('/student', { replace: true });
       } else {
@@ -192,7 +184,6 @@ const Register = () => {
         localStorage.setItem('vendor_name', name);
         localStorage.setItem('vendor_phone', phone);
         localStorage.setItem('vendor_email', email);
-        localStorage.setItem('vendor_license', license || '12345678901234');
         navigate('/vendor-dashboard', { replace: true });
       }
     }, 1200);
@@ -461,26 +452,6 @@ const Register = () => {
                     </div>
                   </div>
 
-                  {/* FSSAI License (vendor only) */}
-                  {role === 'vendor' && (
-                    <div className="space-y-xs">
-                      <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="license">FSSAI License No. (Optional)</label>
-                      <div className="auth-input-wrapper">
-                        <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">receipt_long</span>
-                        <input 
-                          className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input" 
-                          id="license" 
-                          placeholder="e.g. 12345678901234" 
-                          type="text"
-                          value={license}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            if (val.length <= 14) setLicense(val);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   {/* Phone Input */}
                   <div className="space-y-xs">
@@ -502,27 +473,6 @@ const Register = () => {
                     </div>
                   </div>
 
-                  {/* Diet Preference Input (Student Only) */}
-                  {role === 'student' && (
-                    <div className="space-y-xs">
-                      <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="diet">Diet Preference</label>
-                      <div className="auth-input-wrapper">
-                        <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">restaurant</span>
-                        <select 
-                          className="w-full h-12 pl-[42px] pr-[36px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input" 
-                          id="diet" 
-                          value={dietPreference}
-                          onChange={(e) => setDietPreference(e.target.value)}
-                          style={{ appearance: 'none', backgroundColor: '#ffffff', cursor: 'pointer' }}
-                        >
-                          <option value="Vegetarian">Vegetarian</option>
-                          <option value="Jain">Jain</option>
-                          <option value="Non-Vegetarian">Non-Vegetarian</option>
-                        </select>
-                        <span className="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] pointer-events-none">expand_more</span>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Email Input */}
                   <div className="space-y-xs">

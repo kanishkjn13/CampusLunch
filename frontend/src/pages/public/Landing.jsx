@@ -116,7 +116,7 @@ const Landing = () => {
               number="1"
               icon={<Utensils size={24} />}
               title="Select Your Tiffin"
-              description="Browse local home-chefs and choose from various dietary preferences (Veg, Non-Veg, Vegan)."
+              description="Browse local home-chefs and choose from various home-cooked options."
               active={timelineProgress > 0}
             />
             <StepCard
@@ -149,7 +149,7 @@ const Landing = () => {
             badgeColor: "#10b981",
             icon: <ShieldCheck size={28} />,
             points: [
-              "FSSAI registered home kitchens",
+              "Verified clean home kitchens",
               "Mandatory daily kitchen sanitization",
               "Temperature-monitored contactless prep"
             ],
