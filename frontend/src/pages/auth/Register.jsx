@@ -4,7 +4,7 @@ import logo from '@/assets/logos/logo.png';
 import {
   studentRegister,
   vendorRegister,
-} from "@/Services/authService";
+} from "@/Services/authservice";
 
 const Register = () => {
   const location = useLocation();
@@ -101,7 +101,6 @@ const Register = () => {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
-
     if (user) {
       if (user.role === "student") {
         navigate("/student", { replace: true });
@@ -151,15 +150,13 @@ const Register = () => {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
+    if (!email.trim()) {
+      setError("Email is required.");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
@@ -173,18 +170,11 @@ const Register = () => {
       return;
     }
 
-    // Vendor Step 1 -> Step 2 (Selfie Screen)
-    if (role === "vendor" && formStep === 1) {
-      setFormStep(2);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-
-    // Vendor Step 2 Validation
-    if (role === "vendor" && !selfie) {
-      setError("A live profile selfie is compulsory for vendor registration.");
-      return;
-    }
+    // Vendor-only Validation
+    // if (role === "vendor" && !selfie) {
+    //   setError("A live profile selfie is compulsory for vendor registration.");
+    //   return;
+    // }
 
     try {
       setLoading(true);
@@ -198,13 +188,11 @@ const Register = () => {
         accept_terms: acceptTerms,
       };
 
-      if (role === "student") {
-        await studentRegister(payload);
+      if (role === "vendor") {
+        payload.fssai_license = "";
+        await vendorRegister(payload);
       } else {
-        await vendorRegister({
-          ...payload,
-          fssai_license: "",
-        });
+        await studentRegister(payload);
       }
 
       navigate("/login", {
@@ -212,15 +200,13 @@ const Register = () => {
         state: {
           message:
             role === "student"
-              ? "Student registered successfully. Please login."
+              ? "Registration successful! Please login."
               : "Vendor registered successfully. Please login.",
         },
       });
 
     } catch (err) {
-
       if (err.response?.data) {
-
         const errors = err.response.data;
 
         const firstError = Object.values(errors)[0];
@@ -230,21 +216,15 @@ const Register = () => {
         } else {
           setError(firstError);
         }
-
       } else {
-
         setError(
           role === "student"
-            ? "Student registration failed."
+            ? "Registration failed."
             : "Vendor registration failed."
         );
-
       }
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
@@ -535,14 +515,23 @@ const Register = () => {
 
                   {/* Email Input */}
                   <div className="space-y-xs">
-                    <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="email">Email Address</label>
+                    <label
+                      className="font-label-md text-label-md text-on-surface-variant ml-xs"
+                      htmlFor="email"
+                    >
+                      Email Address
+                    </label>
+
                     <div className="auth-input-wrapper">
-                      <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">mail</span>
+                      <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+                        mail
+                      </span>
+
                       <input
                         className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
                         id="email"
-                        placeholder="student@gmail.com"
                         type="email"
+                        placeholder="student@gmail.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -552,48 +541,41 @@ const Register = () => {
 
                   {/* Password Input */}
                   <div className="space-y-xs">
-                    <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="password">Password</label>
-                    <div className="auth-input-wrapper">
-                      <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">lock</span>
+                    <label
+                      className="font-label-md text-label-md text-on-surface-variant ml-xs"
+                      htmlFor="password"
+                    >
+                      Password
+                    </label>
+
+                    <div className="auth-input-wrapper relative">
+                      <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+                        lock
+                      </span>
+
                       <input
                         className="w-full h-12 pl-[42px] pr-[42px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
                         id="password"
-                        placeholder="Create a password"
                         type={showPassword ? "text" : "password"}
+                        placeholder="Create a password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                       />
+
                       <button
-                        className="text-on-surface-variant hover:text-primary transition-colors"
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '16px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          padding: 0,
-                          width: '24px',
-                          height: '24px'
-                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary"
                       >
-                        <span
-                          className="material-symbols-outlined text-[20px]"
-                          style={{ display: 'block', lineHeight: '1', width: '20px', height: '20px' }}
-                        >
+                        <span className="material-symbols-outlined">
                           {showPassword ? "visibility_off" : "visibility"}
                         </span>
                       </button>
                     </div>
                   </div>
-                  {/* confrom password */}
+
+                  {/* Confirm Password */}
                   <div className="space-y-xs">
                     <label
                       className="font-label-md text-label-md text-on-surface-variant ml-xs"
@@ -602,20 +584,30 @@ const Register = () => {
                       Confirm Password
                     </label>
 
-                    <div className="auth-input-wrapper">
+                    <div className="auth-input-wrapper relative">
                       <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
                         lock
                       </span>
 
                       <input
-                        className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none"
+                        className="w-full h-12 pl-[42px] pr-[42px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
                         id="confirmPassword"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Confirm Password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                       />
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary"
+                      >
+                        <span className="material-symbols-outlined">
+                          {showPassword ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
                     </div>
                   </div>
 
