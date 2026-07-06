@@ -3,8 +3,6 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { loginUser } from "@/Services/authService";
 
-import { loginUser } from "@/Services/authService";
-
 const Login = () => {
   const location = useLocation();
   const [email, setEmail] = useState('');

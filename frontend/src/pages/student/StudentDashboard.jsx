@@ -1958,22 +1958,6 @@ const StudentDashboard = () => {
                             />
                           </div>
 
-<<<<<<< HEAD
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Diet Preference</label>
-                            <select 
-                              value={profileForm.dietPreference}
-                              onChange={(e) => setProfileForm(prev => ({ ...prev, dietPreference: e.target.value }))}
-                              style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#ffffff' }}
-                            >
-                              <option value="Vegetarian">Vegetarian</option>
-                              <option value="Jain">Jain</option>
-                              <option value="Non-Vegetarian">Non-Vegetarian</option>
-                            </select>
-                          </div>
-=======
-
->>>>>>> backend-only
                         </div>
 
                         <button 
@@ -2195,14 +2179,7 @@ const StudentDashboard = () => {
                             <p style={{ margin: '6px 0 0 0', fontSize: '0.72rem', color: '#64748b', lineHeight: '1.4' }}>Orders can only be cancelled before the kitchen marks them as 'Preparing Food'. Once food preparation starts, cancellations are blocked.</p>
                           </details>
 
-<<<<<<< HEAD
-                          <details style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                            <summary style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', outline: 'none' }}>How does the Jain diet filter work?</summary>
-                            <p style={{ margin: '6px 0 0 0', fontSize: '0.72rem', color: '#64748b', lineHeight: '1.4' }}>Toggling the Jain preference on your home feed automatically excludes meals containing onions, garlic, potatoes, or root vegetables.</p>
-                          </details>
-=======
 
->>>>>>> backend-only
                         </div>
                       </div>
 
@@ -2232,10 +2209,7 @@ const StudentDashboard = () => {
                       </div>
                     </div>
                   )}
-<<<<<<< HEAD
 
-=======
->>>>>>> backend-only
                 </div>
               )}
 ```

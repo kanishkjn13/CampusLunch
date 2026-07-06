@@ -1,0 +1,12 @@
+{
+  "name": "tiffin-connect-root",
+  "version": "1.0.0",
+  "description": "Root runner for Campus Lunch / Tiffin Connect project",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "cd backend && source venv/bin/activate && python manage.py runserver",
+    "install:frontend": "npm install --prefix frontend",
+    "install:backend": "cd backend && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt"
+  }
+}

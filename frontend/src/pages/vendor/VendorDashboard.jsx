@@ -34,10 +34,6 @@ const VendorDashboard = () => {
   const [vendorName, setVendorName] = useState(() => localStorage.getItem('vendor_name') || 'Sharma Tiffin Center');
   const [vendorPhone, setVendorPhone] = useState(() => localStorage.getItem('vendor_phone') || '9876543210');
   const [vendorEmail, setVendorEmail] = useState(() => localStorage.getItem('vendor_email') || 'vendor@campuslunch.com');
-<<<<<<< HEAD
-  const [vendorLicense, setVendorLicense] = useState(() => localStorage.getItem('vendor_license') || '12345678901234');
-=======
->>>>>>> backend-only
 
   // Nested settings states
   const [activeProfileSubPage, setActiveProfileSubPage] = useState('menu'); // 'menu', 'edit-profile', 'operating-settings', 'change-password', 'reset-password-request', 'help-center-faq'
@@ -47,10 +43,6 @@ const VendorDashboard = () => {
     name: '',
     phone: '',
     email: '',
-<<<<<<< HEAD
-    license: '',
-=======
->>>>>>> backend-only
     avatar: ''
   });
 
@@ -280,10 +272,6 @@ const VendorDashboard = () => {
       name: vendorName,
       phone: vendorPhone,
       email: vendorEmail,
-<<<<<<< HEAD
-      license: vendorLicense,
-=======
->>>>>>> backend-only
       avatar: vendorChefAvatar
     });
     setActiveProfileSubPage('edit-profile');
@@ -291,11 +279,7 @@ const VendorDashboard = () => {
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
-<<<<<<< HEAD
-    if (!editProfileForm.name || !editProfileForm.phone || !editProfileForm.email || !editProfileForm.license) {
-=======
     if (!editProfileForm.name || !editProfileForm.phone || !editProfileForm.email) {
->>>>>>> backend-only
       alert("All fields marked * are required.");
       return;
     }
@@ -304,20 +288,12 @@ const VendorDashboard = () => {
     setVendorName(editProfileForm.name);
     setVendorPhone(editProfileForm.phone);
     setVendorEmail(editProfileForm.email);
-<<<<<<< HEAD
-    setVendorLicense(editProfileForm.license);
-=======
->>>>>>> backend-only
     setVendorChefAvatar(editProfileForm.avatar);
     
     // Save to localStorage
     localStorage.setItem('vendor_name', editProfileForm.name);
     localStorage.setItem('vendor_phone', editProfileForm.phone);
     localStorage.setItem('vendor_email', editProfileForm.email);
-<<<<<<< HEAD
-    localStorage.setItem('vendor_license', editProfileForm.license);
-=======
->>>>>>> backend-only
     localStorage.setItem('vendor_selfie', editProfileForm.avatar);
     
     alert("Profile details saved successfully!");
@@ -369,10 +345,6 @@ const VendorDashboard = () => {
     localStorage.removeItem('vendor_name');
     localStorage.removeItem('vendor_phone');
     localStorage.removeItem('vendor_email');
-<<<<<<< HEAD
-    localStorage.removeItem('vendor_license');
-=======
->>>>>>> backend-only
     localStorage.removeItem('vendor_selfie');
     
     setDeleteAccountModal(false);
@@ -1403,11 +1375,7 @@ const VendorDashboard = () => {
                       </div>
                     </div>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#855300', marginTop: '12px', marginBottom: '4px' }}>{vendorName}</h3>
-<<<<<<< HEAD
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Premium Meal Partner &bull; FSSAI Licensed</p>
-=======
                     <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Premium Meal Partner &bull; Verified Chef</p>
->>>>>>> backend-only
                     <div className="profile-rating-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fef3c7', padding: '4px 12px', borderRadius: '12px', marginTop: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#d97706' }}>
                       <Star size={12} fill="#d97706" style={{ color: '#d97706' }} />
                       <span>4.8 (120+ ratings)</span>
@@ -1570,20 +1538,6 @@ const VendorDashboard = () => {
                       />
                     </div>
 
-<<<<<<< HEAD
-                    <div className="form-group">
-                      <label>FSSAI License Number *</label>
-                      <input 
-                        type="text"
-                        required
-                        value={editProfileForm.license}
-                        onChange={(e) => setEditProfileForm(prev => ({ ...prev, license: e.target.value }))}
-                        placeholder="e.g. 12345678901234"
-                      />
-                    </div>
-=======
-
->>>>>>> backend-only
 
                     <div className="add-tiffin-grid-2col">
                       <div className="form-group">
