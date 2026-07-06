@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
-import { forgotPassword } from "@/Services/authService";
+import { forgotPassword } from "@/Services/authservice";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -112,7 +112,6 @@ const ForgotPassword = () => {
 
     }
   };
-
   const handleResend = async () => {
 
     if (resendTimer > 0) return;
