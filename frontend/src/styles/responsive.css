@@ -1230,8 +1230,8 @@
   .site-footer {
     margin-top: 32px !important;
     padding: 32px 16px 24px !important;
-    border-top: 1px solid rgba(216, 195, 173, 0.3) !important;
-    background-color: #f8f9ff !important;
+    border-top: 1px solid var(--footer-border) !important;
+    background-color: var(--footer-bg) !important;
   }
 
   .footer-content-wrapper {
@@ -1296,11 +1296,11 @@
     flex-direction: column !important;
     align-items: center !important;
     gap: 12px !important;
-    border-top: 1px solid rgba(133, 83, 0, 0.08) !important;
+    border-top: 1px solid var(--footer-border) !important;
     padding-top: 20px !important;
     padding-bottom: 24px !important;
     font-size: 12px !important;
-    color: #534434 !important;
+    color: var(--footer-muted) !important;
     font-family: 'Outfit', sans-serif !important;
   }
 
@@ -1315,7 +1315,7 @@
   }
 
   .footer-bottom-links a {
-    color: #855300 !important;
+    color: var(--footer-text) !important;
     font-weight: 600 !important;
     text-decoration: none !important;
   }
@@ -1325,7 +1325,7 @@
   }
 
   .separator {
-    color: rgba(133, 83, 0, 0.2) !important;
+    color: var(--footer-border) !important;
   }
 }
 
@@ -1340,9 +1340,9 @@
 
   .site-footer {
     padding: 80px 0 40px;
-    background-color: #f1f3f9;
-    color: var(--text-secondary);
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background-color: var(--footer-bg);
+    color: var(--footer-text);
+    border-top: 1px solid var(--footer-border);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1364,13 +1364,13 @@
   .footer-logo-desktop {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--accent-primary);
+    color: var(--footer-accent);
     margin: 0;
   }
 
   .footer-slogan-desktop {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: var(--footer-text);
     line-height: 1.6;
     max-width: 320px;
     margin: 0;
@@ -1387,7 +1387,7 @@
   .footer-newsletter h4 {
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--footer-heading);
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1450,7 +1450,7 @@
   .footer-links-column h4 {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--footer-heading);
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1468,14 +1468,14 @@
   .footer-links-column ul li a,
   .footer-links-column ul li span {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: var(--footer-text);
     text-decoration: none;
     transition: all 0.3s ease;
     display: inline-block;
   }
 
   .footer-links-column ul li a:hover {
-    color: var(--accent-primary);
+    color: var(--footer-accent);
     transform: translateX(4px);
   }
 
@@ -1487,7 +1487,7 @@
   }
 
   .contact-info-list li svg {
-    color: var(--accent-primary);
+    color: var(--footer-accent);
     flex-shrink: 0;
   }
 
@@ -1502,9 +1502,9 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    background: #ffffff;
-    color: var(--text-secondary);
+    border: 1px solid var(--footer-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--footer-text);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1513,10 +1513,10 @@
 
   .social-icon-btn-desktop:hover {
     color: #ffffff;
-    border-color: var(--accent-primary);
-    background: var(--accent-primary);
+    border-color: var(--footer-accent);
+    background: var(--footer-accent);
     transform: scale(1.1) rotate(6deg);
-    box-shadow: 0 4px 12px rgba(133, 83, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
   }
 
   /* Bottom Bar layout */
@@ -1525,10 +1525,10 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    border-top: 1px solid var(--footer-border);
     padding-top: 24px;
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: var(--footer-muted);
     text-align: left;
   }
 
@@ -1545,7 +1545,7 @@
   }
 
   .footer-bottom-links-desktop a:hover {
-    color: var(--accent-primary);
+    color: var(--footer-accent);
   }
 
   .separator-desktop {
