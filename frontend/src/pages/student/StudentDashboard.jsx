@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
 import Footer from '@/components/layout/Footer';
-import { changePassword } from "@/Services/authservice";
+import { changePassword } from "@/Services/authService";
 import { jsPDF } from 'jspdf';
 import {
   Search,

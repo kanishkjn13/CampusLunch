@@ -5,6 +5,7 @@ import Landing from './pages/public/Landing';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import StudentDashboard from './pages/student/StudentDashboard';
 import VendorDetails from './pages/student/VendorDetails';
 
@@ -34,7 +35,11 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            
+            <Route
+              path="/reset-password/:uid/:token"
+              element={<ResetPassword />}
+            />
+
             <Route path="/student" element={<StudentDashboard />} />
             <Route path="/vendor/:id" element={<VendorDetails />} />
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />

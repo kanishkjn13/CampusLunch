@@ -4,7 +4,7 @@ import logo from '@/assets/logos/logo.png';
 import {
   studentRegister,
   vendorRegister,
-} from "@/Services/authservice";
+} from "@/Services/authService";
 
 const Register = () => {
   const location = useLocation();

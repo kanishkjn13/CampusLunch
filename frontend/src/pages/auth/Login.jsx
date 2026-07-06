@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
-import { loginUser } from "@/Services/authservice";
+import { loginUser } from "@/Services/authService";
 
 const Login = () => {
   const location = useLocation();
