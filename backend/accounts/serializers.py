@@ -104,11 +104,6 @@ class VendorRegisterSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
-    fssai_license = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        write_only=True
-    )
 
     class Meta:
         model = User
@@ -120,7 +115,6 @@ class VendorRegisterSerializer(serializers.ModelSerializer):
             "password",
             "confirm_password",
             "accept_terms",
-            "fssai_license",
         ]
 
         extra_kwargs = {
@@ -174,7 +168,6 @@ class VendorRegisterSerializer(serializers.ModelSerializer):
 
         validated_data.pop("confirm_password")
         validated_data.pop("accept_terms")
-        validated_data.pop("fssai_license", None)
 
         user = User.objects.create_user(
             full_name=validated_data["full_name"],
