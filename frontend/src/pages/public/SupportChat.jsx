@@ -12,8 +12,12 @@ const SupportChat = () => {
   const quickQuestions = [
     { q: 'Refund status for failed checkout?', a: 'UPI checkout failures are auto-refunded to the source account within 2-3 business days. If not resolved, email transaction details to support.campuslunch@gmail.com.' },
     { q: 'How do I cancel my active tiffin?', a: 'According to campus kitchen policy, orders cannot be cancelled once food preparation starts. For emergencies, please call the kitchen chef directly.' },
+<<<<<<< HEAD
     { q: 'How to register as a new chef vendor?', a: 'Go to /register?role=vendor to submit your FSSAI certificate. Our compliance team will review and approve your kitchen dashboard setup within 24 hours.' },
     { q: 'Change my dietary preference details?', a: 'Tap your Profile on the student bottom nav, select Edit Profile, choose your diet preference (Jain, Veg, or Non-Veg) and click Save Changes.' }
+=======
+    { q: 'How to register as a new chef vendor?', a: 'Go to /register?role=vendor to submit your kitchen registration. Our compliance team will review and approve your kitchen dashboard setup within 24 hours.' }
+>>>>>>> backend-only
   ];
 
   const role = localStorage.getItem('role') || 'student';

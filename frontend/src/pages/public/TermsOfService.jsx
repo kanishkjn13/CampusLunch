@@ -206,7 +206,7 @@ const TermsOfService = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px' }}>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '0.85rem', color: '#334155' }}>
                   <span style={{ color: '#f59e0b', fontWeight: 800 }}>•</span>
-                  <span><strong>Licensing</strong>: Home kitchen operations must submit a valid FSSAI registration ID prior to activation.</span>
+                  <span><strong>Licensing</strong>: Home kitchen operations must submit valid identity and business registration details prior to activation.</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '0.85rem', color: '#334155' }}>
                   <span style={{ color: '#f59e0b', fontWeight: 800 }}>•</span>

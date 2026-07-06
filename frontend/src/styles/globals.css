@@ -1164,8 +1164,8 @@ h3 {
 .site-footer {
   padding: 40px 20px 24px;
   margin-top: auto;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  background-color: #f9fafb;
+  border-top: 1px solid var(--footer-border);
+  background-color: var(--footer-bg);
 }
 
 /* Visibility wrappers */
@@ -1189,13 +1189,13 @@ h3 {
 .footer-logo {
   font-size: 1.35rem;
   font-weight: 700;
-  color: #b45309;
+  color: var(--footer-accent);
   margin-bottom: 6px;
 }
 
 .footer-slogan {
   font-size: 0.88rem;
-  color: #4b5563;
+  color: var(--footer-text);
   margin: 0;
 }
 
@@ -1209,29 +1209,29 @@ h3 {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--footer-border);
+  background: rgba(255, 255, 255, 0.05);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #4b5563;
+  color: var(--footer-text);
   transition: all var(--transition-fast);
 }
 
 .social-icon-btn:hover {
-  color: #d97706;
-  border-color: #d97706;
-  background: #f9fafb;
+  color: #ffffff;
+  border-color: var(--footer-accent);
+  background: var(--footer-accent);
 }
 
 .footer-bottom-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--footer-border);
   padding-top: 16px;
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--footer-muted);
 }
 
 .footer-bottom-links {
@@ -1241,16 +1241,16 @@ h3 {
 }
 
 .footer-bottom-links a {
-  color: #6b7280;
+  color: var(--footer-text);
   text-decoration: none;
 }
 
 .footer-bottom-links a:hover {
-  color: #d97706;
+  color: var(--footer-accent);
 }
 
 .separator {
-  color: #d1d5db;
+  color: var(--footer-border);
 }
 
 /* .step-timeline-line-wrapper display is now controlled by .mobile-only and .desktop-only */

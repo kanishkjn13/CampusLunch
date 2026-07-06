@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
+import {
+  studentRegister,
+  vendorRegister,
+} from "@/Services/authService";
 
 const Register = () => {
   const location = useLocation();
@@ -13,10 +17,9 @@ const Register = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [license, setLicense] = useState('');
-  const [dietPreference, setDietPreference] = useState('Vegetarian');
+  const [showPassword, setShowPassword] = useState(false);
   const [formStep, setFormStep] = useState(1);
 
   const [loading, setLoading] = useState(false);
@@ -97,16 +100,16 @@ const Register = () => {
   }, [formStep, role]);
 
   useEffect(() => {
-    const activeRole = localStorage.getItem('role');
-    if (activeRole === 'student') {
-      navigate('/student', { replace: true });
-      return;
-    } else if (activeRole === 'vendor') {
-      navigate('/vendor-dashboard', { replace: true });
-      return;
-    } else if (activeRole === 'admin') {
-      navigate('/admin', { replace: true });
-      return;
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (user) {
+      if (user.role === "student") {
+        navigate("/student", { replace: true });
+      } else if (user.role === "vendor") {
+        navigate("/vendor-dashboard", { replace: true });
+      } else if (user.role === "admin") {
+        navigate("/admin", { replace: true });
+      }
     }
 
     const originalBg = document.body.style.backgroundColor;
@@ -132,71 +135,117 @@ const Register = () => {
     };
   }, [navigate]);
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     if (e) e.preventDefault();
-    setError('');
 
-    // Form Validations (Step 1 validations)
+    setError("");
+
+    // Frontend Validations
     if (!name.trim()) {
-      setError('Name is required');
+      setError(role === "student" ? "Full name is required." : "Vendor name is required.");
       return;
     }
+
     if (phone.length !== 10) {
-      setError('Phone number must be exactly 10 digits');
+      setError("Enter a valid 10 digit phone number.");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address.");
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError("Password must be at least 6 characters long.");
       return;
     }
 
-    if (role === 'vendor' && license.trim() && license.trim().length !== 14) {
-      setError('FSSAI License number must be exactly 14 digits');
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
-    // Step splitting!
-    if (role === 'vendor' && formStep === 1) {
-      // Direct vendor to Step 2: selfie capture
+    if (!acceptTerms) {
+      setError("Please accept Terms & Conditions.");
+      return;
+    }
+
+    // Vendor Step 1 -> Step 2 (Selfie Screen)
+    if (role === "vendor" && formStep === 1) {
       setFormStep(2);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    // Step 2 validations (vendor only)
-    if (role === 'vendor' && !selfie) {
-      setError('A live profile selfie is compulsory for vendor registration.');
+    // Vendor Step 2 Validation
+    if (role === "vendor" && !selfie) {
+      setError("A live profile selfie is compulsory for vendor registration.");
       return;
     }
 
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // Mock API Registration
-    setTimeout(() => {
-      setLoading(false);
-      localStorage.setItem('role', role);
-      localStorage.setItem('name', name);
-      localStorage.setItem('email', email);
-      localStorage.setItem('phone', phone);
-      localStorage.setItem('dietPreference', dietPreference);
-      if (role === 'student') {
-        navigate('/student', { replace: true });
+      const payload = {
+        full_name: name,
+        email,
+        phone,
+        password,
+        confirm_password: confirmPassword,
+        accept_terms: acceptTerms,
+      };
+
+      if (role === "student") {
+        await studentRegister(payload);
       } else {
-        localStorage.setItem('vendor_selfie', selfie); // Store the captured selfie
-        localStorage.setItem('vendor_name', name);
-        localStorage.setItem('vendor_phone', phone);
-        localStorage.setItem('vendor_email', email);
-        localStorage.setItem('vendor_license', license || '12345678901234');
-        navigate('/vendor-dashboard', { replace: true });
+        await vendorRegister({
+          ...payload,
+          fssai_license: "",
+        });
       }
-    }, 1200);
+
+      navigate("/login", {
+        replace: true,
+        state: {
+          message:
+            role === "student"
+              ? "Student registered successfully. Please login."
+              : "Vendor registered successfully. Please login.",
+        },
+      });
+
+    } catch (err) {
+
+      if (err.response?.data) {
+
+        const errors = err.response.data;
+
+        const firstError = Object.values(errors)[0];
+
+        if (Array.isArray(firstError)) {
+          setError(firstError[0]);
+        } else {
+          setError(firstError);
+        }
+
+      } else {
+
+        setError(
+          role === "student"
+            ? "Student registration failed."
+            : "Vendor registration failed."
+        );
+
+      }
+
+    } finally {
+
+      setLoading(false);
+
+    }
   };
 
   return (
@@ -462,26 +511,6 @@ const Register = () => {
                     </div>
                   </div>
 
-                  {/* FSSAI License (vendor only) */}
-                  {role === 'vendor' && (
-                    <div className="space-y-xs">
-                      <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="license">FSSAI License No. (Optional)</label>
-                      <div className="auth-input-wrapper">
-                        <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">receipt_long</span>
-                        <input
-                          className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
-                          id="license"
-                          placeholder="e.g. 12345678901234"
-                          type="text"
-                          value={license}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            if (val.length <= 14) setLicense(val);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   {/* Phone Input */}
                   <div className="space-y-xs">
@@ -503,27 +532,6 @@ const Register = () => {
                     </div>
                   </div>
 
-                  {/* Diet Preference Input (Student Only) */}
-                  {role === 'student' && (
-                    <div className="space-y-xs">
-                      <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="diet">Diet Preference</label>
-                      <div className="auth-input-wrapper">
-                        <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">restaurant</span>
-                        <select
-                          className="w-full h-12 pl-[42px] pr-[36px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
-                          id="diet"
-                          value={dietPreference}
-                          onChange={(e) => setDietPreference(e.target.value)}
-                          style={{ appearance: 'none', backgroundColor: '#ffffff', cursor: 'pointer' }}
-                        >
-                          <option value="Vegetarian">Vegetarian</option>
-                          <option value="Jain">Jain</option>
-                          <option value="Non-Vegetarian">Non-Vegetarian</option>
-                        </select>
-                        <span className="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] pointer-events-none">expand_more</span>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Email Input */}
                   <div className="space-y-xs">
@@ -583,6 +591,31 @@ const Register = () => {
                           {showPassword ? "visibility_off" : "visibility"}
                         </span>
                       </button>
+                    </div>
+                  </div>
+                  {/* confrom password */}
+                  <div className="space-y-xs">
+                    <label
+                      className="font-label-md text-label-md text-on-surface-variant ml-xs"
+                      htmlFor="confirmPassword"
+                    >
+                      Confirm Password
+                    </label>
+
+                    <div className="auth-input-wrapper">
+                      <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+                        lock
+                      </span>
+
+                      <input
+                        className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none"
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="Confirm Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
 

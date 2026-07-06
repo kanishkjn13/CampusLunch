@@ -32,7 +32,7 @@ const HelpFaq = () => {
     {
       category: 'vendors',
       question: 'How do I register as a partner kitchen?',
-      answer: 'Go to the Sign Up page, select the "Vendor Partner" role toggle, fill in your details, and optionally add your FSSAI license. Once submitted, our campus operations team will contact you to schedule a hygiene check and audit before onboarding.'
+      answer: 'Go to the Sign Up page, select the "Vendor Partner" role toggle, fill in your details, and submit. Once submitted, our campus operations team will contact you to schedule a hygiene check and audit before onboarding.'
     },
     {
       category: 'vendors',
@@ -47,7 +47,7 @@ const HelpFaq = () => {
     {
       category: 'safety',
       question: 'Are the partner kitchens clean and hygienic?',
-      answer: 'Absolutely. We verify FSSAI registration for all partners and conduct regular, unannounced quality audits and feedback checks on all active kitchens to maintain the highest food safety standards.'
+      answer: 'Absolutely. We verify identity and registration details for all partners and conduct regular, unannounced quality audits and feedback checks on all active kitchens to maintain the highest food safety standards.'
     },
     {
       category: 'safety',

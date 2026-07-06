@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
+import { forgotPassword } from "@/Services/authService";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -11,16 +12,25 @@ const ForgotPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const role = localStorage.getItem('role');
-    if (role === 'student') {
-      navigate('/student', { replace: true });
-      return;
-    } else if (role === 'vendor') {
-      navigate('/vendor-dashboard', { replace: true });
-      return;
-    } else if (role === 'admin') {
-      navigate('/admin', { replace: true });
-      return;
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (user) {
+      switch (user.role) {
+        case "student":
+          navigate("/student", { replace: true });
+          return;
+
+        case "vendor":
+          navigate("/vendor-dashboard", { replace: true });
+          return;
+
+        case "admin":
+          navigate("/admin", { replace: true });
+          return;
+
+        default:
+          break;
+      }
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -56,36 +66,76 @@ const ForgotPassword = () => {
     }
   }, [resendTimer]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
-    // Email validation
+    setError("");
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address.");
       return;
     }
 
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // Mock API Dispatch reset instructions
-    setTimeout(() => {
-      setLoading(false);
+      await forgotPassword(email);
+
       setSuccess(true);
       setResendTimer(30);
-    }, 1200);
+
+    } catch (err) {
+
+      if (err.response?.data) {
+
+        const errors = err.response.data;
+
+        const firstError = Object.values(errors)[0];
+
+        if (Array.isArray(firstError)) {
+          setError(firstError[0]);
+        } else {
+          setError(firstError);
+        }
+
+      } else {
+
+        setError("Unable to send password reset link.");
+
+      }
+
+    } finally {
+
+      setLoading(false);
+
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
+
     if (resendTimer > 0) return;
-    setError('');
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    setError("");
+
+    try {
+
+      setLoading(true);
+
+      await forgotPassword(email);
+
       setResendTimer(30);
-      alert(`A new reset link has been successfully sent to ${email}!`);
-    }, 1000);
+
+    } catch (err) {
+
+      setError("Unable to resend reset link.");
+
+    } finally {
+
+      setLoading(false);
+
+    }
   };
 
   return (
@@ -118,16 +168,16 @@ const ForgotPassword = () => {
         {/* Mobile Header Banner - Only Visible on Mobile */}
         <header className="auth-mobile-header">
           <div className="absolute inset-0 z-0">
-            <div 
-              className="w-full h-full bg-cover bg-center" 
-              style={{ 
-                backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDIQnaDIuISxKIwxYb_SVVTYxxB6VRh9Pkr57eC_K1b0CSsOovgzNc09z1OEY_paSUDUb1u3FeQjUP2VW7KqeFGp8uGR_zDP3huegCdENCZVtCBblMQEd9_HILxjtuu8CSblcrSt9zczRSGgCIb5FqKWSlBVb1t_H8t7axwsuiHz23dFheULYBlOG7NG4k5nHBy1Zn8OfRCP4QtA4fDWZ-4eWzPNKv6Qf7CH9Bj9oxvVblHvPQfQE2D1B8LjWDvZSgFdy6aMUVnPsk')" 
+            <div
+              className="w-full h-full bg-cover bg-center"
+              style={{
+                backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDIQnaDIuISxKIwxYb_SVVTYxxB6VRh9Pkr57eC_K1b0CSsOovgzNc09z1OEY_paSUDUb1u3FeQjUP2VW7KqeFGp8uGR_zDP3huegCdENCZVtCBblMQEd9_HILxjtuu8CSblcrSt9zczRSGgCIb5FqKWSlBVb1t_H8t7axwsuiHz23dFheULYBlOG7NG4k5nHBy1Zn8OfRCP4QtA4fDWZ-4eWzPNKv6Qf7CH9Bj9oxvVblHvPQfQE2D1B8LjWDvZSgFdy6aMUVnPsk')"
               }}
             ></div>
-            <div 
-              className="absolute inset-0" 
-              style={{ 
-                background: 'linear-gradient(to top, #FAFAFA 0%, rgba(250, 250, 250, 0.85) 30%, rgba(250, 250, 250, 0.4) 65%, transparent 100%)' 
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(to top, #FAFAFA 0%, rgba(250, 250, 250, 0.85) 30%, rgba(250, 250, 250, 0.4) 65%, transparent 100%)'
               }}
             ></div>
           </div>
@@ -135,20 +185,20 @@ const ForgotPassword = () => {
             <div className="bg-white p-2 rounded-2xl shadow-lg mb-sm active:scale-95 transition-transform cursor-pointer flex items-center justify-center" style={{ width: '64px', height: '64px' }}>
               <img src={logo} alt="CampusLunch Logo" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
             </div>
-            <h1 
+            <h1
               className="font-headline-lg-mobile text-headline-lg-mobile tracking-tight font-bold"
-              style={{ 
-                color: '#ffffff', 
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)' 
+              style={{
+                color: '#ffffff',
+                textShadow: '0 2px 10px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)'
               }}
             >
               Campus Lunch
             </h1>
-            <p 
+            <p
               className="font-body-md text-body-md max-w-[280px] mt-xs font-semibold"
-              style={{ 
-                color: '#ffffff', 
-                textShadow: '0 2px 8px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9)' 
+              style={{
+                color: '#ffffff',
+                textShadow: '0 2px 8px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9)'
               }}
             >
               Reset your account password quickly and securely.
@@ -159,11 +209,11 @@ const ForgotPassword = () => {
         {/* Form Canvas Wrapper */}
         <div className="auth-form-canvas" style={{ paddingTop: '20px', paddingBottom: '100px' }}>
           <div className="bg-surface-container-lowest rounded-xl p-lg shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-outline-variant/30 w-full max-w-md">
-            
+
             {/* Back to Home Button - Laptop/Desktop Only */}
             <div className="hidden md:block mb-6">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="inline-flex items-center gap-1.5 text-sm font-bold text-on-surface-variant hover:text-primary transition-all active:scale-[0.98]"
               >
                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -179,19 +229,19 @@ const ForgotPassword = () => {
                     <span className="material-symbols-outlined text-[36px]">mail</span>
                   </div>
                 </div>
-                
+
                 <h3 className="font-title-lg text-title-lg font-extrabold text-on-surface" style={{ fontSize: '1.4rem' }}>
                   Check Your Inbox
                 </h3>
-                
+
                 <p className="font-body-md text-body-md text-secondary leading-relaxed px-sm">
                   We've sent a password reset link to:<br />
                   <strong className="text-on-surface mt-1 block break-all">{email}</strong>
                 </p>
 
                 <div className="pt-sm space-y-sm flex flex-col items-center">
-                  <Link 
-                    to="/login" 
+                  <Link
+                    to="/login"
                     className="w-full h-12 rounded-xl bg-primary text-on-primary font-bold shadow-sm hover:bg-primary-hover transition-all duration-300 flex items-center justify-center"
                     style={{ backgroundColor: '#f59e0b', color: '#0f172a' }}
                   >
@@ -203,11 +253,11 @@ const ForgotPassword = () => {
                     onClick={handleResend}
                     disabled={resendTimer > 0 || loading}
                     className="text-sm font-bold hover:underline transition-all mt-md flex items-center gap-1"
-                    style={{ 
-                      color: resendTimer > 0 ? '#94a3b8' : '#f59e0b', 
-                      background: 'none', 
-                      border: 'none', 
-                      cursor: resendTimer > 0 ? 'not-allowed' : 'pointer' 
+                    style={{
+                      color: resendTimer > 0 ? '#94a3b8' : '#f59e0b',
+                      background: 'none',
+                      border: 'none',
+                      cursor: resendTimer > 0 ? 'not-allowed' : 'pointer'
                     }}
                   >
                     <span className="material-symbols-outlined text-[18px]">replay</span>
@@ -228,12 +278,12 @@ const ForgotPassword = () => {
                 </div>
 
                 {error && (
-                  <div 
+                  <div
                     className="mb-md p-sm text-center font-body-md text-body-md font-bold rounded-xl"
-                    style={{ 
-                      background: 'rgba(255, 77, 77, 0.12)', 
-                      color: '#ba1a1a', 
-                      border: '1px solid rgba(255, 77, 77, 0.2)' 
+                    style={{
+                      background: 'rgba(255, 77, 77, 0.12)',
+                      color: '#ba1a1a',
+                      border: '1px solid rgba(255, 77, 77, 0.2)'
                     }}
                   >
                     {error}
@@ -246,10 +296,10 @@ const ForgotPassword = () => {
                     <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="email">Email Address</label>
                     <div className="auth-input-wrapper">
                       <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">mail</span>
-                      <input 
-                        className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input" 
-                        id="email" 
-                        placeholder="e.g. user@gmail.com" 
+                      <input
+                        className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
+                        id="email"
+                        placeholder="e.g. user@gmail.com"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -259,8 +309,8 @@ const ForgotPassword = () => {
                   </div>
 
                   {/* Submit Button */}
-                  <button 
-                    className="w-full h-12 bg-primary text-on-primary font-headline-sm text-headline-sm rounded-xl shadow-sm active:scale-[0.98] transition-all hover:bg-on-primary-fixed-variant mt-md flex items-center justify-center font-bold" 
+                  <button
+                    className="w-full h-12 bg-primary text-on-primary font-headline-sm text-headline-sm rounded-xl shadow-sm active:scale-[0.98] transition-all hover:bg-on-primary-fixed-variant mt-md flex items-center justify-center font-bold"
                     type="submit"
                     disabled={loading}
                     style={{ backgroundColor: '#f59e0b', color: '#0f172a', marginTop: '24px' }}

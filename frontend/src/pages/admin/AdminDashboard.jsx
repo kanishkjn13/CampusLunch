@@ -67,8 +67,7 @@ const ticketsData = {
     userOrdersCount: '152 lifetime orders',
     userRiskNote: 'No refund requests in the last 12 months. High-value customer.',
     userHostel: 'Hostel Block 4, Room 302',
-    userEmergency: '+91 98888 77777',
-    userDiet: 'Vegetarian'
+    userEmergency: '+91 98888 77777'
   },
   'TK-8819': {
     id: 'TK-8819',
@@ -89,8 +88,7 @@ const ticketsData = {
     userOrdersCount: '48 lifetime orders',
     userRiskNote: '1 prior dispute resolution. Low risk.',
     userHostel: 'Hostel Block 2, Room 104',
-    userEmergency: '+91 97777 66666',
-    userDiet: 'Jain'
+    userEmergency: '+91 97777 66666'
   },
   'TK-8815': {
     id: 'TK-8815',
@@ -110,7 +108,6 @@ const ticketsData = {
     userTier: 'Vendor Partner',
     userOrdersCount: '890 processed meals',
     userRiskNote: 'No platform violations. Premium partner.',
-    userLicense: 'FSSAI-2026-8815-SG',
     userTimings: '10:00 AM - 08:00 PM'
   },
   'TK-8802': {
@@ -987,18 +984,10 @@ const AdminDashboard = () => {
                           <span className="row-key">Emergency:</span>
                           <span className="row-value font-bold">{currentTicketInfo.userEmergency}</span>
                         </div>
-                        <div className="order-detail-row">
-                          <span className="row-key">Diet Preference:</span>
-                          <span className="row-value font-bold">{currentTicketInfo.userDiet}</span>
-                        </div>
                       </>
                     )}
-                    {currentTicketInfo.userLicense && (
+                    {currentTicketInfo.userTimings && (
                       <>
-                        <div className="order-detail-row">
-                          <span className="row-key">FSSAI License:</span>
-                          <span className="row-value font-bold text-orange-accent">{currentTicketInfo.userLicense}</span>
-                        </div>
                         <div className="order-detail-row">
                           <span className="row-key">Kitchen Hours:</span>
                           <span className="row-value font-bold">{currentTicketInfo.userTimings}</span>

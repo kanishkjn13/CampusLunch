@@ -1,29 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
+import { loginUser } from "@/Services/authService";
 
 import { loginUser } from "@/Services/authService";
 
 const Login = () => {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const user = JSON.parse(localStorage.getItem("user"));
 
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
+    if (user) {
+      switch (user.role) {
+        case "student":
+          navigate("/student", { replace: true });
+          return;
 
-      if (user.role === "student") {
-        navigate("/student", { replace: true });
-      } else if (user.role === "vendor") {
-        navigate("/vendor-dashboard", { replace: true });
-      } else if (user.role === "admin") {
-        navigate("/admin", { replace: true });
+        case "vendor":
+          navigate("/vendor-dashboard", { replace: true });
+          return;
+
+        case "admin":
+          navigate("/admin", { replace: true });
+          return;
+
+        default:
+          break;
       }
     }
 
@@ -57,16 +67,17 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
 
-    // Email validation
+    setError("");
+    setSuccessMessage("");
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
       return;
     }
 
-    // Password validation
     if (password.length < 6) {
       setError("Password must be at least 6 characters long");
       return;
@@ -82,7 +93,7 @@ const Login = () => {
       localStorage.setItem("refresh", data.refresh);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Redirect based on role
+      // Redirect by role
       switch (data.user.role) {
         case "student":
           navigate("/student", { replace: true });
@@ -102,8 +113,12 @@ const Login = () => {
 
     } catch (err) {
 
-      if (err.response?.data?.detail) {
+      if (err.response?.data?.non_field_errors) {
+        setError(err.response.data.non_field_errors[0]);
+
+      } else if (err.response?.data?.detail) {
         setError(err.response.data.detail);
+
       } else {
         setError("Invalid email or password.");
       }
@@ -197,6 +212,18 @@ const Login = () => {
                 Back to Home
               </Link>
             </div>
+            {successMessage && (
+              <div
+                className="mb-md p-sm text-center font-body-md text-body-md font-bold rounded-xl"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  color: '#065f46',
+                  border: '1px solid rgba(16, 185, 129, 0.2)'
+                }}
+              >
+                {successMessage}
+              </div>
+            )}
             {error && (
               <div
                 className="mb-md p-sm text-center font-body-md text-body-md font-bold rounded-xl"

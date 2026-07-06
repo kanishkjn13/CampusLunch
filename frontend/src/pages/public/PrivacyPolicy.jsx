@@ -240,7 +240,7 @@ const PrivacyPolicy = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '0.85rem', color: '#334155' }}>
                   <span style={{ color: '#f59e0b', fontWeight: 800 }}>•</span>
-                  <span><strong>Kitchen Portal</strong>: Portion choices, diet designations, and customized subscription schedules.</span>
+                  <span><strong>Kitchen Portal</strong>: Portion choices and customized subscription schedules.</span>
                 </div>
               </div>
             </div>

@@ -25,7 +25,6 @@ export const StudentProvider = ({ children }) => {
       name: localStorage.getItem('name') || INITIAL_USER_PROFILE.name,
       phone: localStorage.getItem('phone') || INITIAL_USER_PROFILE.phone,
       email: activeEmail,
-      dietPreference: localStorage.getItem('dietPreference') || INITIAL_USER_PROFILE.dietPreference || 'Vegetarian',
       avatar: localStorage.getItem(`student_avatar_${activeEmail}`) || INITIAL_USER_PROFILE.avatar
     };
   });
@@ -114,7 +113,18 @@ export const StudentProvider = ({ children }) => {
   const [activeTrackers, setActiveTrackers] = useState(() => {
     try {
       const saved = localStorage.getItem('tiffin_connect_trackers');
-      return (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
+      const loadedTrackers = (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
+      
+      const savedOrdersStr = localStorage.getItem('tiffin_connect_orders');
+      const currentOrders = (savedOrdersStr && savedOrdersStr !== 'undefined') ? JSON.parse(savedOrdersStr) : [];
+      
+      return loadedTrackers.map(t => {
+        const matched = currentOrders.find(o => o.id === t.orderId);
+        if (matched && (matched.deliveryStatus === 'Delivered' || matched.deliveryStatus === 'Cancelled') && t.statusIndex < 5) {
+          return { ...t, statusIndex: 5, progress: 100, eta: 'Delivered', location: 'Delivered' };
+        }
+        return t;
+      });
     } catch (e) {
       console.error("Failed to parse trackers from localStorage:", e);
       return [];
@@ -181,7 +191,23 @@ export const StudentProvider = ({ children }) => {
       try {
         if (e.key === 'tiffin_connect_orders') {
           const saved = localStorage.getItem('tiffin_connect_orders');
-          if (saved && saved !== 'undefined') setOrders(JSON.parse(saved));
+          if (saved && saved !== 'undefined') {
+            const parsedOrders = JSON.parse(saved);
+            setOrders(parsedOrders);
+            // Auto-advance trackers of delivered/cancelled orders to index 5 (Delivered)
+            setActiveTrackers(prev => {
+              let updated = false;
+              const nextTrackers = prev.map(t => {
+                const matchedOrder = parsedOrders.find(o => o.id === t.orderId);
+                if (matchedOrder && (matchedOrder.deliveryStatus === 'Delivered' || matchedOrder.deliveryStatus === 'Cancelled') && t.statusIndex < 5) {
+                  updated = true;
+                  return { ...t, statusIndex: 5, progress: 100, eta: 'Delivered', location: 'Delivered' };
+                }
+                return t;
+              });
+              return updated ? nextTrackers : prev;
+            });
+          }
         }
         if (e.key === 'tiffin_connect_trackers') {
           const saved = localStorage.getItem('tiffin_connect_trackers');
