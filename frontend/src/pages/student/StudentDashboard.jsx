@@ -3,27 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
 import Footer from '@/components/layout/Footer';
+import { changePassword } from "@/Services/authservice";
 import { jsPDF } from 'jspdf';
-import { 
-  Search, 
-  Menu, 
-  ShoppingBag, 
-  Clock, 
-  Calendar, 
-  User, 
-  Home, 
-  FileText, 
-  ChevronRight, 
-  Plus, 
-  Minus, 
-  LogOut, 
-  Star, 
-  Map, 
-  ArrowLeft, 
-  MapPin, 
-  AlertCircle, 
-  Trash2, 
-  Share2, 
+import {
+  Search,
+  Menu,
+  ShoppingBag,
+  Clock,
+  Calendar,
+  User,
+  Home,
+  FileText,
+  ChevronRight,
+  Plus,
+  Minus,
+  LogOut,
+  Star,
+  Map,
+  ArrowLeft,
+  MapPin,
+  AlertCircle,
+  Trash2,
+  Share2,
   CheckCircle,
   MessageSquare,
   Phone,
@@ -39,7 +40,7 @@ const downloadReceiptPdf = (receiptData) => {
   const displayTokenId = receiptData.tokenMappings && receiptData.tokenMappings.length > 0 ? receiptData.tokenMappings[0].tokenId : (receiptData.orderId || '#TK-UNKNOWN');
   // Decrease formatHeight as barcode is removed
   const formatHeight = 160 + (tokenCount * 6.5);
-  
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -227,7 +228,7 @@ const StudentDashboard = () => {
   } = useContext(StudentContext);
 
   // Layout Tab Navigation
-  const [activeTab, setActiveTab] = useState('home'); 
+  const [activeTab, setActiveTab] = useState('home');
   const [profileSubTab, setProfileSubTab] = useState('menu');
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -236,7 +237,7 @@ const StudentDashboard = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedTrackingOrderId, setSelectedTrackingOrderId] = useState(null);
-  
+
   const getActiveTrackersList = () => {
     if (!activeTrackers) return [];
     return activeTrackers.filter(t => {
@@ -264,7 +265,7 @@ const StudentDashboard = () => {
   // Detail navigation states
   const [selectedSellerId, setSelectedSellerId] = useState(null);
   const [selectedMeal, setSelectedMeal] = useState(null); // Detailed menu item modal state
-  
+
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
@@ -306,7 +307,7 @@ const StudentDashboard = () => {
     email: localStorage.getItem('email') || 'alex.johnson@campus.edu',
     avatar: localStorage.getItem('student_avatar') || user.avatar
   });
-   const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [cartConflictModal, setCartConflictModal] = useState({
     isOpen: false,
@@ -323,13 +324,13 @@ const StudentDashboard = () => {
 
   // Helper selectors
   const activeSeller = sellers.find(s => s.id === selectedSellerId);
-  
+
   // Cart price aggregates
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const platformFee = cart.length > 0 ? 5 : 0;
   const gst = Math.round(cartSubtotal * 0.05);
   const deliveryFee = cart.length > 0 ? 20 : 0;
-  const discountAmount = activeCoupon 
+  const discountAmount = activeCoupon
     ? (activeCoupon.discountType === 'percentage' ? Math.round(cartSubtotal * (activeCoupon.value / 100)) : activeCoupon.value)
     : 0;
   const cartTotal = cartSubtotal + platformFee + gst + deliveryFee - discountAmount;
@@ -337,16 +338,16 @@ const StudentDashboard = () => {
   // Filter & Search Logic (Jain Filter correctly filters to type === 'Jain')
   const filteredSellers = sellers.map(seller => {
     const matchedMeals = seller.meals.filter(meal => {
-      const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            seller.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            meal.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            meal.ingredients.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCategory = filterType === 'All' || 
-                              (filterType === 'Veg' && (meal.type === 'Veg' || meal.type === 'Jain')) || 
-                              (filterType === 'Non-Veg' && meal.type === 'Non-Veg') ||
-                              (filterType === 'Jain' && meal.type === 'Jain');
-      
+      const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        seller.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meal.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meal.ingredients.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesCategory = filterType === 'All' ||
+        (filterType === 'Veg' && (meal.type === 'Veg' || meal.type === 'Jain')) ||
+        (filterType === 'Non-Veg' && meal.type === 'Non-Veg') ||
+        (filterType === 'Jain' && meal.type === 'Jain');
+
       return matchesSearch && matchesCategory;
     });
 
@@ -375,7 +376,7 @@ const StudentDashboard = () => {
     const seller = sellers.find(s => s.id === sellerId);
     const contextMeal = seller ? seller.meals.find(m => m.id === meal.id) : null;
     const stockLimit = contextMeal ? (contextMeal.availableQty ?? 999) : 999;
-    
+
     const existingInCart = cart.find(item => item.id === meal.id);
     const currentQtyInCart = existingInCart ? existingInCart.quantity : 0;
 
@@ -440,7 +441,7 @@ const StudentDashboard = () => {
   const handleUpiPay = async () => {
     setPaymentProcessing(true);
     setPaymentStep(0);
-    
+
     const steps = [
       "Contacting secure servers...",
       "Request sent to " + selectedUpiApp + "...",
@@ -452,7 +453,7 @@ const StudentDashboard = () => {
       await new Promise(resolve => setTimeout(resolve, 700));
       setPaymentStep(i);
     }
-    
+
     // Capture cart calculations before placeOrder clears the cart
     const cartSummary = cart.map(item => `${item.quantity}x ${item.name}`).join(', ');
     const billAmount = cartTotal;
@@ -462,13 +463,13 @@ const StudentDashboard = () => {
     const billPlatformFee = platformFee;
     const billDiscount = discountAmount;
     const payApp = selectedUpiApp;
-    
+
     // Capture individual cart items list for mapping tokens later
     const tempCartItems = cart.map(item => ({ name: item.name, quantity: item.quantity }));
 
     try {
       const { orderIds, vendorNames } = await placeOrder(checkoutForm, selectedUpiApp);
-      
+
       const tokenMappings = [];
       let idIndex = 0;
       tempCartItems.forEach((item) => {
@@ -509,7 +510,7 @@ const StudentDashboard = () => {
 
   // Cancel order (allowed before preparation step)
   const handleCancelOrder = (orderId) => {
-    setOrders(prev => prev.map(o => 
+    setOrders(prev => prev.map(o =>
       o.id === orderId ? { ...o, deliveryStatus: 'Cancelled', paymentStatus: 'Refunded' } : o
     ));
     triggerToast(`Order ${orderId} has been cancelled. Refund initiated.`);
@@ -520,7 +521,7 @@ const StudentDashboard = () => {
     const savedPhone = localStorage.getItem('phone');
     const savedEmail = localStorage.getItem('email');
     const savedAvatar = savedEmail ? localStorage.getItem(`student_avatar_${savedEmail}`) : null;
-    
+
     const syncedData = {
       name: savedName || user.name,
       phone: savedPhone || user.phone,
@@ -544,7 +545,7 @@ const StudentDashboard = () => {
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
       document.body.style.height = '100%';
-      
+
       document.documentElement.style.overflow = 'hidden';
       document.documentElement.style.height = '100%';
     }
@@ -554,7 +555,7 @@ const StudentDashboard = () => {
       document.body.style.position = originalPosition;
       document.body.style.width = originalWidth;
       document.body.style.height = originalHeight;
-      
+
       document.documentElement.style.overflow = '';
       document.documentElement.style.height = '';
     };
@@ -592,26 +593,26 @@ const StudentDashboard = () => {
   return (
     <div className="student-device-wrapper">
       <div className="student-phone-frame">
-        
+
         <div className="student-dashboard-layout">
-          
+
           {/* Left Sidebar Navigation - Desktop only */}
           <aside className="student-sidebar">
             <div className="sidebar-brand" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
               <img src={logo} alt="CampusLunch Logo" className="sidebar-logo" />
               <span>Campus Lunch</span>
             </div>
-            
+
             <nav className="sidebar-nav">
-              <button 
+              <button
                 className={`sidebar-nav-item ${activeTab === 'home' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('home'); setSelectedSellerId(null); }}
               >
                 <Home size={20} />
                 <span>Home</span>
               </button>
-              
-              <button 
+
+              <button
                 className={`sidebar-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
                 onClick={() => setActiveTab('orders')}
               >
@@ -619,7 +620,7 @@ const StudentDashboard = () => {
                 <span>Orders</span>
               </button>
 
-              <button 
+              <button
                 className={`sidebar-nav-item ${activeTab === 'cart' ? 'active' : ''}`}
                 onClick={() => setActiveTab('cart')}
               >
@@ -627,7 +628,7 @@ const StudentDashboard = () => {
                 <span>Cart</span>
               </button>
 
-              <button 
+              <button
                 className={`sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveTab('profile')}
               >
@@ -637,7 +638,7 @@ const StudentDashboard = () => {
             </nav>
 
             <div className="sidebar-footer">
-              <button 
+              <button
                 className="sidebar-logout-btn"
                 onClick={() => {
                   localStorage.removeItem('role');
@@ -652,7 +653,7 @@ const StudentDashboard = () => {
 
           {/* Right main wrapper content */}
           <div className="student-main-wrapper">
-            
+
             {/* Header bar (Desktop & Mobile) */}
             <header className="student-desktop-header">
               {/* Mobile view only logo */}
@@ -680,9 +681,9 @@ const StudentDashboard = () => {
 
               {/* Header Right Actions */}
               <div className="header-right-actions" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <img 
-                  src={user.avatar} 
-                  alt="Student Avatar" 
+                <img
+                  src={user.avatar}
+                  alt="Student Avatar"
                   className="student-avatar-circle"
                   onClick={() => setActiveTab('profile')}
                   style={{ cursor: 'pointer', width: '30px', height: '30px', borderRadius: '50%' }}
@@ -691,17 +692,17 @@ const StudentDashboard = () => {
               </div>
             </header>
 
-            <div 
+            <div
               className="student-app-scroll-container"
               style={{
                 paddingBottom: (activeTab === 'cart' && cart.length > 0) ? '180px' : '90px'
               }}
             >
-              
+
               {/* HOME VIEW */}
               {activeTab === 'home' && (
                 <div className="desktop-student-grid">
-                  
+
                   {/* Left Column: Greetings, Search, Chips, Live Order */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     {/* Greetings */}
@@ -713,10 +714,10 @@ const StudentDashboard = () => {
                     {/* Search bar */}
                     <div className="orders-search-wrapper" style={{ margin: 0 }}>
                       <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                      <input 
-                        type="text" 
-                        className="orders-search-input" 
-                        placeholder="Search for food, kitchens, or cuisines..." 
+                      <input
+                        type="text"
+                        className="orders-search-input"
+                        placeholder="Search for food, kitchens, or cuisines..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         style={{ paddingLeft: '42px', borderRadius: '12px', height: '44px' }}
@@ -725,27 +726,27 @@ const StudentDashboard = () => {
 
                     {/* Category Toggles */}
                     <div className="category-scroll-container">
-                      <button 
+                      <button
                         className={`category-pill ${filterType === 'All' ? 'active-veg' : 'inactive-blue'}`}
                         onClick={() => setFilterType('All')}
                       >
                         All
                       </button>
-                      <button 
+                      <button
                         className={`category-pill ${filterType === 'Veg' ? 'active-veg' : 'inactive-blue'}`}
                         onClick={() => setFilterType('Veg')}
                       >
                         <span className="category-dot veg"></span>
                         Veg
                       </button>
-                      <button 
+                      <button
                         className={`category-pill ${filterType === 'Non-Veg' ? 'active-veg' : 'inactive-blue'}`}
                         onClick={() => setFilterType('Non-Veg')}
                       >
                         <span className="category-dot nonveg"></span>
                         Non-Veg
                       </button>
-                      <button 
+                      <button
                         className={`category-pill ${filterType === 'Jain' ? 'active-veg' : 'inactive-blue'}`}
                         onClick={() => setFilterType('Jain')}
                       >
@@ -753,81 +754,81 @@ const StudentDashboard = () => {
                       </button>
                     </div>
 
-                      {/* Live Orders sliding carousel */}
-                      {getActiveTrackersList().length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left', width: '100%' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Active Live Orders</span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Swipe &bull; {getActiveTrackersList().length} active</span>
-                          </div>
-                          
-                          <div style={{ 
-                            display: 'flex', 
-                            gap: '12px', 
-                            overflowX: 'auto', 
-                            paddingBottom: '8px', 
-                            scrollbarWidth: 'none', 
-                            msOverflowStyle: 'none',
-                            scrollSnapType: 'x mandatory',
-                            width: '100%',
-                            scrollBehavior: 'smooth',
-                            WebkitOverflowScrolling: 'touch'
-                          }}>
-                            {getActiveTrackersList().map(tracker => (
-                             <div 
-                               key={tracker.orderId}
-                               className="live-order-card" 
-                               onClick={() => {
-                                 setSelectedTrackingOrderId(tracker.orderId);
-                                 setActiveTab('track-order');
-                               }}
-                               style={{ 
-                                 padding: '20px 18px', 
-                                 borderRadius: '16px', 
-                                 minWidth: '270px',
-                                 flexShrink: 0,
-                                 scrollSnapAlign: 'start',
-                                 cursor: 'pointer',
-                                 boxShadow: '0 8px 18px rgba(245, 158, 11, 0.12)'
-                               }}
-                             >
-                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                 <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: 0.95 }}>Live Order</span>
-                                 <span style={{ fontSize: '1.15rem', fontWeight: 900, backgroundColor: 'rgba(255, 255, 255, 0.25)', padding: '2px 8px', borderRadius: '8px' }}>{tracker.orderId}</span>
-                               </div>
-                               
-                               <p style={{ margin: '0 0 14px 0', fontSize: '0.78rem', opacity: 0.9, textAlign: 'left' }}>
-                                 {tracker.vendorName} &bull; {tracker.location}
-                               </p>
+                    {/* Live Orders sliding carousel */}
+                    {getActiveTrackersList().length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left', width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Active Live Orders</span>
+                          <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Swipe &bull; {getActiveTrackersList().length} active</span>
+                        </div>
 
-                               <div style={{ display: 'flex', width: '100%' }}>
-                                 <button 
-                                   className="order-action-btn btn-solid"
-                                   style={{ 
-                                     flex: 1,
-                                     display: 'flex', 
-                                     alignItems: 'center', 
-                                     justifyContent: 'center', 
-                                     gap: '8px', 
-                                     backgroundColor: '#ffffff',
-                                     color: '#855300',
-                                     padding: '10px 0',
-                                     borderRadius: '10px',
-                                     fontWeight: 800,
-                                     fontSize: '0.8rem',
-                                     border: 'none',
-                                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
-                                   }}
-                                 >
-                                   <MapPin size={16} />
-                                   <span>Track Live Location</span>
-                                 </button>
-                               </div>
-                             </div>
-                           ))}
-                         </div>
-                       </div>
-                     )}
+                        <div style={{
+                          display: 'flex',
+                          gap: '12px',
+                          overflowX: 'auto',
+                          paddingBottom: '8px',
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none',
+                          scrollSnapType: 'x mandatory',
+                          width: '100%',
+                          scrollBehavior: 'smooth',
+                          WebkitOverflowScrolling: 'touch'
+                        }}>
+                          {getActiveTrackersList().map(tracker => (
+                            <div
+                              key={tracker.orderId}
+                              className="live-order-card"
+                              onClick={() => {
+                                setSelectedTrackingOrderId(tracker.orderId);
+                                setActiveTab('track-order');
+                              }}
+                              style={{
+                                padding: '20px 18px',
+                                borderRadius: '16px',
+                                minWidth: '270px',
+                                flexShrink: 0,
+                                scrollSnapAlign: 'start',
+                                cursor: 'pointer',
+                                boxShadow: '0 8px 18px rgba(245, 158, 11, 0.12)'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: 0.95 }}>Live Order</span>
+                                <span style={{ fontSize: '1.15rem', fontWeight: 900, backgroundColor: 'rgba(255, 255, 255, 0.25)', padding: '2px 8px', borderRadius: '8px' }}>{tracker.orderId}</span>
+                              </div>
+
+                              <p style={{ margin: '0 0 14px 0', fontSize: '0.78rem', opacity: 0.9, textAlign: 'left' }}>
+                                {tracker.vendorName} &bull; {tracker.location}
+                              </p>
+
+                              <div style={{ display: 'flex', width: '100%' }}>
+                                <button
+                                  className="order-action-btn btn-solid"
+                                  style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    backgroundColor: '#ffffff',
+                                    color: '#855300',
+                                    padding: '10px 0',
+                                    borderRadius: '10px',
+                                    fontWeight: 800,
+                                    fontSize: '0.8rem',
+                                    border: 'none',
+                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                                  }}
+                                >
+                                  <MapPin size={16} />
+                                  <span>Track Live Location</span>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Column: Order Again & Explore Kitchens Scroll */}
@@ -841,9 +842,9 @@ const StudentDashboard = () => {
                         </div>
 
                         <div className="order-again-card">
-                          <img 
-                            src="https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=200&h=150&fit=crop&q=80" 
-                            alt="Premium Rajasthani Thali" 
+                          <img
+                            src="https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=200&h=150&fit=crop&q=80"
+                            alt="Premium Rajasthani Thali"
                             className="order-again-image"
                           />
                           <div className="order-again-info">
@@ -851,8 +852,8 @@ const StudentDashboard = () => {
                             <p>By {orders[0].vendor} • {orders[0].date}</p>
                             <span className="rating">★ 4.8</span>
                           </div>
-                          <button 
-                            className="order-again-action" 
+                          <button
+                            className="order-again-action"
                             onClick={() => {
                               const seller = sellers.find(s => s.name === orders[0].vendor);
                               if (seller && seller.meals[0]) {
@@ -871,7 +872,7 @@ const StudentDashboard = () => {
                     {/* Grouped Catalog - Horizontal Scrolls under Seller Headings */}
                     <div>
                       <h3 className="dashboard-heading" style={{ fontSize: '0.95rem' }}>Explore Kitchens</h3>
-                      
+
                       {filteredSellers.map(seller => (
                         <div key={seller.id} className="seller-section" style={{ marginBottom: '24px' }}>
                           {/* Seller Heading */}
@@ -886,7 +887,7 @@ const StudentDashboard = () => {
                                 <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{seller.servingTime}</span>
                               </div>
                             </div>
-                            <span 
+                            <span
                               style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700, cursor: 'pointer' }}
                               onClick={() => {
                                 setSelectedSellerId(seller.id);
@@ -900,30 +901,30 @@ const StudentDashboard = () => {
                           {/* Horizontal scroll list */}
                           <div className="horizontal-meal-scroll" style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
                             {seller.meals.map(meal => (
-                              <div 
-                                key={meal.id} 
-                                className="horizontal-meal-card" 
-                                style={{ 
-                                  flexShrink: 0, 
-                                  width: '145px', 
-                                  backgroundColor: '#ffffff', 
-                                  borderRadius: '16px', 
-                                  overflow: 'hidden', 
+                              <div
+                                key={meal.id}
+                                className="horizontal-meal-card"
+                                style={{
+                                  flexShrink: 0,
+                                  width: '145px',
+                                  backgroundColor: '#ffffff',
+                                  borderRadius: '16px',
+                                  overflow: 'hidden',
                                   border: '1px solid rgba(0, 0, 0, 0.04)',
                                   display: 'flex',
                                   flexDirection: 'column',
                                   position: 'relative'
                                 }}
                               >
-                                <img 
-                                  src={meal.image} 
-                                  alt={meal.name} 
+                                <img
+                                  src={meal.image}
+                                  alt={meal.name}
                                   onClick={() => setSelectedMeal({ ...meal, sellerId: seller.id })}
-                                  style={{ width: '100%', height: '95px', objectFit: 'cover', cursor: 'pointer' }} 
+                                  style={{ width: '100%', height: '95px', objectFit: 'cover', cursor: 'pointer' }}
                                 />
                                 <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', gap: '6px' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <h5 
+                                    <h5
                                       onClick={() => setSelectedMeal({ ...meal, sellerId: seller.id })}
                                       style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: '1.2', height: '28px', overflow: 'hidden', cursor: 'pointer' }}
                                     >
@@ -941,8 +942,8 @@ const StudentDashboard = () => {
                                   </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#855300' }}>₹{meal.price}</span>
-                                    <button 
-                                      className="food-plus-btn" 
+                                    <button
+                                      className="food-plus-btn"
                                       style={{ position: 'static', width: '24px', height: '24px' }}
                                       onClick={() => handleAddToCart(meal, seller.id)}
                                     >
@@ -972,7 +973,7 @@ const StudentDashboard = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {/* Back banner */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <button 
+                    <button
                       onClick={() => setActiveTab('home')}
                       style={{ background: 'none', border: 'none', color: '#0f172a', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '6px' }}
                     >
@@ -982,10 +983,10 @@ const StudentDashboard = () => {
                   </div>
 
                   <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', height: '140px' }}>
-                    <img 
-                      src={activeSeller.photo} 
-                      alt={activeSeller.name} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    <img
+                      src={activeSeller.photo}
+                      alt={activeSeller.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.7))', display: 'flex', alignItems: 'flex-end', padding: '16px' }}>
                       <h2 style={{ color: '#ffffff', fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>{activeSeller.name}</h2>
@@ -1007,23 +1008,23 @@ const StudentDashboard = () => {
                     {activeSeller.meals.map(meal => (
                       <div key={meal.id} className="order-again-card" style={{ padding: '12px' }}>
                         <div style={{ display: 'flex', gap: '12px' }}>
-                          <img 
-                            src={meal.image} 
-                            alt={meal.name} 
+                          <img
+                            src={meal.image}
+                            alt={meal.name}
                             onClick={() => setSelectedMeal({ ...meal, sellerId: activeSeller.id })}
                             style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }}
                           />
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-                              <h4 
+                              <h4
                                 onClick={() => setSelectedMeal({ ...meal, sellerId: activeSeller.id })}
                                 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, cursor: 'pointer' }}
                               >
                                 {meal.name}
                               </h4>
-                              <span style={{ 
-                                fontSize: '0.64rem', 
-                                fontWeight: 700, 
+                              <span style={{
+                                fontSize: '0.64rem',
+                                fontWeight: 700,
                                 color: meal.availableQty === 0 ? '#ef4444' : meal.availableQty < 5 ? '#d97706' : '#059669',
                                 backgroundColor: meal.availableQty === 0 ? '#fef2f2' : meal.availableQty < 5 ? '#fffbeb' : '#ecfdf5',
                                 padding: '1px 6px',
@@ -1035,8 +1036,8 @@ const StudentDashboard = () => {
                             <p style={{ margin: '4px 0 6px 0', fontSize: '0.72rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{meal.description}</p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>₹{meal.price}</span>
-                              <button 
-                                className="order-action-btn btn-solid" 
+                              <button
+                                className="order-action-btn btn-solid"
                                 style={{ padding: '4px 10px', fontSize: '0.7rem', borderRadius: '6px' }}
                                 onClick={() => handleAddToCart(meal, activeSeller.id)}
                               >
@@ -1091,12 +1092,12 @@ const StudentDashboard = () => {
                             </div>
 
                             <img src={item.image} alt={item.name} style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', marginLeft: '12px' }} />
-                            
+
                             <div style={{ flex: 1, textAlign: 'left' }}>
                               <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{item.name}</h4>
                               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#855300', display: 'block', marginTop: '2px' }}>₹{item.price}</span>
                             </div>
-                            
+
                             {/* Premium Quantity controls */}
                             <div className="premium-qty-controls">
                               <button onClick={() => updateCartQuantity(item.id, -1)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#64748b', padding: 0 }}>
@@ -1108,7 +1109,7 @@ const StudentDashboard = () => {
                               </button>
                             </div>
 
-                            <button 
+                            <button
                               onClick={() => removeFromCart(item.id)}
                               style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px' }}
                             >
@@ -1122,33 +1123,33 @@ const StudentDashboard = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>Have a Promo Coupon?</span>
                           <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={couponInput}
                               onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                              placeholder="ENTER CODE (e.g. CAMPUS50)" 
-                              style={{ 
-                                flex: 1, 
-                                borderRadius: '10px', 
-                                border: '1px solid rgba(245, 158, 11, 0.25)', 
-                                padding: '8px 12px', 
-                                fontSize: '0.78rem', 
-                                fontWeight: 700, 
-                                textTransform: 'uppercase', 
-                                letterSpacing: '0.8px' 
+                              placeholder="ENTER CODE (e.g. CAMPUS50)"
+                              style={{
+                                flex: 1,
+                                borderRadius: '10px',
+                                border: '1px solid rgba(245, 158, 11, 0.25)',
+                                padding: '8px 12px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.8px'
                               }}
                             />
-                            <button 
-                              type="submit" 
-                              style={{ 
-                                border: 'none', 
-                                backgroundColor: '#f59e0b', 
-                                color: '#ffffff', 
-                                fontSize: '0.78rem', 
-                                fontWeight: 800, 
-                                padding: '8px 16px', 
-                                borderRadius: '10px', 
-                                cursor: 'pointer' 
+                            <button
+                              type="submit"
+                              style={{
+                                border: 'none',
+                                backgroundColor: '#f59e0b',
+                                color: '#ffffff',
+                                fontSize: '0.78rem',
+                                fontWeight: 800,
+                                padding: '8px 16px',
+                                borderRadius: '10px',
+                                cursor: 'pointer'
                               }}
                             >
                               Apply
@@ -1164,7 +1165,7 @@ const StudentDashboard = () => {
                       {/* Detailed Dotted Bill Summary */}
                       <div className="premium-bill-card">
                         <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e293b', margin: '0 0 12px 0', textAlign: 'left' }}>Detailed Bill</h4>
-                        
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.78rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                             <span>Items Total</span>
@@ -1188,9 +1189,9 @@ const StudentDashboard = () => {
                               <span>-₹{discountAmount}</span>
                             </div>
                           )}
-                          
+
                           <div style={{ borderTop: '1.5px dashed #cbd5e1', margin: '8px 0' }}></div>
-                          
+
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
                             <span>Grand Total</span>
                             <span>₹{cartTotal}</span>
@@ -1216,21 +1217,21 @@ const StudentDashboard = () => {
                     <div style={{ textAlign: 'center', padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '280px' }}>
                       {/* Concentric rotating loaders */}
                       <div style={{ position: 'relative', width: '56px', height: '56px', marginBottom: '24px' }}>
-                        <div style={{ 
-                          position: 'absolute', 
-                          inset: 0, 
-                          borderRadius: '50%', 
-                          border: '3px solid #f1f5f9', 
-                          borderTopColor: '#f59e0b', 
-                          animation: 'spin 1s linear infinite' 
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          borderRadius: '50%',
+                          border: '3px solid #f1f5f9',
+                          borderTopColor: '#f59e0b',
+                          animation: 'spin 1s linear infinite'
                         }}></div>
-                        <div style={{ 
-                          position: 'absolute', 
-                          inset: '8px', 
-                          borderRadius: '50%', 
-                          border: '3px solid #f1f5f9', 
-                          borderBottomColor: '#059669', 
-                          animation: 'spin 1.5s linear infinite reverse' 
+                        <div style={{
+                          position: 'absolute',
+                          inset: '8px',
+                          borderRadius: '50%',
+                          border: '3px solid #f1f5f9',
+                          borderBottomColor: '#059669',
+                          animation: 'spin 1.5s linear infinite reverse'
                         }}></div>
                       </div>
 
@@ -1240,7 +1241,7 @@ const StudentDashboard = () => {
                         {paymentStep === 2 && "Waiting for UPI PIN authorization..."}
                         {paymentStep === 3 && "Finalizing order details..."}
                       </h3>
-                      
+
                       <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px', fontStyle: 'italic' }}>
                         Do not exit or close the application.
                       </p>
@@ -1255,7 +1256,7 @@ const StudentDashboard = () => {
                         </div>
 
                         <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 14px 0', color: '#475569', textAlign: 'left' }}>Select UPI Payment App</h3>
-                        
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {[
                             { name: 'Google Pay', desc: 'Pay instantly via bank account', color: '#1a73e8', bg: '#e8f0fe', glyph: 'G' },
@@ -1265,16 +1266,16 @@ const StudentDashboard = () => {
                           ].map(app => {
                             const isSelected = selectedUpiApp === app.name;
                             return (
-                              <div 
+                              <div
                                 key={app.name}
                                 onClick={() => setSelectedUpiApp(app.name)}
-                                style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: '12px', 
-                                  padding: '14px 16px', 
-                                  borderRadius: '16px', 
-                                  border: isSelected ? `2.5px solid ${app.color}` : '1.5px solid #e2e8f0', 
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                  padding: '14px 16px',
+                                  borderRadius: '16px',
+                                  border: isSelected ? `2.5px solid ${app.color}` : '1.5px solid #e2e8f0',
                                   cursor: 'pointer',
                                   backgroundColor: isSelected ? '#ffffff' : '#f8fafc',
                                   boxShadow: isSelected ? '0 8px 20px rgba(0,0,0,0.04)' : 'none',
@@ -1282,15 +1283,15 @@ const StudentDashboard = () => {
                                 }}
                               >
                                 {/* Circle logo indicator */}
-                                <div style={{ 
-                                  width: '38px', 
-                                  height: '38px', 
-                                  borderRadius: '10px', 
-                                  backgroundColor: app.bg, 
-                                  color: app.color, 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
+                                <div style={{
+                                  width: '38px',
+                                  height: '38px',
+                                  borderRadius: '10px',
+                                  backgroundColor: app.bg,
+                                  color: app.color,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
                                   fontWeight: 900,
                                   fontSize: '0.85rem'
                                 }}>
@@ -1303,14 +1304,14 @@ const StudentDashboard = () => {
                                 </div>
 
                                 {/* Custom Radio selection check */}
-                                <div style={{ 
-                                  width: '20px', 
-                                  height: '20px', 
-                                  borderRadius: '50%', 
-                                  border: '2px solid ' + (isSelected ? app.color : '#cbd5e1'), 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center' 
+                                <div style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  border: '2px solid ' + (isSelected ? app.color : '#cbd5e1'),
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
                                 }}>
                                   {isSelected && (
                                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: app.color }}></div>
@@ -1323,14 +1324,14 @@ const StudentDashboard = () => {
                       </div>
 
                       {/* Pay Button */}
-                      <button 
-                        className="order-action-btn btn-solid" 
+                      <button
+                        className="order-action-btn btn-solid"
                         onClick={handleUpiPay}
-                        style={{ 
-                          padding: '14px 0', 
-                          borderRadius: '14px', 
-                          fontWeight: 800, 
-                          width: '100%', 
+                        style={{
+                          padding: '14px 0',
+                          borderRadius: '14px',
+                          fontWeight: 800,
+                          width: '100%',
                           fontSize: '0.92rem',
                           backgroundColor: '#0f172a',
                           boxShadow: '0 8px 24px rgba(15, 23, 42, 0.15)'
@@ -1351,15 +1352,15 @@ const StudentDashboard = () => {
               {/* ORDER SUCCESS VIEW */}
               {activeTab === 'order-success' && paymentSuccessData && (
                 <div style={{ textAlign: 'center', padding: '24px 12px' }}>
-                  <div style={{ 
-                    width: '64px', 
-                    height: '64px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#ecfdf5', 
-                    color: '#059669', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     margin: '0 auto 16px',
                     boxShadow: '0 4px 12px rgba(5, 150, 105, 0.15)'
                   }}>
@@ -1370,13 +1371,13 @@ const StudentDashboard = () => {
                   <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 24px 0' }}>Your payment is processed. Kitchen is preparing your order.</p>
 
                   {/* Order Receipt Card */}
-                  <div className="order-again-card" style={{ 
-                    padding: '24px 20px', 
-                    textAlign: 'left', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
+                  <div className="order-again-card" style={{
+                    padding: '24px 20px',
+                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'stretch',
-                    gap: '14px', 
+                    gap: '14px',
                     backgroundColor: '#ffffff',
                     border: '1px solid #e2e8f0',
                     borderRadius: '16px',
@@ -1400,7 +1401,7 @@ const StudentDashboard = () => {
                       <h4 style={{ fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', color: '#1e293b', letterSpacing: '0.05em', margin: 0 }}>Order Receipt</h4>
                       <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{paymentSuccessData.date}</span>
                     </div>
-                    
+
                     {/* Customer & Delivery details */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                       <div>
@@ -1467,8 +1468,8 @@ const StudentDashboard = () => {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '28px' }}>
-                    <button 
-                      className="order-action-btn btn-solid" 
+                    <button
+                      className="order-action-btn btn-solid"
                       onClick={() => {
                         const activeTrack = getActiveTrackersList()[0];
                         if (activeTrack) {
@@ -1482,9 +1483,9 @@ const StudentDashboard = () => {
                     >
                       Vendor Live Location
                     </button>
-                    
-                    <button 
-                      className="order-action-btn" 
+
+                    <button
+                      className="order-action-btn"
                       onClick={() => {
                         downloadReceiptPdf(paymentSuccessData);
                         triggerToast('Downloading PDF Receipt...');
@@ -1494,8 +1495,8 @@ const StudentDashboard = () => {
                       Download Receipt (PDF)
                     </button>
 
-                    <button 
-                      className="order-action-btn" 
+                    <button
+                      className="order-action-btn"
                       onClick={() => { setActiveTab('home'); setSelectedSellerId(null); }}
                       style={{ padding: '10px 0', color: '#f59e0b', fontWeight: 800, background: 'none', border: 'none', cursor: 'pointer' }}
                     >
@@ -1509,7 +1510,7 @@ const StudentDashboard = () => {
               {activeTab === 'track-order' && currentTracker && currentSeller && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button 
+                    <button
                       onClick={() => setActiveTab('orders')}
                       style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', color: '#64748b', cursor: 'pointer', padding: 0 }}
                     >
@@ -1522,10 +1523,10 @@ const StudentDashboard = () => {
                   <div className="order-again-card" style={{ padding: '16px 20px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b' }}>Order Status</span>
-                      <span 
-                        style={{ 
-                          fontSize: '0.75rem', 
-                          fontWeight: 900, 
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 900,
                           color: currentTracker.statusIndex === 5 ? '#10b981' : '#f59e0b',
                           backgroundColor: currentTracker.statusIndex === 5 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
                           padding: '4px 10px',
@@ -1539,13 +1540,13 @@ const StudentDashboard = () => {
 
                     {/* Progress Bar */}
                     <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
-                      <div 
-                        style={{ 
-                          width: `${currentTracker.statusIndex === 5 ? 100 : (currentTracker.statusIndex * 20)}%`, 
-                          height: '100%', 
-                          backgroundColor: currentTracker.statusIndex === 5 ? '#10b981' : '#855300', 
+                      <div
+                        style={{
+                          width: `${currentTracker.statusIndex === 5 ? 100 : (currentTracker.statusIndex * 20)}%`,
+                          height: '100%',
+                          backgroundColor: currentTracker.statusIndex === 5 ? '#10b981' : '#855300',
                           borderRadius: '99px',
-                          transition: 'width 0.4s ease' 
+                          transition: 'width 0.4s ease'
                         }}
                       />
                     </div>
@@ -1567,8 +1568,8 @@ const StudentDashboard = () => {
                         <h4 style={{ fontSize: '1rem', fontWeight: 900, margin: '0 0 4px 0', color: '#0f172a' }}>Tiffin Handed Over Successfully!</h4>
                         <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>Enjoy your fresh warm meal. Please share your feedback to help us maintain food quality.</p>
                       </div>
-                      <button 
-                        className="order-action-btn btn-solid" 
+                      <button
+                        className="order-action-btn btn-solid"
                         onClick={() => {
                           setRatingModal({
                             isOpen: true,
@@ -1589,26 +1590,26 @@ const StudentDashboard = () => {
 
                   {/* Interactive Google Map */}
                   <div className="order-again-card" style={{ padding: '0px', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9' }}>
-                    <iframe 
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3683.0805315481755!2d75.8953181!3d22.7531235!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x396302a247d519b5%3A0xb36de176249e0c52!2sIndore%20Institute%20of%20Technology!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
-                      width="100%" 
-                      height="320" 
-                      style={{ border: 0 }} 
-                      allowFullScreen="" 
-                      loading="lazy" 
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3683.0805315481755!2d75.8953181!3d22.7531235!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x396302a247d519b5%3A0xb36de176249e0c52!2sIndore%20Institute%20of%20Technology!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                      width="100%"
+                      height="320"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                     ></iframe>
                   </div>
 
                   {/* Vendor Contact details */}
                   <div className="order-again-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid #f1f5f9' }}>
-                    <div style={{ 
-                      width: '46px', 
-                      height: '46px', 
-                      borderRadius: '50%', 
-                      backgroundColor: '#fef3c7', 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    <div style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '50%',
+                      backgroundColor: '#fef3c7',
+                      display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
                       color: '#d97706',
                       fontWeight: 950,
@@ -1621,15 +1622,15 @@ const StudentDashboard = () => {
                       <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>Pickup Point: {currentTracker.location}</p>
                       <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', fontWeight: 600, color: '#475569' }}>Phone: {currentSeller.phone || '+91 98765 43210'}</p>
                     </div>
-                    <a 
+                    <a
                       href={`tel:${currentSeller.phone || '9876543210'}`}
-                      style={{ 
-                        padding: '10px 16px', 
-                        borderRadius: '10px', 
-                        backgroundColor: '#0f172a', 
-                        color: '#ffffff', 
-                        fontSize: '0.78rem', 
-                        fontWeight: 800, 
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '10px',
+                        backgroundColor: '#0f172a',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
                         textDecoration: 'none',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1649,7 +1650,7 @@ const StudentDashboard = () => {
               {activeTab === 'orders' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>My Orders</h2>
-                  
+
                   {/* Active Tokens Info */}
                   {getActiveTrackersList().length === 0 && (
                     <div className="order-again-card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', border: '1.5px dashed rgba(133, 83, 0, 0.25)', borderRadius: '16px', backgroundColor: '#fffbeb', color: '#855300', textAlign: 'left', marginBottom: '12px' }}>
@@ -1661,9 +1662,9 @@ const StudentDashboard = () => {
                     </div>
                   )}
                   {getActiveTrackersList().map(tracker => (
-                    <div 
+                    <div
                       key={tracker.orderId}
-                      className="order-again-card" 
+                      className="order-again-card"
                       onClick={() => {
                         setSelectedTrackingOrderId(tracker.orderId);
                         setActiveTab('track-order');
@@ -1694,9 +1695,9 @@ const StudentDashboard = () => {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', textAlign: 'left' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                               <h4 style={{ fontSize: '0.92rem', fontWeight: 900, margin: 0, color: '#1e293b' }}>Token {order.id}</h4>
-                              <span style={{ 
-                                fontWeight: 800, 
-                                color: order.deliveryStatus === 'Cancelled' ? '#e11d48' : '#10b981', 
+                              <span style={{
+                                fontWeight: 800,
+                                color: order.deliveryStatus === 'Cancelled' ? '#e11d48' : '#10b981',
                                 backgroundColor: order.deliveryStatus === 'Cancelled' ? '#fff1f2' : '#f0fdf4',
                                 padding: '4px 10px',
                                 borderRadius: '8px',
@@ -1715,10 +1716,10 @@ const StudentDashboard = () => {
                               <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#0f172a' }}>₹{order.bill} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>via {order.paymentMethod}</span></span>
                             </div>
                           </div>
-                          
+
                           <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(0, 0, 0, 0.04)', paddingTop: '8px', width: '100%', marginTop: '2px' }}>
                             {order.deliveryStatus === 'Delivered' && (
-                              <button 
+                              <button
                                 className="order-action-btn btn-solid"
                                 style={{ flex: 2, padding: '10px 0', fontSize: '0.75rem', borderRadius: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                                 onClick={() => setRatingModal({
@@ -1733,8 +1734,8 @@ const StudentDashboard = () => {
                                 Rate Vendor & Services
                               </button>
                             )}
-                            
-                            <button 
+
+                            <button
                               className="order-action-btn"
                               onClick={() => {
                                 const totalBill = order.bill;
@@ -1775,15 +1776,15 @@ const StudentDashboard = () => {
               {/* PROFILE VIEW */}
               {activeTab === 'profile' && (
                 <div className="profile-page-container">
-                  
+
                   {/* MAIN MENU TAB */}
                   {profileSubTab === 'menu' && (
                     <>
                       {/* Header block */}
                       <div className="profile-chef-header" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.04)', marginBottom: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
-                        <img 
-                          src={profileForm.avatar || user.avatar} 
-                          alt="Student Avatar" 
+                        <img
+                          src={profileForm.avatar || user.avatar}
+                          alt="Student Avatar"
                           style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%', border: '3px solid #855300', padding: '2px' }}
                         />
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#855300', marginTop: '10px', marginBottom: '2px' }}>{profileForm.name}</h3>
@@ -1792,8 +1793,8 @@ const StudentDashboard = () => {
 
                       {/* Menu List */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                        
-                        <button 
+
+                        <button
                           onClick={() => setProfileSubTab('edit-profile')}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
                         >
@@ -1804,7 +1805,7 @@ const StudentDashboard = () => {
                           <ChevronRight size={16} style={{ color: '#94a3b8' }} />
                         </button>
 
-                        <button 
+                        <button
                           onClick={() => setProfileSubTab('notifications')}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
                         >
@@ -1815,7 +1816,7 @@ const StudentDashboard = () => {
                           <ChevronRight size={16} style={{ color: '#94a3b8' }} />
                         </button>
 
-                        <button 
+                        <button
                           onClick={() => setProfileSubTab('change-password')}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
                         >
@@ -1826,7 +1827,7 @@ const StudentDashboard = () => {
                           <ChevronRight size={16} style={{ color: '#94a3b8' }} />
                         </button>
 
-                        <button 
+                        <button
                           onClick={() => setProfileSubTab('reset-password')}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
                         >
@@ -1837,7 +1838,7 @@ const StudentDashboard = () => {
                           <ChevronRight size={16} style={{ color: '#94a3b8' }} />
                         </button>
 
-                        <button 
+                        <button
                           onClick={() => setProfileSubTab('support')}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '16px 20px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
                         >
@@ -1851,8 +1852,8 @@ const StudentDashboard = () => {
 
                       {/* Action buttons with custom tight spacing */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <button 
-                          className="profile-logout-btn" 
+                        <button
+                          className="profile-logout-btn"
                           onClick={() => {
                             localStorage.removeItem('role');
                             navigate('/');
@@ -1863,8 +1864,8 @@ const StudentDashboard = () => {
                           Logout Account
                         </button>
 
-                        <button 
-                          className="profile-logout-btn" 
+                        <button
+                          className="profile-logout-btn"
                           onClick={() => setShowDeleteConfirm(true)}
                           style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', color: '#ef4444', borderColor: '#fee2e2', backgroundColor: '#fff5f5', marginTop: '0', marginBottom: '0' }}
                         >
@@ -1877,7 +1878,7 @@ const StudentDashboard = () => {
                   {/* EDIT PROFILE SUB-PAGE */}
                   {profileSubTab === 'edit-profile' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <button 
+                      <button
                         onClick={() => setProfileSubTab('menu')}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
                       >
@@ -1887,26 +1888,26 @@ const StudentDashboard = () => {
 
                       <div className="profile-chef-header" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ position: 'relative', width: '80px', height: '80px', marginBottom: '8px' }}>
-                          <img 
-                            src={profileForm.avatar || user.avatar} 
-                            alt="Student Face Photo" 
-                            className="profile-chef-avatar" 
+                          <img
+                            src={profileForm.avatar || user.avatar}
+                            alt="Student Face Photo"
+                            className="profile-chef-avatar"
                             style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }}
                           />
-                          <label 
-                            htmlFor="avatar-upload" 
-                            style={{ 
-                              position: 'absolute', 
-                              bottom: 0, 
-                              right: 0, 
-                              width: '28px', 
-                              height: '28px', 
-                              borderRadius: '50%', 
-                              backgroundColor: '#f59e0b', 
-                              color: '#ffffff', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
+                          <label
+                            htmlFor="avatar-upload"
+                            style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              right: 0,
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              backgroundColor: '#f59e0b',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                               cursor: 'pointer',
                               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                               border: '2px solid #ffffff'
@@ -1914,12 +1915,12 @@ const StudentDashboard = () => {
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>photo_camera</span>
                           </label>
-                          <input 
-                            type="file" 
-                            id="avatar-upload" 
-                            accept="image/*" 
-                            onChange={handleAvatarChange} 
-                            style={{ display: 'none' }} 
+                          <input
+                            type="file"
+                            id="avatar-upload"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            style={{ display: 'none' }}
                           />
                         </div>
                       </div>
@@ -1927,11 +1928,11 @@ const StudentDashboard = () => {
                       <form onSubmit={handleSaveProfile} className="profile-info-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 6px 0', color: '#1e293b' }}>Personal Information</h4>
-                          
+
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Full Name</label>
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={profileForm.name}
                               onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
                               style={{ borderRadius: '8px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
@@ -1940,8 +1941,8 @@ const StudentDashboard = () => {
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Email Address</label>
-                            <input 
-                              type="email" 
+                            <input
+                              type="email"
                               value={profileForm.email}
                               disabled
                               style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
@@ -1950,19 +1951,20 @@ const StudentDashboard = () => {
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Contact Phone</label>
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={profileForm.phone}
                               disabled
                               style={{ borderRadius: '8px', border: '1px solid #e2e8f0', padding: '8px 12px', fontSize: '0.8rem', backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
                             />
                           </div>
 
+
                         </div>
 
-                        <button 
-                          type="submit" 
-                          className="order-action-btn btn-solid" 
+                        <button
+                          type="submit"
+                          className="order-action-btn btn-solid"
                           style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
                         >
                           Save Changes
@@ -1974,7 +1976,7 @@ const StudentDashboard = () => {
                   {/* NOTIFICATION SETTINGS SUB-PAGE */}
                   {profileSubTab === 'notifications' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <button 
+                      <button
                         onClick={() => setProfileSubTab('menu')}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
                       >
@@ -1984,14 +1986,14 @@ const StudentDashboard = () => {
 
                       <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>Manage Notifications</h4>
-                        
+
                         {/* Toggle 1 */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>Push Notifications</span>
                             <span style={{ fontSize: '0.68rem', color: '#64748b' }}>For real-time delivery tracking alerts</span>
                           </div>
-                          <button 
+                          <button
                             onClick={() => setPushNotifications(!pushNotifications)}
                             style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: pushNotifications ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
                           >
@@ -2005,7 +2007,7 @@ const StudentDashboard = () => {
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>Email Alerts</span>
                             <span style={{ fontSize: '0.68rem', color: '#64748b' }}>For billing receipts and transaction logs</span>
                           </div>
-                          <button 
+                          <button
                             onClick={() => setEmailAlerts(!emailAlerts)}
                             style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: emailAlerts ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
                           >
@@ -2019,7 +2021,7 @@ const StudentDashboard = () => {
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>SMS Updates</span>
                             <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Receive driver arrival notices over SMS</span>
                           </div>
-                          <button 
+                          <button
                             onClick={() => setSmsUpdates(!smsUpdates)}
                             style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: smsUpdates ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
                           >
@@ -2028,12 +2030,12 @@ const StudentDashboard = () => {
                         </div>
                       </div>
 
-                      <button 
+                      <button
                         onClick={() => {
                           triggerToast('Notification preferences updated successfully!');
                           setProfileSubTab('menu');
                         }}
-                        className="order-action-btn btn-solid" 
+                        className="order-action-btn btn-solid"
                         style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
                       >
                         Apply Changes
@@ -2044,7 +2046,7 @@ const StudentDashboard = () => {
                   {/* CHANGE PASSWORD SUB-PAGE */}
                   {profileSubTab === 'change-password' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <button 
+                      <button
                         onClick={() => {
                           setProfileSubTab('menu');
                           setCurrentPassword('');
@@ -2059,11 +2061,11 @@ const StudentDashboard = () => {
 
                       <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b', textAlign: 'left' }}>Change Password</h4>
-                        
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                           <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Current Password</label>
-                          <input 
-                            type="password" 
+                          <input
+                            type="password"
                             placeholder="Enter current password"
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -2073,8 +2075,8 @@ const StudentDashboard = () => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                           <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>New Password</label>
-                          <input 
-                            type="password" 
+                          <input
+                            type="password"
                             placeholder="Enter new password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
@@ -2084,8 +2086,8 @@ const StudentDashboard = () => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                           <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Confirm New Password</label>
-                          <input 
-                            type="password" 
+                          <input
+                            type="password"
                             placeholder="Confirm new password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -2094,23 +2096,69 @@ const StudentDashboard = () => {
                         </div>
                       </div>
 
-                      <button 
-                        onClick={() => {
+                      <button
+                        onClick={async () => {
                           if (!currentPassword || !newPassword || !confirmPassword) {
-                            triggerToast('Please fill in all password fields.');
+                            triggerToast("Please fill in all password fields.");
                             return;
-                          }
+                          } 
+
                           if (newPassword !== confirmPassword) {
-                            triggerToast('New passwords do not match!');
+                            triggerToast("Passwords do not match.");
                             return;
                           }
-                          triggerToast('Password updated successfully!');
-                          setProfileSubTab('menu');
-                          setCurrentPassword('');
-                          setNewPassword('');
-                          setConfirmPassword('');
+
+                          if (newPassword.length < 8) {
+                            triggerToast("Password must be at least 8 characters long.");
+                            return;
+                          }
+
+                          // Must contain at least one uppercase, one lowercase, one number and one special character
+                          const strongPassword =
+                            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+
+                          if (!strongPassword.test(newPassword)) {
+                            triggerToast(
+                              "Password must contain an uppercase letter, lowercase letter, number, and special character."
+                            );
+                            return;
+                          }
+
+                          try {
+                            await changePassword({
+                              current_password: currentPassword,
+                              new_password: newPassword,
+                              confirm_password: confirmPassword,
+                            });
+
+                            triggerToast("Password updated successfully!");
+
+                            setProfileSubTab("menu");
+                            setCurrentPassword("");
+                            setNewPassword("");
+                            setConfirmPassword("");
+
+                          } catch (err) {
+
+                            if (err.response?.data) {
+
+                              const errors = err.response.data;
+                              const firstError = Object.values(errors)[0];
+
+                              if (Array.isArray(firstError)) {
+                                triggerToast(firstError[0]);
+                              } else {
+                                triggerToast(firstError);
+                              }
+
+                            } else {
+
+                              triggerToast("Unable to change password.");
+
+                            }
+                          }
                         }}
-                        className="order-action-btn btn-solid" 
+                        className="order-action-btn btn-solid"
                         style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
                       >
                         Update Password
@@ -2121,7 +2169,7 @@ const StudentDashboard = () => {
                   {/* RESET PASSWORD SUB-PAGE */}
                   {profileSubTab === 'reset-password' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <button 
+                      <button
                         onClick={() => setProfileSubTab('menu')}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
                       >
@@ -2141,12 +2189,12 @@ const StudentDashboard = () => {
                         </div>
                       </div>
 
-                      <button 
+                      <button
                         onClick={() => {
                           triggerToast('Password reset link sent to ' + user.email);
                           setProfileSubTab('menu');
                         }}
-                        className="order-action-btn btn-solid" 
+                        className="order-action-btn btn-solid"
                         style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
                       >
                         Send Reset Link
@@ -2157,7 +2205,7 @@ const StudentDashboard = () => {
                   {/* HELP & SUPPORT SUB-PAGE */}
                   {profileSubTab === 'support' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <button 
+                      <button
                         onClick={() => setProfileSubTab('menu')}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', backgroundColor: 'transparent', color: '#855300', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0, width: 'fit-content' }}
                       >
@@ -2167,7 +2215,7 @@ const StudentDashboard = () => {
 
                       <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
                         <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 4px 0', color: '#1e293b' }}>Frequently Asked Questions</h4>
-                        
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <details style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
                             <summary style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', outline: 'none' }}>Where do I pick up my orders?</summary>
@@ -2185,12 +2233,12 @@ const StudentDashboard = () => {
 
                       <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>Need further assistance?</h4>
-                        <button 
+                        <button
                           onClick={() => navigate('/support-chat')}
-                          style={{ 
-                            width: '100%', 
-                            height: '44px', 
-                            borderRadius: '10px', 
+                          style={{
+                            width: '100%',
+                            height: '44px',
+                            borderRadius: '10px',
                             fontSize: '0.85rem',
                             display: 'flex',
                             alignItems: 'center',
@@ -2209,10 +2257,8 @@ const StudentDashboard = () => {
                       </div>
                     </div>
                   )}
-
                 </div>
               )}
-```
               <Footer />
             </div>
 
@@ -2223,8 +2269,8 @@ const StudentDashboard = () => {
                   <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>Total Bill</span>
                   <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>₹{cartTotal}</span>
                 </div>
-                
-                <button 
+
+                <button
                   className="premium-sticky-btn"
                   onClick={() => setActiveTab('payment')}
                 >
@@ -2235,7 +2281,7 @@ const StudentDashboard = () => {
 
             {/* Bottom Fixed Navigation Bar */}
             <nav className="vendor-bottom-nav">
-              <button 
+              <button
                 className={`bottom-nav-item ${activeTab === 'home' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('home'); setSelectedSellerId(null); }}
               >
@@ -2246,7 +2292,7 @@ const StudentDashboard = () => {
                 {activeTab === 'home' && <div className="active-dot"></div>}
               </button>
 
-              <button 
+              <button
                 className={`bottom-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
                 onClick={() => setActiveTab('orders')}
               >
@@ -2257,27 +2303,27 @@ const StudentDashboard = () => {
                 {activeTab === 'orders' && <div className="active-dot"></div>}
               </button>
 
-              <button 
+              <button
                 className={`bottom-nav-item ${activeTab === 'cart' ? 'active' : ''}`}
                 onClick={() => setActiveTab('cart')}
               >
                 <div className="nav-item-icon-wrapper" style={{ position: 'relative' }}>
                   <ShoppingBag size={22} />
                   {cart.length > 0 && (
-                    <span style={{ 
-                      position: 'absolute', 
-                      top: '-4px', 
-                      right: '-4px', 
-                      backgroundColor: '#ef4444', 
-                      color: '#ffffff', 
-                      fontSize: '0.58rem', 
-                      fontWeight: 800, 
-                      borderRadius: '50%', 
-                      width: '14px', 
-                      height: '14px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center' 
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#ef4444',
+                      color: '#ffffff',
+                      fontSize: '0.58rem',
+                      fontWeight: 800,
+                      borderRadius: '50%',
+                      width: '14px',
+                      height: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
                       {cart.reduce((sum, item) => sum + item.quantity, 0)}
                     </span>
@@ -2287,7 +2333,7 @@ const StudentDashboard = () => {
                 {activeTab === 'cart' && <div className="active-dot"></div>}
               </button>
 
-              <button 
+              <button
                 className={`bottom-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveTab('profile')}
               >
@@ -2311,17 +2357,17 @@ const StudentDashboard = () => {
           <div className="custom-modal-card" style={{ maxWidth: '350px', padding: '0', overflow: 'hidden' }}>
             <div style={{ position: 'relative', height: '140px' }}>
               <img src={selectedMeal.image} alt={selectedMeal.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <button 
+              <button
                 onClick={() => setSelectedMeal(null)}
-                style={{ 
-                  position: 'absolute', 
-                  top: '12px', 
-                  right: '12px', 
-                  background: 'rgba(0,0,0,0.5)', 
-                  color: '#ffffff', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: '26px', 
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'rgba(0,0,0,0.5)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '26px',
                   height: '26px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -2349,9 +2395,9 @@ const StudentDashboard = () => {
               </div>
 
               <p style={{ fontSize: '0.8rem', color: '#475569', margin: '10px 0', lineHeight: '1.4' }}>{selectedMeal.description}</p>
-              
+
               <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '8px 0' }}></div>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569' }}>Ingredients:</span>
                 <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{selectedMeal.ingredients}</span>
@@ -2378,7 +2424,7 @@ const StudentDashboard = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                <button 
+                <button
                   className="order-action-btn btn-solid"
                   style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem' }}
                   onClick={() => {
@@ -2388,7 +2434,7 @@ const StudentDashboard = () => {
                 >
                   Add to Cart
                 </button>
-                <button 
+                <button
                   onClick={() => handleShareMeal(selectedMeal.name)}
                   style={{ background: 'none', border: '1px solid #cbd5e1', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                 >
@@ -2407,7 +2453,7 @@ const StudentDashboard = () => {
             <div className="custom-modal-icon-wrapper" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>
               <Star size={24} fill="#d97706" />
             </div>
-            
+
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '12px 0 4px 0', color: '#0f172a' }}>Rate your Experience</h3>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 20px 0' }}>{ratingModal.vendorName}</p>
 
@@ -2416,16 +2462,16 @@ const StudentDashboard = () => {
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Food Quality</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[1, 2, 3, 4, 5].map(star => (
-                  <button 
+                  <button
                     key={star}
                     type="button"
                     style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
                     onClick={() => setRatingModal(prev => ({ ...prev, foodRating: star }))}
                   >
-                    <Star 
-                      size={24} 
-                      fill={star <= ratingModal.foodRating ? "#f59e0b" : "none"} 
-                      color={star <= ratingModal.foodRating ? "#f59e0b" : "#cbd5e1"} 
+                    <Star
+                      size={24}
+                      fill={star <= ratingModal.foodRating ? "#f59e0b" : "none"}
+                      color={star <= ratingModal.foodRating ? "#f59e0b" : "#cbd5e1"}
                     />
                   </button>
                 ))}
@@ -2437,16 +2483,16 @@ const StudentDashboard = () => {
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Delivery Service</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[1, 2, 3, 4, 5].map(star => (
-                  <button 
+                  <button
                     key={star}
                     type="button"
                     style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
                     onClick={() => setRatingModal(prev => ({ ...prev, serviceRating: star }))}
                   >
-                    <Star 
-                      size={24} 
-                      fill={star <= ratingModal.serviceRating ? "#f59e0b" : "none"} 
-                      color={star <= ratingModal.serviceRating ? "#f59e0b" : "#cbd5e1"} 
+                    <Star
+                      size={24}
+                      fill={star <= ratingModal.serviceRating ? "#f59e0b" : "none"}
+                      color={star <= ratingModal.serviceRating ? "#f59e0b" : "#cbd5e1"}
                     />
                   </button>
                 ))}
@@ -2456,16 +2502,16 @@ const StudentDashboard = () => {
             {/* Review Comments */}
             <div style={{ width: '100%', textAlign: 'left', marginBottom: '20px' }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Review Comments</label>
-              <textarea 
+              <textarea
                 placeholder="Tell us about the quality, taste, or service..."
                 value={ratingModal.comment}
                 onChange={(e) => setRatingModal(prev => ({ ...prev, comment: e.target.value }))}
-                style={{ 
-                  width: '100%', 
-                  height: '60px', 
-                  borderRadius: '10px', 
-                  border: '1px solid #cbd5e1', 
-                  padding: '8px 12px', 
+                style={{
+                  width: '100%',
+                  height: '60px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  padding: '8px 12px',
                   fontSize: '0.8rem',
                   fontFamily: 'inherit',
                   resize: 'none',
@@ -2476,14 +2522,14 @@ const StudentDashboard = () => {
 
             {/* Actions */}
             <div className="custom-modal-actions" style={{ width: '100%', display: 'flex', gap: '10px' }}>
-              <button 
+              <button
                 className="custom-modal-btn btn-cancel"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem' }}
                 onClick={() => setRatingModal({ isOpen: false, orderId: null, vendorName: '', foodRating: 0, serviceRating: 0, comment: '' })}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 className="custom-modal-btn btn-confirm"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem', opacity: (ratingModal.foodRating > 0 && ratingModal.serviceRating > 0) ? 1 : 0.5 }}
                 disabled={!(ratingModal.foodRating > 0 && ratingModal.serviceRating > 0)}
@@ -2523,17 +2569,17 @@ const StudentDashboard = () => {
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '12px 0 6px 0', color: '#0f172a' }}>Delete Account?</h3>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 20px 0', lineHeight: '1.4' }}>This action is irreversible. All your order history will be permanently deleted.</p>
-            
+
             <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-              <button 
-                className="custom-modal-btn btn-cancel" 
+              <button
+                className="custom-modal-btn btn-cancel"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem' }}
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 Cancel
               </button>
-              <button 
-                className="custom-modal-btn btn-confirm" 
+              <button
+                className="custom-modal-btn btn-confirm"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#ef4444', color: '#ffffff' }}
                 onClick={() => {
                   setShowDeleteConfirm(false);
@@ -2560,17 +2606,17 @@ const StudentDashboard = () => {
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 20px 0', lineHeight: '1.4', textAlign: 'center' }}>
               Your cart contains items from another kitchen. Do you want to discard your current cart and start a new order from this kitchen?
             </p>
-            
+
             <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-              <button 
-                className="custom-modal-btn btn-cancel" 
+              <button
+                className="custom-modal-btn btn-cancel"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem' }}
                 onClick={() => setCartConflictModal({ isOpen: false, meal: null, sellerId: null })}
               >
                 No, Keep
               </button>
-              <button 
-                className="custom-modal-btn btn-confirm" 
+              <button
+                className="custom-modal-btn btn-confirm"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#f59e0b', color: '#ffffff' }}
                 onClick={handleConfirmReplaceCart}
               >
