@@ -287,10 +287,9 @@ class LogoutSerializer(serializers.Serializer):
             )
         
 
+
+
 # email
-
-
-
 class ForgotPasswordSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
