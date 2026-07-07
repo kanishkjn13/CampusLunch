@@ -54,3 +54,14 @@ export const changePassword = async (data) => {
 
   return response.data;
 };
+
+//logout
+export const logoutUser = async () => {
+  const refresh = localStorage.getItem("refresh");
+
+  const response = await api.post("/auth/logout/", {
+    refresh,
+  });
+
+  return response.data;
+};

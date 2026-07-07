@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
 import Footer from '@/components/layout/Footer';
-import { changePassword } from "@/Services/authService";
+import { changePassword, logoutUser } from "@/Services/authService";
 import { jsPDF } from 'jspdf';
 import {
   Search,
@@ -590,6 +590,30 @@ const StudentDashboard = () => {
     setTimeout(() => setProfileSuccess(false), 3000);
   };
 
+  console.log("Logout clicked");
+  const handleLogout = async () => {
+    console.log("Logout button clicked");
+
+    try {
+      console.log("Calling logout API...");
+      await logoutUser();
+      console.log("Logout API success");
+    } catch (err) {
+      console.error("Logout API failed:", err);
+    } finally {
+      console.log("Clearing localStorage");
+
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      localStorage.removeItem("name");
+      localStorage.removeItem("email");
+      localStorage.removeItem("phone");
+
+      navigate("/login", { replace: true });
+    }
+  };
   return (
     <div className="student-device-wrapper">
       <div className="student-phone-frame">
@@ -640,10 +664,7 @@ const StudentDashboard = () => {
             <div className="sidebar-footer">
               <button
                 className="sidebar-logout-btn"
-                onClick={() => {
-                  localStorage.removeItem('role');
-                  navigate('/');
-                }}
+                onClick={handleLogout}
               >
                 <LogOut size={18} />
                 <span>Logout Account</span>
@@ -2101,7 +2122,7 @@ const StudentDashboard = () => {
                           if (!currentPassword || !newPassword || !confirmPassword) {
                             triggerToast("Please fill in all password fields.");
                             return;
-                          } 
+                          }
 
                           if (newPassword !== confirmPassword) {
                             triggerToast("Passwords do not match.");
