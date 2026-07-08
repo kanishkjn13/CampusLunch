@@ -19,6 +19,8 @@ import TermsOfService from './pages/public/TermsOfService';
 import SupportChat from './pages/public/SupportChat';
 import { StudentProvider } from './context/StudentContext';
 
+import ProtectedRoute from "./components/ProtectedRoute";
+
 function App() {
   return (
     <Router>
@@ -40,10 +42,31 @@ function App() {
               element={<ResetPassword />}
             />
 
-            <Route path="/student" element={<StudentDashboard />} />
+            <Route
+              path="/student"
+              element={
+                <ProtectedRoute>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/vendor/:id" element={<VendorDetails />} />
-            <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route
+              path="/vendor-dashboard"
+              element={
+                <ProtectedRoute>
+                  <VendorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
           </Route>
         </Routes>
       </StudentProvider>

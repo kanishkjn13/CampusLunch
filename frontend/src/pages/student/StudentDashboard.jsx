@@ -590,30 +590,20 @@ const StudentDashboard = () => {
     setTimeout(() => setProfileSuccess(false), 3000);
   };
 
-  console.log("Logout clicked");
   const handleLogout = async () => {
-    console.log("Logout button clicked");
+  try {
+    await logoutUser();
+  } catch (err) {
+    console.error("Logout Error:", err);
+  } finally {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
 
-    try {
-      console.log("Calling logout API...");
-      await logoutUser();
-      console.log("Logout API success");
-    } catch (err) {
-      console.error("Logout API failed:", err);
-    } finally {
-      console.log("Clearing localStorage");
-
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      localStorage.removeItem("name");
-      localStorage.removeItem("email");
-      localStorage.removeItem("phone");
-
-      navigate("/login", { replace: true });
-    }
-  };
+    navigate("/login", { replace: true });
+  }
+};
   return (
     <div className="student-device-wrapper">
       <div className="student-phone-frame">
@@ -661,15 +651,6 @@ const StudentDashboard = () => {
               </button>
             </nav>
 
-            <div className="sidebar-footer">
-              <button
-                className="sidebar-logout-btn"
-                onClick={handleLogout}
-              >
-                <LogOut size={18} />
-                <span>Logout Account</span>
-              </button>
-            </div>
           </aside>
 
           {/* Right main wrapper content */}
@@ -1875,11 +1856,15 @@ const StudentDashboard = () => {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <button
                           className="profile-logout-btn"
-                          onClick={() => {
-                            localStorage.removeItem('role');
-                            navigate('/');
+                          onClick={handleLogout}
+                          style={{
+                            width: '100%',
+                            height: '44px',
+                            borderRadius: '10px',
+                            fontSize: '0.85rem',
+                            marginTop: '0',
+                            marginBottom: '0'
                           }}
-                          style={{ width: '100%', height: '44px', borderRadius: '10px', fontSize: '0.85rem', marginTop: '0', marginBottom: '0' }}
                         >
                           <LogOut size={16} />
                           Logout Account

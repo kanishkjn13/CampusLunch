@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.generics import CreateAPIView,GenericAPIView
 from rest_framework.permissions import AllowAny  ,IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .utils import send_password_reset_email
 
@@ -13,7 +14,9 @@ from .serializers import (
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
-    CurrentUserSerializer
+    CurrentUserSerializer,
+    ProfileSerializer
+
 )  
 
 
@@ -202,6 +205,27 @@ class CurrentUserView(GenericAPIView):
             serializer.data,
             status=status.HTTP_200_OK,
         )
+    
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = ProfileSerializer(request.user)
+        return Response(serializer.data)
+
+    def put(self, request):
+        serializer = ProfileSerializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
 
 
 

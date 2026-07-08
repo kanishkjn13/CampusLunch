@@ -394,3 +394,15 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "phone",
             "role",
         ]
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "full_name",
+            "email",
+            "phone",
+            "profile_image",
+        ]
+        read_only_fields = ["email"]
