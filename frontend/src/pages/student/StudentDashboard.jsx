@@ -402,13 +402,30 @@ const StudentDashboard = () => {
       }
       
       const data = await getVendors(searchQuery, selectedMealType, foodTypeParam);
-      if (Array.isArray(data)) {
-        setVendors(data);
-      } else if (data && Array.isArray(data.results)) {
-        setVendors(data.results);
-      } else {
-        setVendors([]);
-      }
+      const vendorsList = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
+      setVendors(vendorsList);
+
+      // Sync fetched backend vendors with StudentContext sellers state so the cart uses real data
+      setSellers(vendorsList.map(v => ({
+        id: v.id,
+        name: v.full_name || 'Vendor Kitchen',
+        photo: v.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>",
+        rating: '4.8',
+        reviews: 12,
+        distance: '0.5km',
+        servingTime: '12:00 PM - 3:00 PM',
+        vendorLocation: 'Campus Area',
+        type: ['Veg'],
+        meals: (v.menu_items || []).map(m => ({
+          id: m.id,
+          name: m.name,
+          price: m.price,
+          type: m.food_type || 'Veg',
+          description: m.description || '',
+          availableQty: m.available_qty || 999,
+          prepTime: '15 mins'
+        }))
+      })));
     } catch (err) {
       console.error("Failed to fetch vendors:", err);
       setVendorsError(true);
@@ -433,7 +450,7 @@ const StudentDashboard = () => {
       const formattedSeller = {
         id: details.id,
         name: details.full_name,
-        photo: details.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80",
+        photo: details.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>",
         rating: "4.8",
         reviews: "24",
         servingTime: "10:00 AM - 08:00 PM",
@@ -444,7 +461,7 @@ const StudentDashboard = () => {
           name: m.name,
           description: m.description,
           price: Number(m.price),
-          image: m.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80",
+          image: m.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>",
           type: m.food_type,
           availableQty: m.is_available ? 999 : 0
         }))
@@ -502,11 +519,21 @@ const StudentDashboard = () => {
 
   // Profile Form state - loaded from login session (removing hostel, room, emergency contact)
   const [profileForm, setProfileForm] = useState({
-    name: localStorage.getItem('name') || user.name,
-    phone: localStorage.getItem('phone') || user.phone,
-    email: localStorage.getItem('email') || 'alex.johnson@campus.edu',
-    avatar: localStorage.getItem('student_avatar') || user.avatar
+    name: user.name || '',
+    phone: user.phone || '',
+    email: user.email || '',
+    avatar: user.avatar || ''
   });
+
+  useEffect(() => {
+    setProfileForm({
+      name: user.name || '',
+      phone: user.phone || '',
+      email: user.email || '',
+      avatar: user.avatar || ''
+    });
+  }, [user]);
+
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -819,19 +846,22 @@ const StudentDashboard = () => {
   };
 
   const handleLogout = async () => {
-  try {
-    await logoutUser();
-  } catch (err) {
-    console.error("Logout Error:", err);
-  } finally {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    localStorage.removeItem("user");
-    localStorage.removeItem("role");
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("Logout Error:", err);
+    } finally {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      localStorage.removeItem("name");
+      localStorage.removeItem("phone");
+      localStorage.removeItem("email");
 
-    navigate("/login", { replace: true });
-  }
-};
+      navigate("/login", { replace: true });
+    }
+  };
   return (
     <div className="student-device-wrapper">
       <div className="student-phone-frame">
@@ -1114,7 +1144,7 @@ const StudentDashboard = () => {
 
                         <div className="order-again-card">
                           <img
-                            src="https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=200&h=150&fit=crop&q=80"
+                            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"
                             alt="Premium Rajasthani Thali"
                             className="order-again-image"
                           />
@@ -1145,35 +1175,9 @@ const StudentDashboard = () => {
                       <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginBottom: '14px' }}>Explore Kitchens</h3>
 
                       {vendorsLoading ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          {[1, 2, 3].map(i => (
-                            <div
-                              key={i}
-                              className="animate-pulse"
-                              style={{
-                                padding: '14px',
-                                display: 'flex',
-                                gap: '14px',
-                                alignItems: 'center',
-                                backgroundColor: '#ffffff',
-                                borderRadius: '16px',
-                                border: '1px solid rgba(0, 0, 0, 0.04)',
-                                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
-                              }}
-                            >
-                              <div style={{
-                                width: '56px',
-                                height: '56px',
-                                borderRadius: '12px',
-                                backgroundColor: '#e2e8f0'
-                              }}></div>
-                              <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ width: '40%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                                <div style={{ width: '70%', height: '12px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                                <div style={{ width: '50%', height: '10px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                              </div>
-                            </div>
-                          ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
+                          <RefreshCw className="animate-spin" size={24} style={{ color: '#855300' }} />
+                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading active kitchens...</span>
                         </div>
                       ) : vendorsError ? (
                         <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
@@ -1201,7 +1205,7 @@ const StudentDashboard = () => {
                               }}
                             >
                               <img
-                                src={vendor.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80"}
+                                src={vendor.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>"}
                                 alt={vendor.full_name}
                                 style={{ width: '70px', height: '70px', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }}
                               />
@@ -1255,7 +1259,7 @@ const StudentDashboard = () => {
 
                   <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', height: '140px' }}>
                     <img
-                      src={selectedVendorDetails.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=200&fit=crop&q=80"}
+                      src={selectedVendorDetails.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>"}
                       alt={selectedVendorDetails.full_name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
@@ -1294,28 +1298,8 @@ const StudentDashboard = () => {
                   {/* Menu List */}
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>Today's Menu Items</h3>
                   {vendorDetailsLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {[1, 2].map(i => (
-                        <div
-                          key={i}
-                          className="animate-pulse"
-                          style={{
-                            padding: '12px',
-                            display: 'flex',
-                            gap: '12px',
-                            backgroundColor: '#ffffff',
-                            borderRadius: '16px',
-                            border: '1px solid rgba(0, 0, 0, 0.04)',
-                          }}
-                        >
-                          <div style={{ width: '64px', height: '64px', borderRadius: '8px', backgroundColor: '#e2e8f0' }}></div>
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
-                            <div style={{ width: '50%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                            <div style={{ width: '80%', height: '10px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                            <div style={{ width: '30%', height: '12px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                          </div>
-                        </div>
-                      ))}
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+                      <RefreshCw className="animate-spin" size={20} style={{ color: '#855300' }} />
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1323,7 +1307,7 @@ const StudentDashboard = () => {
                         <div key={meal.id} className="order-again-card" style={{ padding: '12px' }}>
                           <div style={{ display: 'flex', gap: '12px' }}>
                             <img
-                              src={meal.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&h=100&fit=crop&q=80"}
+                              src={meal.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"}
                               alt={meal.name}
                               onClick={() => setSelectedMeal({ ...meal, sellerId: selectedVendorDetails.id })}
                               style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }}
@@ -2108,34 +2092,9 @@ const StudentDashboard = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginBottom: '4px' }}>Active Meal Plans</h3>
                   {subscriptionsLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      {[1, 2].map(i => (
-                        <div
-                          key={i}
-                          className="animate-pulse"
-                          style={{
-                            padding: '16px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '12px',
-                            backgroundColor: '#ffffff',
-                            borderRadius: '16px',
-                            border: '1px solid rgba(0, 0, 0, 0.04)',
-                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)'
-                          }}
-                        >
-                          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                            <div style={{ width: '56px', height: '56px', borderRadius: '12px', backgroundColor: '#e2e8f0' }}></div>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ width: '40%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                                <div style={{ width: '60px', height: '18px', backgroundColor: '#e2e8f0', borderRadius: '6px' }}></div>
-                              </div>
-                              <div style={{ width: '70%', height: '10px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
+                      <RefreshCw className="animate-spin" size={24} style={{ color: '#855300' }} />
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading subscriptions...</span>
                     </div>
                   ) : subscriptionsError ? (
                     <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
@@ -2163,7 +2122,7 @@ const StudentDashboard = () => {
                           >
                             <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
                               <img
-                                src={sub.vendor?.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80"}
+                                src={sub.vendor?.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>"}
                                 alt={sub.vendor?.full_name}
                                 style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }}
                               />

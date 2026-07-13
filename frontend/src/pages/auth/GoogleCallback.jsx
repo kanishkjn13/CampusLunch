@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { StudentContext } from '@/context/StudentContext';
 
 const GoogleCallback = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { setUser } = useContext(StudentContext);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -39,6 +41,15 @@ const GoogleCallback = () => {
         localStorage.setItem("refresh", data.refresh);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("role", data.user.role);
+
+        if (data.user.role === 'student') {
+          setUser({
+            name: data.user.full_name || data.user.name || '',
+            phone: data.user.phone || '',
+            email: data.user.email || '',
+            avatar: localStorage.getItem(`student_avatar_${data.user.email}`) || ''
+          });
+        }
 
         // Redirect based on role
         switch (data.user.role) {

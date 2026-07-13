@@ -1,28 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Clock, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Star, MapPin, Clock, ArrowLeft, CheckCircle, RefreshCw } from 'lucide-react';
 import Button from '@/components/common/Button';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
-import { VENDORS, MENU_ITEMS } from '@/data/mockData';
+import { getVendorDetails } from "@/Services/studentService";
 
 const VendorDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [token, setToken] = useState('');
-  
-  const vendor = VENDORS.find(v => v.id === id);
-  const menu = MENU_ITEMS[id] || [];
+  const [vendor, setVendor] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!vendor) return <div className="container mt-6">Vendor not found</div>;
+  useEffect(() => {
+    const fetchVendorData = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const details = await getVendorDetails(id);
+        setVendor(details);
+      } catch (err) {
+        console.error("Failed to load vendor details:", err);
+        setError("Vendor details not found or failed to load.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVendorData();
+  }, [id]);
 
   const handleOrder = (item) => {
-    // Mock order placement
+    // Mock order placement client-side
     const newToken = 'T-' + Math.floor(1000 + Math.random() * 9000);
     setToken(newToken);
     setOrderSuccess(true);
   };
+
+  if (loading) {
+    return (
+      <div className="container flex flex-col items-center justify-center" style={{ minHeight: '80vh', gap: '16px' }}>
+        <RefreshCw className="animate-spin" size={36} color="var(--accent-primary)" />
+        <span className="text-secondary text-sm">Loading kitchen details...</span>
+      </div>
+    );
+  }
+
+  if (error || !vendor) {
+    return (
+      <div className="container flex flex-col items-center justify-center" style={{ minHeight: '80vh', gap: '16px' }}>
+        <div style={{ color: '#ef4444', textAlign: 'center' }}>
+          <h2>Error</h2>
+          <p>{error || "Vendor not found."}</p>
+        </div>
+        <Button variant="outline" onClick={() => navigate('/student')}>Back to Home</Button>
+      </div>
+    );
+  }
+
+  const menu = vendor.menu_items || [];
+  const isAvailable = vendor.is_active && vendor.is_verified !== false;
 
   if (orderSuccess) {
     return (
@@ -30,7 +69,7 @@ const VendorDetails = () => {
         <Card glass className="p-8 text-center" style={{ padding: '40px', maxWidth: '500px' }}>
           <CheckCircle color="var(--status-success)" size={64} className="mx-auto mb-4" style={{ margin: '0 auto 16px' }} />
           <h2 className="mb-2">Order Confirmed!</h2>
-          <p className="text-secondary mb-6">Your order from {vendor.name} has been placed successfully.</p>
+          <p className="text-secondary mb-6">Your order from {vendor.full_name} has been placed successfully.</p>
           
           <div className="mb-8 p-4" style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
             <span className="text-secondary text-sm uppercase tracking-wider">Token Number</span>
@@ -40,7 +79,7 @@ const VendorDetails = () => {
           
           <div className="flex gap-4">
             <Button variant="outline" fullWidth onClick={() => navigate('/student')}>Back to Home</Button>
-            <Button variant="primary" fullWidth onClick={() => navigate('/student/orders')}>View Orders</Button>
+            <Button variant="primary" fullWidth onClick={() => navigate('/student', { state: { activeTab: 'orders' } })}>View Orders</Button>
           </div>
         </Card>
       </div>
@@ -52,8 +91,8 @@ const VendorDetails = () => {
       {/* Immersive Full-Width Banner */}
       <div style={{ position: 'relative', width: '100%', height: '280px', overflow: 'hidden' }}>
         <img 
-          src={vendor.photo} 
-          alt={vendor.name} 
+          src={vendor.profile_image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&q=80'} 
+          alt={vendor.full_name} 
           style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
         />
         <div style={{ 
@@ -96,47 +135,36 @@ const VendorDetails = () => {
           <div className="md:col-span-1">
             <Card className="p-6" style={{ borderRadius: 'var(--radius-lg)' }}>
               <div className="flex justify-between items-start mb-4">
-                <h2>{vendor.name}</h2>
-                <Badge type={vendor.status} style={{ background: vendor.status === 'Available' ? 'var(--status-success)' : 'var(--bg-hover)', color: vendor.status === 'Available' ? '#000' : '#fff', border: 'none' }}>{vendor.status}</Badge>
+                <h2>{vendor.full_name}</h2>
+                <Badge type={isAvailable ? 'Available' : 'Closed'} style={{ background: isAvailable ? 'var(--status-success)' : 'var(--bg-hover)', color: isAvailable ? '#000' : '#fff', border: 'none' }}>
+                  {isAvailable ? 'Available' : 'Closed'}
+                </Badge>
               </div>
               
               <div className="flex flex-col gap-2 mb-4">
-                {vendor.type.map((t, idx) => (
-                  <Badge key={idx} type={t} className="w-max">{t}</Badge>
-                ))}
+                <Badge type="Veg" className="w-max">Veg Only</Badge>
               </div>
               
               <div className="flex items-center gap-2 text-status-warning mb-6">
                 <Star size={20} fill="currentColor" />
-                <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>{vendor.rating}</span>
-                <span className="text-secondary" style={{ fontSize: '0.9rem' }}>({vendor.reviews} reviews)</span>
+                <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>4.8</span>
+                <span className="text-secondary" style={{ fontSize: '0.9rem' }}>(Verified)</span>
               </div>
               
               <div className="flex-col gap-3 text-secondary" style={{ fontSize: '0.95rem' }}>
                 <div className="flex items-center gap-3 mb-2">
                   <MapPin size={18} color="var(--accent-primary)" />
-                  <span>Pickup: {vendor.pickupLocation}</span>
+                  <span>Pickup: Campus Delivery Points</span>
                 </div>
                 <div className="flex items-center gap-3 mb-2">
                   <MapPin size={18} color="var(--accent-primary)" />
-                  <span>Kitchen: {vendor.vendorLocation}</span>
+                  <span>Contact: {vendor.phone || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Clock size={18} color="var(--status-warning)" />
-                  <span>Serving: {vendor.servingTime}</span>
+                  <span>Serving Time: 12:00 PM - 3:00 PM</span>
                 </div>
               </div>
-              
-              {vendor.subscriptionAvailable && (
-                <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <h3 className="mb-2" style={{ fontSize: '1.2rem' }}>Monthly Subscription</h3>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-secondary">30 Meals</span>
-                    <span style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--accent-green)' }}>₹{vendor.monthlyPrice}</span>
-                  </div>
-                  <Button variant="outline" fullWidth>Subscribe Now</Button>
-                </div>
-              )}
             </Card>
           </div>
 
@@ -150,19 +178,19 @@ const VendorDetails = () => {
                     <div style={{ flex: 1, width: '100%' }}>
                       <div className="flex items-center gap-3 mb-2">
                         <h3 style={{ fontSize: '1.1rem' }}>{item.name}</h3>
-                        <Badge type={item.type}>{item.type}</Badge>
+                        <Badge type={item.food_type}>{item.food_type}</Badge>
                       </div>
                       <p className="text-secondary mb-3" style={{ fontSize: '0.9rem' }}>{item.description}</p>
                       <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>₹{item.price}</div>
                     </div>
                     <div className="w-full md:w-auto md:ml-5">
                       <Button 
-                        variant={item.isAvailable ? 'primary' : 'secondary'} 
-                        disabled={!item.isAvailable || vendor.status === 'Closed'}
+                        variant={item.is_available ? 'primary' : 'secondary'} 
+                        disabled={!item.is_available || !isAvailable}
                         onClick={() => handleOrder(item)}
                         fullWidth
                       >
-                        {item.isAvailable && vendor.status !== 'Closed' ? 'Pre-book' : 'Sold Out'}
+                        {item.is_available && isAvailable ? 'Pre-book' : 'Sold Out'}
                       </Button>
                     </div>
                   </Card>

@@ -1,9 +1,12 @@
 import axios from "axios";
 
 const getBaseURL = () => {
-  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
     return "http://127.0.0.1:8000/api";
+  }
+  if (host.startsWith('192.168.')) {
+    return `http://${host}:8000/api`;
   }
   return "https://campuslunch-backend.onrender.com/api";
 };

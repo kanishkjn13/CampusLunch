@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import logo from '@/assets/logos/logo.png';
 import { loginUser } from "@/Services/authService";
+import { StudentContext } from '@/context/StudentContext';
 
 const Login = () => {
   const location = useLocation();
+  const { setUser } = useContext(StudentContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -103,6 +105,15 @@ const Login = () => {
       localStorage.setItem("refresh", data.refresh);
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("role", data.user.role);
+
+      if (data.user.role === 'student') {
+        setUser({
+          name: data.user.full_name || data.user.name || '',
+          phone: data.user.phone || '',
+          email: data.user.email || '',
+          avatar: localStorage.getItem(`student_avatar_${data.user.email}`) || ''
+        });
+      }
 
       // Redirect by role
       switch (data.user.role) {
@@ -258,6 +269,7 @@ const Login = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="off"
                     required
                   />
                 </div>
@@ -277,6 +289,7 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="off"
                     required
                   />
                   <button

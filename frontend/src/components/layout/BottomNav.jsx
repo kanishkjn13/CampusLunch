@@ -274,7 +274,7 @@ const BottomNav = () => {
           </button>
         </div>
         <div className="bottom-sheet-grid">
-          <button className="bottom-sheet-item" onClick={() => { setIsMoreOpen(false); alert('Language selection clicked!'); }}>
+          <button className="bottom-sheet-item" onClick={() => { setIsMoreOpen(false); alert('Language is currently set to English.'); }}>
             <Languages size={26} color="#855300" />
             <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Language</span>
           </button>

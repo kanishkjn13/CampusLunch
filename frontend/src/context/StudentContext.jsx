@@ -193,7 +193,6 @@ export const StudentProvider = ({ children }) => {
       setSellers(INITIAL_SELLERS);
       localStorage.setItem('tiffin_connect_sellers', JSON.stringify(INITIAL_SELLERS));
       localStorage.setItem('last_stock_reset', todayStr);
-      console.log("Daily midnight stock reset executed successfully.");
     }
   };
 
@@ -479,6 +478,7 @@ export const StudentProvider = ({ children }) => {
   return (
     <StudentContext.Provider value={{
       user,
+      setUser,
       sellers,
       setSellers,
       coupons,

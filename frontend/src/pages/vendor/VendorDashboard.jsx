@@ -34,7 +34,7 @@ const VendorDashboard = () => {
   const navigate = useNavigate();
   // Vendor details from localStorage (reactive state hooks)
   const storedSelfie = localStorage.getItem('vendor_selfie');
-  const [vendorChefAvatar, setVendorChefAvatar] = useState(storedSelfie || "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&h=100&fit=crop&q=80");
+  const [vendorChefAvatar, setVendorChefAvatar] = useState(storedSelfie || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>");
 
   const getStoredVendorUser = (field, fallback) => {
     const userStr = localStorage.getItem("user");
@@ -91,6 +91,7 @@ const VendorDashboard = () => {
   const [subscribersSearch, setSubscribersSearch] = useState('');
   const [subscribersStatusFilter, setSubscribersStatusFilter] = useState('');
   const [selectedSubscriberDetails, setSelectedSubscriberDetails] = useState(null);
+  const [activeBottomTab, setActiveBottomTab] = useState('home');
 
   const fetchSubscribersList = async () => {
     setSubscribersLoading(true);
@@ -181,7 +182,6 @@ const VendorDashboard = () => {
 
 
 
-  const [activeBottomTab, setActiveBottomTab] = useState('home');
   const [ordersSubTab, setOrdersSubTab] = useState('active');
   const [ordersSearch, setOrdersSearch] = useState('');
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -506,7 +506,7 @@ const VendorDashboard = () => {
       price: Number(newItem.price),
       type: newItem.type,
       description: newItem.description || 'Freshly prepared delicious meal combo.',
-      image: newItem.image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=300&h=200&fit=crop&q=80',
+      image: newItem.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>",
       rating: 5.0,
       prepTime: newItem.prepTime || '20 mins',
       availableQty: Number(newItem.quantity || 15),
@@ -1413,7 +1413,7 @@ const VendorDashboard = () => {
                         const cardAccentClass = !item.is_active ? 'accent-empty' : !item.is_available ? 'accent-low' : 'accent-instock';
                         const imageUrl = item.image
                           ? (item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`)
-                          : 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=300&h=200&fit=crop&q=80';
+                          : "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>";
 
                         return (
                           <div key={item.id} className={`availability-item-card ${cardAccentClass}`} style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '16px', gap: '12px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 20px rgba(0,0,0,0.008)' }}>
@@ -1770,7 +1770,7 @@ const VendorDashboard = () => {
                           }}
                         >
                           <img
-                            src={sub.student?.profile_image || "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&h=100&fit=crop&q=80"}
+                            src={sub.student?.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"}
                             alt={sub.student?.full_name}
                             style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }}
                           />
@@ -2679,7 +2679,7 @@ const VendorDashboard = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
                     <div style={{ display: 'flex', gap: '14px', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                       <img
-                        src={selectedSubscriberDetails.student?.profile_image || "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&h=100&fit=crop&q=80"}
+                        src={selectedSubscriberDetails.student?.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"}
                         alt={selectedSubscriberDetails.student?.full_name}
                         style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }}
                       />
