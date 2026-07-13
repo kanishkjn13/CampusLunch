@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '@/APIs/axios';
 import { StudentContext } from '@/context/StudentContext';
 
 const GoogleCallback = () => {
@@ -30,7 +30,7 @@ const GoogleCallback = () => {
 
       try {
         // Post the token to the backend
-        const response = await axios.post('http://127.0.0.1:8000/api/auth/google/', {
+        const response = await api.post('/auth/google/', {
           credential: tokenToSend
         });
 

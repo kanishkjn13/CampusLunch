@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const getBaseURL = () => {
+export const getBaseURL = () => {
   const host = window.location.hostname;
   if (host === 'localhost' || host === '127.0.0.1') {
     return "http://127.0.0.1:8000/api";
@@ -9,6 +9,17 @@ const getBaseURL = () => {
     return `http://${host}:8000/api`;
   }
   return "https://campuslunch-backend.onrender.com/api";
+};
+
+export const getMediaBaseURL = () => {
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return "http://127.0.0.1:8000";
+  }
+  if (host.startsWith('192.168.')) {
+    return `http://${host}:8000`;
+  }
+  return "https://campuslunch-backend.onrender.com";
 };
 
 const api = axios.create({
@@ -81,7 +92,7 @@ api.interceptors.response.use(
 
       try {
         // Fetch new access token using standard axios (to prevent infinite loops)
-        const response = await axios.post("http://127.0.0.1:8000/api/auth/refresh/", {
+        const response = await axios.post(`${getBaseURL()}/auth/refresh/`, {
           refresh: refreshToken,
         });
 
