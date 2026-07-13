@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StudentContext } from '@/context/StudentContext';
+import Footer from '@/components/layout/Footer';
 import { 
   Grid, 
   Store, 
@@ -156,6 +157,112 @@ const AdminDashboard = () => {
   })();
 
   const [selectedTicket, setSelectedTicket] = useState('TK-8821');
+  const [toast, setToast] = useState({ message: '', type: '', visible: false });
+  const showNotification = (msg, type = 'success') => {
+    setToast({ message: msg, type, visible: true });
+    setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
+  };
+
+  const [timeframe, setTimeframe] = useState('This Month');
+  const [showTimeframeDropdown, setShowTimeframeDropdown] = useState(false);
+
+  const [commissionRate, setCommissionRate] = useState(() => {
+    return Number(localStorage.getItem('admin_commission_rate') || 12);
+  });
+  const [isEditingCommission, setIsEditingCommission] = useState(false);
+  const [tempCommission, setTempCommission] = useState(commissionRate);
+
+  const [verificationQueue, setVerificationQueue] = useState([
+    { id: 'V-9921', name: 'Annapurna Kitchens', type: 'Vendor', detail: 'ID: V-9921', colorClass: 'accent-gold', bgClass: 'bg-peach', icon: 'store' },
+    { id: 'S-1042', name: 'Rohan Mehta', type: 'Student', detail: 'IIT Bombay', colorClass: 'accent-blue', bgClass: 'bg-blue', icon: 'student' },
+    { id: 'V-8812', name: 'Grandma Tiffins', type: 'Vendor', detail: 'ID: V-8812', colorClass: 'accent-gold', bgClass: 'bg-peach', icon: 'store' },
+    { id: 'S-2051', name: 'Ananya Sharma', type: 'Student', detail: 'BITS Pilani', colorClass: 'accent-blue', bgClass: 'bg-blue', icon: 'student' }
+  ]);
+  const [showAllApplicationsModal, setShowAllApplicationsModal] = useState(false);
+
+  const handleApproveApp = (appId, appName) => {
+    setVerificationQueue(prev => prev.filter(item => item.id !== appId));
+    showNotification(`Approved application for ${appName}.`, 'success');
+  };
+
+  const handleRejectApp = (appId, appName) => {
+    if (window.confirm(`Are you sure you want to reject the application for ${appName}?`)) {
+      setVerificationQueue(prev => prev.filter(item => item.id !== appId));
+      showNotification(`Rejected application for ${appName}.`, 'error');
+    }
+  };
+
+  const getOpenTickets = () => {
+    return Object.values(ticketsData).filter(ticket => {
+      return localStorage.getItem(`ticket_status_${ticket.id}`) !== 'closed';
+    });
+  };
+
+  const getMetricsByTimeframe = () => {
+    switch (timeframe) {
+      case 'This Month':
+        return {
+          commission: '₹4,82,900',
+          commissionTrend: '+12.5% vs last month',
+          commissionTrendUp: true,
+          activeSubs: '1,240',
+          activeSubsTrend: '+4%',
+          activeSubsTrendUp: true,
+          avgOrder: '₹185',
+          avgOrderTrend: '-2%',
+          avgOrderTrendUp: false
+        };
+      case 'Last Month':
+        return {
+          commission: '₹4,29,200',
+          commissionTrend: '+8.1% vs prev month',
+          commissionTrendUp: true,
+          activeSubs: '1,192',
+          activeSubsTrend: '+2.5%',
+          activeSubsTrendUp: true,
+          avgOrder: '₹189',
+          avgOrderTrend: '+1.5%',
+          avgOrderTrendUp: true
+        };
+      case 'This Year':
+        return {
+          commission: '₹51,48,000',
+          commissionTrend: '+24.3% vs last year',
+          commissionTrendUp: true,
+          activeSubs: '2,850',
+          activeSubsTrend: '+18%',
+          activeSubsTrendUp: true,
+          avgOrder: '₹178',
+          avgOrderTrend: '+3.2%',
+          avgOrderTrendUp: true
+        };
+      case 'All Time':
+        return {
+          commission: '₹72,35,000',
+          commissionTrend: '+48.9% overall growth',
+          commissionTrendUp: true,
+          activeSubs: '3,120',
+          activeSubsTrend: '+45%',
+          activeSubsTrendUp: true,
+          avgOrder: '₹182',
+          avgOrderTrend: '+5.4%',
+          avgOrderTrendUp: true
+        };
+      default:
+        return {
+          commission: '₹4,82,900',
+          commissionTrend: '+12.5%',
+          commissionTrendUp: true,
+          activeSubs: '1,240',
+          activeSubsTrend: '+4%',
+          activeSubsTrendUp: true,
+          avgOrder: '₹185',
+          avgOrderTrend: '-2%',
+          avgOrderTrendUp: false
+        };
+    }
+  };
+
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [roundedCornersEnabled, setRoundedCornersEnabled] = useState(true);
   const [supportMessages, setSupportMessages] = useState([]);
@@ -411,10 +518,58 @@ const AdminDashboard = () => {
                   <h1 className="dashboard-title">Platform Revenue</h1>
                   <p className="dashboard-subtitle">Monthly growth and commission stats tracking.</p>
                 </div>
-                <button className="timeframe-dropdown-btn">
-                  <span>This Month</span>
-                  <ChevronDown size={16} />
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <button 
+                    className="timeframe-dropdown-btn"
+                    onClick={() => setShowTimeframeDropdown(prev => !prev)}
+                  >
+                    <span>{timeframe}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                  
+                  {showTimeframeDropdown && (
+                    <div style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: '48px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(0,0,0,0.06)',
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                      zIndex: 1000,
+                      width: '150px',
+                      overflow: 'hidden'
+                    }}>
+                      {['This Month', 'Last Month', 'This Year', 'All Time'].map((tf) => (
+                        <button
+                          key={tf}
+                          onClick={() => {
+                            setTimeframe(tf);
+                            setShowTimeframeDropdown(false);
+                          }}
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            padding: '10px 16px',
+                            textAlign: 'left',
+                            border: 'none',
+                            background: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            color: timeframe === tf ? '#855300' : '#475569',
+                            backgroundColor: timeframe === tf ? 'rgba(133, 83, 0, 0.05)' : 'transparent',
+                            fontWeight: timeframe === tf ? 'bold' : 'normal',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseOver={(e) => { if (timeframe !== tf) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                          onMouseOut={(e) => { if (timeframe !== tf) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        >
+                          {tf}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Metrics Row */}
@@ -423,10 +578,10 @@ const AdminDashboard = () => {
                 <div className="commission-card-orange">
                   <div className="commission-card-content">
                     <span className="commission-card-label">TOTAL COMMISSION</span>
-                    <h2 className="commission-card-value">₹4,82,900</h2>
+                    <h2 className="commission-card-value">{getMetricsByTimeframe().commission}</h2>
                     <div className="commission-trend-badge">
-                      <TrendingUp size={12} />
-                      <span>+12.5% vs last month</span>
+                      {getMetricsByTimeframe().commissionTrendUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      <span>{getMetricsByTimeframe().commissionTrend}</span>
                     </div>
                   </div>
                   <div className="orange-card-decor">
@@ -444,11 +599,11 @@ const AdminDashboard = () => {
                 <div className="kpi-card-white">
                   <div className="kpi-card-inner">
                     <span className="kpi-card-label">Active Subs</span>
-                    <h3 className="kpi-card-value">1,240</h3>
+                    <h3 className="kpi-card-value">{getMetricsByTimeframe().activeSubs}</h3>
                   </div>
-                  <div className="kpi-trend-badge trend-up">
-                    <TrendingUp size={14} />
-                    <span>+4%</span>
+                  <div className={`kpi-trend-badge ${getMetricsByTimeframe().activeSubsTrendUp ? 'trend-up' : 'trend-down'}`}>
+                    {getMetricsByTimeframe().activeSubsTrendUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                    <span>{getMetricsByTimeframe().activeSubsTrend}</span>
                   </div>
                 </div>
 
@@ -456,11 +611,11 @@ const AdminDashboard = () => {
                 <div className="kpi-card-white">
                   <div className="kpi-card-inner">
                     <span className="kpi-card-label">Avg. Order</span>
-                    <h3 className="kpi-card-value">₹185</h3>
+                    <h3 className="kpi-card-value">{getMetricsByTimeframe().avgOrder}</h3>
                   </div>
-                  <div className="kpi-trend-badge trend-down">
-                    <TrendingDown size={14} />
-                    <span>-2%</span>
+                  <div className={`kpi-trend-badge ${getMetricsByTimeframe().avgOrderTrendUp ? 'trend-up' : 'trend-down'}`}>
+                    {getMetricsByTimeframe().avgOrderTrendUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                    <span>{getMetricsByTimeframe().avgOrderTrend}</span>
                   </div>
                 </div>
               </div>
@@ -470,50 +625,40 @@ const AdminDashboard = () => {
                 <div className="verification-queue-column">
                   <div className="queue-header">
                     <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Verification Queue</h2>
-                    <span className="queue-pending-badge">12 PENDING</span>
+                    <span className="queue-pending-badge">{verificationQueue.length} PENDING</span>
                   </div>
 
                   <div className="queue-list">
-                    <div className="queue-card-item accent-gold">
-                      <div className="queue-card-left">
-                        <div className="queue-icon-circle bg-peach">
-                          <Store size={18} />
-                        </div>
-                        <div className="queue-card-info">
-                          <h4>Annapurna Kitchens</h4>
-                          <p>Vendor • ID: V-9921</p>
-                        </div>
+                    {verificationQueue.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: '0 0 4px 0' }}>All applications processed!</p>
+                        <p style={{ fontSize: '0.75rem', margin: 0 }}>No pending verifications at the moment.</p>
                       </div>
-                      <div className="queue-card-actions">
-                        <button className="queue-reject-btn"><X size={16} /></button>
-                        <button className="queue-approve-btn">
-                          <Check size={14} />
-                          <span>Approve</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="queue-card-item accent-blue">
-                      <div className="queue-card-left">
-                        <div className="queue-icon-circle bg-blue">
-                          <GraduationCap size={18} />
+                    ) : (
+                      verificationQueue.slice(0, 2).map((item) => (
+                        <div key={item.id} className={`queue-card-item ${item.colorClass}`}>
+                          <div className="queue-card-left">
+                            <div className={`queue-icon-circle ${item.bgClass}`}>
+                              {item.icon === 'store' ? <Store size={18} /> : <GraduationCap size={18} />}
+                            </div>
+                            <div className="queue-card-info">
+                              <h4>{item.name}</h4>
+                              <p>{item.type} • {item.detail}</p>
+                            </div>
+                          </div>
+                          <div className="queue-card-actions">
+                            <button className="queue-reject-btn" onClick={() => handleRejectApp(item.id, item.name)}><X size={16} /></button>
+                            <button className="queue-approve-btn" onClick={() => handleApproveApp(item.id, item.name)}>
+                              <Check size={14} />
+                              <span>Approve</span>
+                            </button>
+                          </div>
                         </div>
-                        <div className="queue-card-info">
-                          <h4>Rohan Mehta</h4>
-                          <p>Student • IIT Bombay</p>
-                        </div>
-                      </div>
-                      <div className="queue-card-actions">
-                        <button className="queue-reject-btn"><X size={16} /></button>
-                        <button className="queue-approve-btn">
-                          <Check size={14} />
-                          <span>Approve</span>
-                        </button>
-                      </div>
-                    </div>
+                      ))
+                    )}
                   </div>
 
-                  <button className="view-applications-btn">
+                  <button className="view-applications-btn" onClick={() => setShowAllApplicationsModal(true)}>
                     <span>View All Applications</span>
                   </button>
                 </div>
@@ -525,37 +670,42 @@ const AdminDashboard = () => {
                         <span className="tickets-label">RECENT COMPLAINTS</span>
                         <h2 className="dashboard-heading controls-title" style={{ fontSize: '1.25rem' }}>Open Tickets</h2>
                       </div>
-                      <div className="tickets-avatars-group">
-                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&fit=crop&q=80" alt="User 1" />
-                        <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&fit=crop&q=80" alt="User 2" />
-                        <span className="more-avatars-badge">+5</span>
-                      </div>
+                      {getOpenTickets().length > 0 && (
+                        <div className="tickets-avatars-group">
+                          {getOpenTickets().slice(0, 3).map((ticket) => (
+                            <img key={ticket.id} src={ticket.userAvatar} alt={ticket.userName} />
+                          ))}
+                          {getOpenTickets().length > 3 && (
+                            <span className="more-avatars-badge">+{getOpenTickets().length - 3}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="tickets-list">
-                      <div 
-                        className="ticket-item-card" 
-                        onClick={() => { setActiveTab('support'); setSelectedTicket('TK-8821'); }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="ticket-icon-box bg-pink"><AlertCircle size={18} /></div>
-                        <div className="ticket-info">
-                          <h4>Late Delivery: Order #8821</h4>
-                          <p>Assigned to: Support Agent 04 • Click to View</p>
+                      {getOpenTickets().length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                          <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: '0 0 4px 0', color: '#16a34a' }}>All tickets resolved!</p>
+                          <p style={{ fontSize: '0.75rem', margin: 0 }}>No open complaints in the system.</p>
                         </div>
-                      </div>
-
-                      <div 
-                        className="ticket-item-card" 
-                        onClick={() => { setActiveTab('support'); setSelectedTicket('TK-8819'); }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="ticket-icon-box bg-green"><MessageSquare size={18} /></div>
-                        <div className="ticket-info">
-                          <h4>Vendor Dispute: Refund Request</h4>
-                          <p>Awaiting vendor response (2h) • Click to View</p>
-                        </div>
-                      </div>
+                      ) : (
+                        getOpenTickets().map((ticket) => (
+                          <div 
+                            key={ticket.id}
+                            className="ticket-item-card" 
+                            onClick={() => { setActiveTab('support'); setSelectedTicket(ticket.id); }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className={`ticket-icon-box ${ticket.priorityClass === 'urgent' ? 'bg-pink' : ticket.priorityClass === 'high' ? 'bg-peach' : 'bg-green'}`}>
+                              {ticket.priorityClass === 'urgent' ? <AlertCircle size={18} /> : <MessageSquare size={18} />}
+                            </div>
+                            <div className="ticket-info">
+                              <h4>{ticket.title} ({ticket.id})</h4>
+                              <p>Priority: {ticket.priority} • Click to View Chat</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -570,10 +720,10 @@ const AdminDashboard = () => {
                       <div className="control-icon-circle"><Percent size={18} /></div>
                       <div className="control-info">
                         <h4>Commission Rate</h4>
-                        <p>Currently 12% per order</p>
+                        <p>Currently {commissionRate}% per order</p>
                       </div>
                     </div>
-                    <button className="control-action-btn">Edit</button>
+                    <button className="control-action-btn" onClick={() => { setTempCommission(commissionRate); setIsEditingCommission(true); }}>Edit</button>
                   </div>
 
                   <div className="control-item-card">
@@ -584,7 +734,7 @@ const AdminDashboard = () => {
                         <p>4 Active student tiers</p>
                       </div>
                     </div>
-                    <button className="control-action-btn">Manage</button>
+                    <button className="control-action-btn" onClick={() => setActiveTab('system')}>Manage</button>
                   </div>
                 </div>
               </div>
@@ -1152,7 +1302,18 @@ const AdminDashboard = () => {
                   <form className="config-form-fields" onSubmit={(e) => e.preventDefault()}>
                     <div className="config-input-group">
                       <label>STANDARD COMMISSION (%)</label>
-                      <input type="text" defaultValue="15" className="config-text-input" />
+                      <input 
+                        type="number" 
+                        value={commissionRate} 
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            setCommissionRate(val);
+                            localStorage.setItem('admin_commission_rate', val);
+                          }
+                        }} 
+                        className="config-text-input" 
+                      />
                     </div>
                     <div className="config-input-group">
                       <label>DELIVERY PARTNER FEE (FLAT)</label>
@@ -1527,6 +1688,205 @@ const AdminDashboard = () => {
             </div>
           )}
         </main>
+        <Footer />
+
+        {/* Verification Queue Modal */}
+        {showAllApplicationsModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'fadeIn 0.2s ease-out'
+          }} onClick={() => setShowAllApplicationsModal(false)}>
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '90%',
+              maxWidth: '600px',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column'
+            }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 className="dashboard-heading" style={{ fontSize: '1.4rem', margin: 0 }}>Pending Verifications</h2>
+                <button onClick={() => setShowAllApplicationsModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
+                {verificationQueue.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                    <CheckCircle size={48} style={{ color: '#22c55e', marginBottom: '12px' }} />
+                    <p className="font-bold">No pending verifications</p>
+                    <p style={{ fontSize: '0.85rem' }}>All student and vendor applications have been processed.</p>
+                  </div>
+                ) : (
+                  verificationQueue.map((item) => (
+                    <div key={item.id} className={`queue-card-item ${item.colorClass}`} style={{ margin: 0 }}>
+                      <div className="queue-card-left">
+                        <div className={`queue-icon-circle ${item.bgClass}`}>
+                          {item.icon === 'store' ? <Store size={18} /> : <GraduationCap size={18} />}
+                        </div>
+                        <div className="queue-card-info">
+                          <h4>{item.name}</h4>
+                          <p>{item.type} • {item.detail}</p>
+                        </div>
+                      </div>
+                      <div className="queue-card-actions">
+                        <button className="queue-reject-btn" onClick={() => handleRejectApp(item.id, item.name)}><X size={16} /></button>
+                        <button className="queue-approve-btn" onClick={() => handleApproveApp(item.id, item.name)}>
+                          <Check size={14} />
+                          <span>Approve</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Commission Edit Modal */}
+        {isEditingCommission && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'fadeIn 0.2s ease-out'
+          }} onClick={() => setIsEditingCommission(false)}>
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '90%',
+              maxWidth: '400px',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)'
+            }} onClick={(e) => e.stopPropagation()}>
+              <h2 className="dashboard-heading" style={{ fontSize: '1.25rem', marginBottom: '16px' }}>Edit Commission Rate</h2>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', marginBottom: '8px' }}>STANDARD RATE (%)</label>
+                <input 
+                  type="number" 
+                  value={tempCommission} 
+                  onChange={(e) => setTempCommission(e.target.value)} 
+                  style={{
+                    width: '100%',
+                    height: '40px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 12px',
+                    fontSize: '0.95rem'
+                  }}
+                  min="0"
+                  max="100"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'end' }}>
+                <button 
+                  onClick={() => setIsEditingCommission(false)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => {
+                    const rate = parseFloat(tempCommission);
+                    if (!isNaN(rate) && rate >= 0 && rate <= 100) {
+                      setCommissionRate(rate);
+                      localStorage.setItem('admin_commission_rate', rate);
+                      setIsEditingCommission(false);
+                      showNotification(`Commission rate updated to ${rate}%`, 'success');
+                    } else {
+                      alert("Please enter a valid rate between 0 and 100.");
+                    }
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#855300',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Toast Alert */}
+        {toast.visible && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            backgroundColor: toast.type === 'success' ? '#22c55e' : '#ef4444',
+            color: '#ffffff',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            zIndex: 11000,
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            {toast.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+            <span>{toast.message}</span>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes slideIn {
+            from {
+              transform: translateY(-20px);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
+        <Footer />
       </div>
     </div>
   );

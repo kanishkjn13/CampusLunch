@@ -1252,14 +1252,14 @@
   .footer-logo {
     font-size: 20px !important;
     font-weight: 700 !important;
-    color: #855300 !important;
+    color: #ffffff !important;
     margin-bottom: 6px !important;
     font-family: 'Outfit', sans-serif !important;
   }
 
   .footer-slogan {
     font-size: 13px !important;
-    color: #534434 !important;
+    color: #ffffff !important;
     margin: 0 !important;
     font-family: 'Outfit', sans-serif !important;
     opacity: 0.85;
@@ -1276,9 +1276,9 @@
     width: 40px !important;
     height: 40px !important;
     border-radius: 50% !important;
-    background: rgba(133, 83, 0, 0.05) !important;
-    border: 1px solid rgba(133, 83, 0, 0.1) !important;
-    color: #855300 !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
     display: inline-flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -1287,7 +1287,7 @@
   }
 
   .social-icon-btn:active {
-    background: rgba(133, 83, 0, 0.12) !important;
+    background: rgba(255, 255, 255, 0.18) !important;
     transform: scale(0.95);
   }
 
@@ -1326,6 +1326,14 @@
 
   .separator {
     color: var(--footer-border) !important;
+  }
+
+  .compact-footer-container span {
+    color: #ffffff !important;
+  }
+
+  .compact-footer-container a {
+    color: #ffffff !important;
   }
 }
 
