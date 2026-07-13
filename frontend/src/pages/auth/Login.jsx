@@ -254,7 +254,7 @@ const Login = () => {
                   <input
                     className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
                     id="email"
-                    placeholder={role === 'vendor' ? 'vendor@gmail.com' : 'student@gmail.com'}
+                    placeholder="name@example.com"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

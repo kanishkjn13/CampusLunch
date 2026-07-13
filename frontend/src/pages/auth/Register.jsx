@@ -723,7 +723,7 @@ const Register = () => {
                         }}
                         id="email"
                         type="email"
-                        placeholder={role === 'vendor' ? 'vendor@gmail.com' : 'student@gmail.com'}
+                        placeholder="name@example.com"
                         value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
