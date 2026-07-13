@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import logo from '@/assets/logos/logo.png';
 import {
   studentRegister,
   vendorRegister,
+  sendOTP,
+  verifyOTP,
+  resendOTP,
 } from "@/Services/authService";
 
 const Register = () => {
@@ -24,6 +28,181 @@ const Register = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccess, setOtpSuccess] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+
+  const otpRefs = [
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null),
+    useRef(null)
+  ];
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  useEffect(() => {
+    setOtp(otpValues.join(''));
+  }, [otpValues]);
+
+  useEffect(() => {
+    if (showOtpModal) {
+      const timer = setTimeout(() => {
+        if (otpRefs[0].current) {
+          otpRefs[0].current.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showOtpModal]);
+
+  const handleGoogleRegister = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      navigate('/auth/google/callback', {
+        state: { access_token: tokenResponse.access_token }
+      });
+    },
+    onError: () => setError("Google Sign Up failed. Please try again.")
+  });
+
+  const handleOtpChange = (index, value) => {
+    const cleanVal = value.replace(/\D/g, '');
+    if (!cleanVal) {
+      const newValues = [...otpValues];
+      newValues[index] = '';
+      setOtpValues(newValues);
+      return;
+    }
+
+    const digit = cleanVal.slice(-1);
+    const newValues = [...otpValues];
+    newValues[index] = digit;
+    setOtpValues(newValues);
+
+    if (index < 5 && digit) {
+      otpRefs[index + 1].current.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      if (!otpValues[index] && index > 0) {
+        otpRefs[index - 1].current.focus();
+        const newValues = [...otpValues];
+        newValues[index - 1] = '';
+        setOtpValues(newValues);
+      } else {
+        const newValues = [...otpValues];
+        newValues[index] = '';
+        setOtpValues(newValues);
+      }
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text').trim();
+    const digits = pastedText.replace(/\D/g, '').slice(0, 6).split('');
+
+    if (digits.length > 0) {
+      const newValues = [...otpValues];
+      for (let i = 0; i < 6; i++) {
+        newValues[i] = digits[i] || '';
+      }
+      setOtpValues(newValues);
+
+      const nextFocusIndex = Math.min(digits.length, 5);
+      if (otpRefs[nextFocusIndex]?.current) {
+        otpRefs[nextFocusIndex].current.focus();
+      }
+    }
+  };
+
+  const handleSendOTP = async () => {
+    if (!email) {
+      setOtpError("Email address is required.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setOtpError("Please enter a valid email address.");
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpSuccess('');
+    try {
+      await sendOTP(email);
+      setOtpSent(true);
+      setOtpValues(['', '', '', '', '', '']);
+      setShowOtpModal(true);
+      setCooldown(30);
+      setOtpSuccess("Verification OTP sent to your email!");
+    } catch (err) {
+      setOtpError(err.response?.data?.detail || "Failed to send OTP. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    const code = otpValues.join('');
+    if (code.length !== 6) {
+      setOtpError("Please enter the 6-digit OTP code.");
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpSuccess('');
+    try {
+      await verifyOTP(email, code);
+      setEmailVerified(true);
+      setOtpSuccess("Email verified successfully!");
+      setTimeout(() => {
+        setShowOtpModal(false);
+      }, 1500);
+    } catch (err) {
+      setOtpError(err.response?.data?.detail || "Invalid or expired OTP. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpSuccess('');
+    try {
+      await resendOTP(email);
+      setCooldown(30);
+      setOtpValues(['', '', '', '', '', '']);
+      if (otpRefs[0].current) {
+        otpRefs[0].current.focus();
+      }
+      setOtpSuccess("New verification OTP sent to your email!");
+    } catch (err) {
+      setOtpError(err.response?.data?.detail || "Failed to resend OTP. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
 
   const [selfie, setSelfie] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
@@ -284,8 +463,7 @@ const Register = () => {
             <h1
               className="font-headline-lg-mobile text-headline-lg-mobile tracking-tight font-bold"
               style={{
-                color: '#ffffff',
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)'
+                color: '#0b1c30'
               }}
             >
               Campus Lunch
@@ -293,8 +471,7 @@ const Register = () => {
             <p
               className="font-body-md text-body-md max-w-[280px] mt-xs font-semibold"
               style={{
-                color: '#ffffff',
-                textShadow: '0 2px 8px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9)'
+                color: '#475569'
               }}
             >
               Fresh, home-cooked meals delivered to your campus doorstep.
@@ -490,7 +667,7 @@ const Register = () => {
                       <input
                         className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
                         id="name"
-                        placeholder={role === 'student' ? 'John Doe' : 'e.g. Sharma Tiffin Center'}
+                        placeholder={role === 'student' ? 'e.g. Aarav Patel' : 'e.g. Sharma Tiffin Center'}
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
@@ -530,21 +707,106 @@ const Register = () => {
                       Email Address
                     </label>
 
-                    <div className="auth-input-wrapper">
+                    <div className="auth-input-wrapper relative">
                       <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
                         mail
                       </span>
 
                       <input
-                        className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
+                        className="w-full h-12 pl-[42px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
+                        style={{
+                          paddingRight: emailVerified
+                            ? '100px'
+                            : otpSent
+                              ? '160px'
+                              : '80px'
+                        }}
                         id="email"
                         type="email"
-                        placeholder="student@gmail.com"
+                        placeholder={role === 'vendor' ? 'vendor@gmail.com' : 'student@gmail.com'}
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (otpSent) setOtpSent(false);
+                          setOtpSuccess('');
+                          setOtpError('');
+                        }}
+                        disabled={emailVerified}
                         required
                       />
+
+                      {/* Verified Badge / Verification Button Inside Input Box */}
+                      {emailVerified ? (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-status-success font-semibold text-[13px]" style={{ color: '#16a34a' }}>
+                          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                          <span>Verified</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmailVerified(false);
+                              setOtpSent(false);
+                              setOtp('');
+                              setOtpSuccess('');
+                              setOtpError('');
+                              setOtpValues(['', '', '', '', '', '']);
+                            }}
+                            className="text-primary hover:underline font-bold text-[12px] ml-1"
+                            style={{ color: '#855300' }}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {!otpSent ? (
+                            <button
+                              type="button"
+                              onClick={handleSendOTP}
+                              disabled={!email || otpLoading}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 px-3 h-8 text-[11px] rounded-lg active:scale-95 transition-all font-bold flex items-center justify-center disabled:opacity-50"
+                              style={{ backgroundColor: '#0b1c30', color: '#ffffff' }}
+                            >
+                              {otpLoading ? (
+                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
+                              ) : (
+                                "Verify"
+                              )}
+                            </button>
+                          ) : (
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowOtpModal(true)}
+                                className="px-2.5 h-8 text-[11px] rounded-lg active:scale-95 transition-all font-bold flex items-center justify-center"
+                                style={{ backgroundColor: '#855300', color: '#ffffff' }}
+                              >
+                                Enter Code
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleResendOTP}
+                                disabled={cooldown > 0 || otpLoading}
+                                className="font-bold text-[11px] hover:underline disabled:opacity-40"
+                                style={{ color: cooldown > 0 ? '#94a3b8' : '#855300' }}
+                              >
+                                {cooldown > 0 ? `${cooldown}s` : "Resend"}
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
+
+                    {otpError && !showOtpModal && (
+                      <div className="text-status-error font-body-sm text-[12px] mt-xs ml-xs" style={{ color: '#ba1a1a' }}>
+                        {otpError}
+                      </div>
+                    )}
+                    {otpSuccess && !showOtpModal && (
+                      <div className="text-status-success font-body-sm text-[12px] mt-xs ml-xs" style={{ color: '#16a34a' }}>
+                        {otpSuccess}
+                      </div>
+                    )}
                   </div>
 
                   {/* Password Input */}
@@ -636,10 +898,15 @@ const Register = () => {
 
                   {/* Primary Action */}
                   <button
-                    className="w-full h-12 bg-primary text-on-primary font-headline-sm text-headline-sm rounded-xl shadow-sm active:scale-[0.98] transition-all hover:bg-on-primary-fixed-variant mt-sm flex items-center justify-center font-bold"
+                    className="w-full h-12 bg-primary text-on-primary font-headline-sm text-headline-sm rounded-xl shadow-sm active:scale-[0.98] transition-all hover:bg-on-primary-fixed-variant mt-sm flex items-center justify-center font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                     type="submit"
-                    disabled={loading}
-                    style={{ backgroundColor: '#f59e0b', color: '#0f172a' }}
+                    disabled={loading || !emailVerified}
+                    style={{
+                      backgroundColor: '#f59e0b',
+                      color: '#0f172a',
+                      opacity: (!emailVerified || loading) ? 0.6 : 1,
+                      cursor: (!emailVerified || loading) ? 'not-allowed' : 'pointer'
+                    }}
                   >
                     {loading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
@@ -661,7 +928,7 @@ const Register = () => {
                   <button
                     className="flex items-center justify-center h-12 border border-outline-variant rounded-xl bg-surface-bright hover:bg-surface-container-low transition-colors active:scale-95"
                     type="button"
-                    onClick={() => alert('Google Social Sign Up mock clicked!')}
+                    onClick={() => handleGoogleRegister()}
                   >
                     <svg className="w-5 h-5 mr-sm" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -693,6 +960,142 @@ const Register = () => {
           </div>
         </div>
       </div>
+
+      {/* Verification Code Modal */}
+      {showOtpModal && (
+        <div className="custom-modal-overlay" style={{ zIndex: 10000 }}>
+          <div className="custom-modal-card" style={{ maxWidth: '400px', padding: '28px', position: 'relative' }}>
+            {/* Close Button */}
+            <button
+              type="button"
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-primary transition-colors"
+              onClick={() => setShowOtpModal(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <span className="material-symbols-outlined style-icon" style={{ fontSize: '22px' }}>close</span>
+            </button>
+
+            {/* Lock/Security Icon */}
+            <div className="custom-modal-icon-wrapper" style={{ backgroundColor: '#fffbeb', color: '#d97706', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justify: 'center', margin: '0 auto 16px auto' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>shield_person</span>
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0b1c30', marginBottom: '8px' }}>
+              Verify Your Email
+            </h3>
+            <p style={{ fontSize: '0.88rem', color: '#534434', marginBottom: '24px', lineHeight: '1.5' }}>
+              We've sent a 6-digit verification code to <br />
+              <strong style={{ color: '#0b1c30' }}>{email}</strong>.
+            </p>
+
+            {/* 6 Digit Inputs */}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '24px' }}>
+              {otpValues.map((value, idx) => (
+                <input
+                  key={idx}
+                  ref={otpRefs[idx]}
+                  type="text"
+                  maxLength={1}
+                  value={value}
+                  onChange={(e) => handleOtpChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(idx, e)}
+                  onPaste={handlePaste}
+                  style={{
+                    width: '46px',
+                    height: '52px',
+                    borderRadius: '12px',
+                    border: '2px solid',
+                    borderColor: value ? '#855300' : '#e2e8f0',
+                    backgroundColor: '#ffffff',
+                    textAlign: 'center',
+                    fontSize: '1.25rem',
+                    fontWeight: 'bold',
+                    color: '#0b1c30',
+                    outline: 'none',
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#855300';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(133, 83, 0, 0.15)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = value ? '#855300' : '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* OTP Status Messages */}
+            {otpError && (
+              <div
+                className="mb-md p-xs text-center font-body-sm text-body-sm font-bold rounded-lg"
+                style={{
+                  background: 'rgba(186, 26, 26, 0.08)',
+                  color: '#ba1a1a',
+                  border: '1px solid rgba(186, 26, 26, 0.15)',
+                  marginBottom: '16px',
+                  padding: '8px'
+                }}
+              >
+                {otpError}
+              </div>
+            )}
+            {otpSuccess && (
+              <div
+                className="mb-md p-xs text-center font-body-sm text-body-sm font-bold rounded-lg"
+                style={{
+                  background: 'rgba(22, 163, 74, 0.08)',
+                  color: '#16a34a',
+                  border: '1px solid rgba(22, 163, 74, 0.15)',
+                  marginBottom: '16px',
+                  padding: '8px'
+                }}
+              >
+                {otpSuccess}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={handleVerifyOTP}
+                disabled={otpValues.join('').length !== 6 || otpLoading}
+                className="w-full h-11 rounded-xl font-bold flex items-center justify-center active:scale-[0.98] transition-all disabled:opacity-50"
+                style={{ backgroundColor: '#0b1c30', color: '#ffffff', fontSize: '0.9rem' }}
+              >
+                {otpLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  "Confirm & Verify"
+                )}
+              </button>
+
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                <span style={{ fontSize: '0.8rem', color: '#7c6e60' }}>Didn't receive code?</span>
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={cooldown > 0 || otpLoading}
+                  style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    color: cooldown > 0 ? '#94a3b8' : '#855300',
+                    border: 'none',
+                    background: 'none',
+                    cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
+                    padding: 0
+                  }}
+                >
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="fixed bottom-0 left-0 w-full pointer-events-none opacity-40 h-32 overflow-hidden auth-decorative-elements md:hidden">
         <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-primary-container/20 rounded-full blur-3xl"></div>

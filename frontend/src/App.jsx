@@ -17,6 +17,7 @@ import HelpFaq from './pages/public/HelpFaq';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
 import TermsOfService from './pages/public/TermsOfService';
 import SupportChat from './pages/public/SupportChat';
+import GoogleCallback from './pages/auth/GoogleCallback';
 import { StudentProvider } from './context/StudentContext';
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -26,6 +27,7 @@ function App() {
     <Router>
       <StudentProvider>
         <Routes>
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
           {/* Auth routes don't necessarily need the full layout, but let's wrap them in layout or provide a clean view */}
           <Route element={<Layout><Outlet /></Layout>}>
             <Route path="/" element={<Landing />} />

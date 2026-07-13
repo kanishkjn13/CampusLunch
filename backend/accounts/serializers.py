@@ -8,6 +8,7 @@ from django.utils.http import urlsafe_base64_decode
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 
 User = get_user_model()
+from .models import EmailOTP
 
 
 class StudentRegisterSerializer(serializers.ModelSerializer):
@@ -78,6 +79,15 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
                 }
             )
 
+        # Check if email is verified
+        email = attrs.get("email")
+        if not EmailOTP.objects.filter(email=email, verified=True).exists():
+            raise serializers.ValidationError(
+                {
+                    "email": "Email address must be verified via OTP first."
+                }
+            )
+
         return attrs
 
     def create(self, validated_data):
@@ -85,13 +95,18 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop("confirm_password")
         validated_data.pop("accept_terms")
 
+        email = validated_data["email"]
+
         user = User.objects.create_user(
             full_name=validated_data["full_name"],
-            email=validated_data["email"],
+            email=email,
             phone=validated_data["phone"],
             password=validated_data["password"],
             role="student"
         )
+
+        # Clean up verified OTP record(s)
+        EmailOTP.objects.filter(email=email).delete()
 
         return user
     
@@ -164,6 +179,15 @@ class VendorRegisterSerializer(serializers.ModelSerializer):
                 }
             )
 
+        # Check if email is verified
+        email = attrs.get("email")
+        if not EmailOTP.objects.filter(email=email, verified=True).exists():
+            raise serializers.ValidationError(
+                {
+                    "email": "Email address must be verified via OTP first."
+                }
+            )
+
         return attrs
 
     def create(self, validated_data):
@@ -171,13 +195,18 @@ class VendorRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop("confirm_password")
         validated_data.pop("accept_terms")
 
+        email = validated_data["email"]
+
         user = User.objects.create_user(
             full_name=validated_data["full_name"],
-            email=validated_data["email"],
+            email=email,
             phone=validated_data["phone"],
             password=validated_data["password"],
             role="vendor"
         )
+
+        # Clean up verified OTP record(s)
+        EmailOTP.objects.filter(email=email).delete()
 
         return user
 

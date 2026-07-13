@@ -34,7 +34,7 @@ const Footer = ({ compact }) => {
 
   const [comingSoonModal, setComingSoonModal] = useState({ isOpen: false, platform: '' });
 
-  const isCompact = compact || location.pathname !== '/';
+  const isCompact = compact || false;
 
   const isDashboard = location.pathname.startsWith('/admin') || 
                       location.pathname === '/vendor-dashboard' || 
@@ -46,8 +46,6 @@ const Footer = ({ compact }) => {
     border: 'rgba(245, 158, 11, 0.15)',
     icon: <span>🚀</span>
   };
-
-  if (isAuthPage) return null;
 
   const handleComingSoon = (e, platform) => {
     e.preventDefault();

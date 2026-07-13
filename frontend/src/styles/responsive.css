@@ -208,11 +208,10 @@
   .step-timeline-line-wrapper.desktop-only .step-timeline-line-active {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, 
-      var(--accent-primary) 0%, 
-      #f59e0b 50%, 
-      #ffb03a 100%
-    );
+    background: linear-gradient(90deg,
+        var(--accent-primary) 0%,
+        #f59e0b 50%,
+        #ffb03a 100%);
     box-shadow: 0 0 12px rgba(245, 158, 11, 0.5), 0 0 4px rgba(133, 83, 0, 0.3);
     border-radius: 99px;
     transition: clip-path 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -231,13 +230,14 @@
     padding: 40px 30px 36px;
     gap: 0;
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.15),
-                border-color 0.4s ease,
-                background-color 0.4s ease,
-                box-shadow 0.4s ease;
+      border-color 0.4s ease,
+      background-color 0.4s ease,
+      box-shadow 0.4s ease;
   }
 
   .step-card::before {
-    display: none; /* Hide default mobile top-line indicator */
+    display: none;
+    /* Hide default mobile top-line indicator */
   }
 
   /* Watermark number styling on desktop */
@@ -287,10 +287,10 @@
     box-shadow: 0 4px 10px rgba(133, 83, 0, 0.03);
     margin-bottom: 24px;
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2),
-                background 0.4s ease,
-                color 0.4s ease,
-                border-color 0.4s ease,
-                box-shadow 0.4s ease;
+      background 0.4s ease,
+      color 0.4s ease,
+      border-color 0.4s ease,
+      box-shadow 0.4s ease;
   }
 
   .step-card h3 {
@@ -517,7 +517,11 @@
     text-shadow: none !important;
   }
 
-  .hero-sec-btn:active {
+  .hero-sec-btn:active,
+  .hero-sec-btn:focus {
+    background-color: #ffffff !important;
+    color: #855301 !important;
+    border-color: rgba(133, 83, 1, 0.25) !important;
     transform: scale(0.95) !important;
   }
 
@@ -668,9 +672,20 @@
   }
 
   .hero-sec-btn:hover {
-    background-color: rgba(255, 255, 255, 0.9) !important;
+    background-color: #8b5a00 !important;
+    color: #ffffff !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 6px 16px rgba(133, 83, 1, 0.3) !important;
+    border-color: #8b5a00 !important;
+  }
+
+  .hero-sec-btn:active,
+  .hero-sec-btn:focus {
+    background-color: #ffffff !important;
+    color: #855301 !important;
+    border-color: rgba(133, 83, 1, 0.25) !important;
+    transform: scale(0.95) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   }
 }
 
@@ -869,8 +884,8 @@
   .feature-card-1:hover {
     transform: translateY(-8px) !important;
     border-color: rgba(245, 158, 11, 0.35) !important;
-    box-shadow: 
-      0 20px 40px rgba(245, 158, 11, 0.08), 
+    box-shadow:
+      0 20px 40px rgba(245, 158, 11, 0.08),
       0 1px 3px rgba(0, 0, 0, 0.02) !important;
   }
 
@@ -901,8 +916,8 @@
   .feature-card-2:hover {
     transform: translateY(-8px) !important;
     border-color: rgba(16, 185, 129, 0.35) !important;
-    box-shadow: 
-      0 20px 40px rgba(16, 185, 129, 0.08), 
+    box-shadow:
+      0 20px 40px rgba(16, 185, 129, 0.08),
       0 1px 3px rgba(0, 0, 0, 0.02) !important;
   }
 
@@ -933,8 +948,8 @@
   .feature-card-3:hover {
     transform: translateY(-8px) !important;
     border-color: rgba(59, 130, 246, 0.35) !important;
-    box-shadow: 
-      0 20px 40px rgba(59, 130, 246, 0.08), 
+    box-shadow:
+      0 20px 40px rgba(59, 130, 246, 0.08),
       0 1px 3px rgba(0, 0, 0, 0.02) !important;
   }
 
@@ -1049,7 +1064,7 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
     margin-bottom: 0 !important;
     z-index: 5 !important;
-    
+
     /* Inactive style on mobile viewports */
     border: 2px solid rgba(133, 83, 0, 0.15) !important;
     color: rgba(133, 83, 0, 0.3) !important;
@@ -1636,37 +1651,46 @@
     .auth-left-panel {
       padding: 32px 32px !important;
     }
+
     .auth-testimonial-card {
       margin: 16px 0 !important;
       padding: 16px !important;
     }
+
     .auth-testimonial-text {
       font-size: 13px !important;
       line-height: 1.5 !important;
       margin-bottom: 10px !important;
     }
+
     .auth-testimonial-avatar {
       width: 32px !important;
       height: 32px !important;
       font-size: 12px !important;
     }
+
     .auth-testimonial-stars {
       margin-bottom: 8px !important;
     }
+
     .auth-left-tagline h2 {
       font-size: 1.6rem !important;
       line-height: 1.25 !important;
       margin-bottom: 8px !important;
     }
+
     .auth-left-tagline p.text-white\/80 {
       font-size: 0.875rem !important;
     }
+
     .auth-stat-item {
       padding: 8px 4px !important;
     }
+
     .auth-stat-value {
       font-size: 16px !important;
     }
+
     .auth-stat-label {
       font-size: 9px !important;
     }
@@ -1806,6 +1830,7 @@
     background-color: #f1f3f9;
     padding: 30px;
   }
+
   .vendor-phone-frame {
     width: 412px;
     height: 860px;
@@ -1828,6 +1853,7 @@
     min-height: 100dvh;
     padding: 0;
   }
+
   .vendor-phone-frame {
     width: 100%;
     height: 100vh;
@@ -1838,6 +1864,7 @@
     flex-direction: column;
     position: relative;
   }
+
   .vendor-bottom-nav {
     position: fixed !important;
     bottom: 0 !important;
@@ -1848,6 +1875,7 @@
 }
 
 @media (min-width: 1024px) {
+
   /* Hide the mobile phone wrapper frame bounds */
   .vendor-device-wrapper {
     background-color: #f8fafc;
@@ -2109,6 +2137,7 @@
     min-height: 100vh;
     min-height: 100dvh;
   }
+
   .student-phone-frame {
     width: 100% !important;
     height: 100vh !important;
@@ -2333,7 +2362,8 @@
 @media (max-width: 1023px) {
   .premium-sticky-bottom-bar {
     position: fixed !important;
-    bottom: 72px !important; /* sit exactly above the 72px mobile bottom nav */
+    bottom: 72px !important;
+    /* sit exactly above the 72px mobile bottom nav */
   }
 }
 
@@ -2344,14 +2374,16 @@
   .availability-container {
     padding: 0 !important;
   }
+
   .availability-items-list {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
+
   .availability-item-card {
     padding: 12px 14px !important;
   }
-  
+
   /* Form Responsive Styles */
   .add-tiffin-form {
     padding: 16px 8px !important;
@@ -2361,10 +2393,12 @@
     box-shadow: none !important;
     background-color: transparent !important;
   }
+
   .add-tiffin-grid-2col {
     grid-template-columns: 1fr !important;
     gap: 14px !important;
   }
+
   .add-tiffin-form input,
   .add-tiffin-form select,
   .add-tiffin-form textarea {

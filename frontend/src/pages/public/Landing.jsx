@@ -75,15 +75,11 @@ const Landing = () => {
             Affordable, nutritious, and straight from the best home-chefs to your campus.
           </p>
           <div className="hero-actions">
-            <Link to="/register" className="hero-cta-link">
-              <Button className="hero-cta-btn">
-                Register as Student
-              </Button>
+            <Link to="/register" className="btn btn-primary hero-cta-btn hero-cta-link">
+              Register as Student
             </Link>
-            <Link to="/register?role=vendor" className="hero-sec-link">
-              <Button variant="secondary" className="hero-sec-btn">
-                Join as Vendor
-              </Button>
+            <Link to="/register?role=vendor" className="btn btn-secondary hero-sec-btn hero-sec-link">
+              Join as Vendor
             </Link>
           </div>
         </div>

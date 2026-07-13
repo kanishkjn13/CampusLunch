@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from .views_oauth import GoogleAuthView
 from .views import (
     StudentRegisterView,
     VendorRegisterView,
@@ -10,10 +11,18 @@ from .views import (
     ForgotPasswordView,
     ResetPasswordView,
     CurrentUserView,
-    ProfileView
+    ProfileView,
+    SendOTPView,
+    VerifyOTPView,
+    ResendOTPView
 )
 
 urlpatterns = [
+    path(
+        "google/",
+        GoogleAuthView.as_view(),
+        name="google-login",
+    ),
     path(
         "register/student/",
         StudentRegisterView.as_view(),
@@ -59,6 +68,8 @@ urlpatterns = [
     name="current-user",
     ),
     path("profile/", ProfileView.as_view()),
-
+    path("otp/send/", SendOTPView.as_view(), name="otp-send"),
+    path("otp/verify/", VerifyOTPView.as_view(), name="otp-verify"),
+    path("otp/resend/", ResendOTPView.as_view(), name="otp-resend"),
     
 ]

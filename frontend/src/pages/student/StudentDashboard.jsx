@@ -2,7 +2,6 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
-import Footer from '@/components/layout/Footer';
 import { changePassword, logoutUser, updateUserProfileApi, forgotPassword } from "@/Services/authService";
 import { getVendors, getVendorDetails } from "@/Services/studentService";
 import { createSubscription, getStudentSubscriptions, pauseSubscription, resumeSubscription, cancelSubscription } from "@/Services/subscriptionService";
@@ -298,6 +297,7 @@ const StudentDashboard = () => {
     setSubscriptionsError(false);
     try {
       const data = await getStudentSubscriptions();
+<<<<<<< HEAD
       if (Array.isArray(data)) {
         setSubscriptions(data);
       } else if (data && Array.isArray(data.results)) {
@@ -305,6 +305,9 @@ const StudentDashboard = () => {
       } else {
         setSubscriptions([]);
       }
+=======
+      setSubscriptions(data.results || data || []);
+>>>>>>> 427feed (13_07_26_frbn)
     } catch (err) {
       console.error("Failed to fetch subscriptions:", err);
       setSubscriptionsError(true);
@@ -403,6 +406,7 @@ const StudentDashboard = () => {
       }
       
       const data = await getVendors(searchQuery, selectedMealType, foodTypeParam);
+<<<<<<< HEAD
       if (Array.isArray(data)) {
         setVendors(data);
       } else if (data && Array.isArray(data.results)) {
@@ -410,6 +414,9 @@ const StudentDashboard = () => {
       } else {
         setVendors([]);
       }
+=======
+      setVendors(data.results || data || []);
+>>>>>>> 427feed (13_07_26_frbn)
     } catch (err) {
       console.error("Failed to fetch vendors:", err);
       setVendorsError(true);
@@ -2723,7 +2730,6 @@ const StudentDashboard = () => {
                   )}
                 </div>
               )}
-              <Footer />
             </div>
 
             {/* Relocated Premium Sticky Bottom Bar (Sticks fixed at bottom of viewport above the nav) */}

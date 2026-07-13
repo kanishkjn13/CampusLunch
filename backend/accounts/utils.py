@@ -42,3 +42,25 @@ def send_password_reset_email(user):
     )
 
     email.send()
+
+
+def send_otp_email(email_address, otp):
+    subject = "Verify Your CampusLunch Email"
+    context = {
+        "otp": otp,
+    }
+    html_content = render_to_string(
+        "emails/otp_verification.html",
+        context,
+    )
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=f"Your CampusLunch verification OTP is {otp}.",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email_address],
+    )
+    email.attach_alternative(
+        html_content,
+        "text/html",
+    )
+    email.send()

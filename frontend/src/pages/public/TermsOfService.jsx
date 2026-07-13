@@ -66,10 +66,7 @@ const TermsOfService = () => {
             Back to Home
           </button>
           
-          <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '2px', color: '#f59e0b', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
-            Legal Guidelines
-          </span>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>Terms of Service</h1>
+          <h1 className="policy-page-title" style={{ fontSize: 'clamp(1.8rem, 6vw, 2.5rem)', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>Terms of Service</h1>
           <p style={{ margin: '8px 0 0 0', fontSize: '0.95rem', color: '#94a3b8' }}>
             Last Updated: June 2026 • Review compliance guidelines, subscription limits, and payment processing rules.
           </p>

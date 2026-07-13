@@ -1,10 +1,16 @@
+import random
+from datetime import timedelta
+from django.utils import timezone
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.generics import CreateAPIView,GenericAPIView
 from rest_framework.permissions import AllowAny  ,IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .utils import send_password_reset_email
+from .models import EmailOTP
+from .utils import send_otp_email, send_password_reset_email
 
 from .serializers import (
     StudentRegisterSerializer,
@@ -226,6 +232,94 @@ class ProfileView(APIView):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+User = get_user_model()
+
+
+class SendOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        if not email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if email is already registered/verified in User table
+        if User.objects.filter(email=email).exists():
+            return Response({"detail": "Email already verified / registered."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+
+        # Cooldown check: 30-second cooldown
+        last_otp = EmailOTP.objects.filter(email=email).order_by("-created_at").first()
+        if last_otp and (now - last_otp.created_at) < timedelta(seconds=30):
+            cooldown_left = 30 - int((now - last_otp.created_at).total_seconds())
+            return Response(
+                {"detail": f"Please wait {cooldown_left} seconds before requesting a new OTP."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        # Rate limit check: Maximum 3 requests in 10 minutes
+        ten_mins_ago = now - timedelta(minutes=10)
+        recent_requests_count = EmailOTP.objects.filter(email=email, created_at__gte=ten_mins_ago).count()
+        if recent_requests_count >= 3:
+            return Response(
+                {"detail": "Too many requests. You can only request up to 3 OTPs in 10 minutes."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        # Generate OTP
+        otp = f"{random.randint(100000, 999999)}"
+
+        # Send Email
+        try:
+            send_otp_email(email, otp)
+        except Exception as e:
+            print(f"\n[DEVELOPMENT ONLY] Failed to send email via SMTP: {str(e)}")
+            print(f"Generated OTP for {email} is: {otp}\n")
+            if not settings.DEBUG:
+                return Response(
+                    {"detail": "Email sending failure. Please try again later."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        # Save to database
+        EmailOTP.objects.create(email=email, otp=otp)
+
+        return Response({"message": "OTP sent successfully."}, status=status.HTTP_200_OK)
+
+
+class ResendOTPView(SendOTPView):
+    pass
+
+
+class VerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        otp = request.data.get("otp")
+
+        if not email or not otp:
+            return Response({"detail": "Email and OTP code are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find latest unverified OTP for this email
+        otp_record = EmailOTP.objects.filter(email=email, verified=False).order_by("-created_at").first()
+
+        if not otp_record or otp_record.otp != otp:
+            return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check expiration (5 minutes)
+        if (timezone.now() - otp_record.created_at) > timedelta(minutes=5):
+            return Response({"detail": "Expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Mark verified and invalidate/clear OTP code
+        otp_record.verified = True
+        otp_record.otp = ""
+        otp_record.save()
+
+        return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
 
 
 

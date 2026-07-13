@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import logo from '@/assets/logos/logo.png';
 import { loginUser } from "@/Services/authService";
 
@@ -12,6 +13,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
   const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const role = queryParams.get('role') || 'student';
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -63,8 +66,14 @@ const Login = () => {
     };
   }, [navigate]);
 
-
-
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      navigate('/auth/google/callback', {
+        state: { access_token: tokenResponse.access_token }
+      });
+    },
+    onError: () => setError("Google Sign In failed. Please try again.")
+  });
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -183,8 +192,7 @@ const Login = () => {
             <h1
               className="font-headline-lg-mobile text-headline-lg-mobile tracking-tight font-bold"
               style={{
-                color: '#ffffff',
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9)'
+                color: '#0b1c30'
               }}
             >
               Campus Lunch
@@ -192,8 +200,7 @@ const Login = () => {
             <p
               className="font-body-md text-body-md max-w-[280px] mt-xs font-semibold"
               style={{
-                color: '#ffffff',
-                textShadow: '0 2px 8px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9)'
+                color: '#475569'
               }}
             >
               Fresh, home-cooked meals delivered to your campus doorstep.
@@ -247,7 +254,7 @@ const Login = () => {
                   <input
                     className="w-full h-12 pl-[42px] pr-[16px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
                     id="email"
-                    placeholder="student@gmail.com"
+                    placeholder={role === 'vendor' ? 'vendor@gmail.com' : 'student@gmail.com'}
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -327,7 +334,7 @@ const Login = () => {
               <button
                 className="flex items-center justify-center h-12 border border-outline-variant rounded-xl bg-surface-bright hover:bg-surface-container-low transition-colors active:scale-95"
                 type="button"
-                onClick={() => alert('Google Social Sign In mock clicked!')}
+                onClick={() => handleGoogleLogin()}
               >
                 <svg className="w-5 h-5 mr-sm" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

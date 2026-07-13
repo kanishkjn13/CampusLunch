@@ -9,10 +9,20 @@ const Layout = ({ children }) => {
   
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password';
   const isDashboardPage = location.pathname.startsWith('/admin') || location.pathname === '/vendor-dashboard' || location.pathname === '/student';
+  const pathsWithFooter = ['/', '/privacy', '/terms', '/about', '/faq'];
+  const showFooter = pathsWithFooter.includes(location.pathname);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [location.pathname]);
+    if (isAuthPage) {
+      document.body.style.paddingBottom = '0px';
+    } else {
+      document.body.style.paddingBottom = '70px';
+    }
+    return () => {
+      document.body.style.paddingBottom = '';
+    };
+  }, [location.pathname, isAuthPage]);
 
   return (
     <div className="page-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -22,7 +32,7 @@ const Layout = ({ children }) => {
         {children}
       </main>
       
-      {!isAuthPage && !isDashboardPage && <Footer />}
+      {showFooter && <Footer />}
       
       {!isDashboardPage && <BottomNav />}
     </div>

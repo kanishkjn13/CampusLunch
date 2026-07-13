@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StudentContext } from '@/context/StudentContext';
-import Footer from '@/components/layout/Footer';
 import logo from '@/assets/logos/logo.png';
 import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, getUserProfile } from "@/Services/authService";
 import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem } from "@/Services/menuService";
@@ -2574,8 +2573,6 @@ const VendorDashboard = () => {
                   </div>
                 </div>
               )}
-
-              <Footer />
             </div>
 
             {/* Bottom Fixed Navigation Bar - Mobile View Only */}

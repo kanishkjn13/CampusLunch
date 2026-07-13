@@ -1696,7 +1696,6 @@ const AdminDashboard = () => {
             </div>
           )}
         </main>
-        <Footer />
 
         {/* Verification Queue Modal */}
         {showAllApplicationsModal && (
@@ -1894,7 +1893,6 @@ const AdminDashboard = () => {
             to { opacity: 1; }
           }
         `}</style>
-        <Footer />
       </div>
     </div>
   );

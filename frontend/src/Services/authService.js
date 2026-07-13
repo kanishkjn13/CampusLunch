@@ -83,3 +83,21 @@ export const updateUserProfileApi = async (data) => {
   const response = await api.put("/auth/profile/", data, config);
   return response.data;
 };
+
+// Send OTP
+export const sendOTP = async (email) => {
+  const response = await api.post("/auth/otp/send/", { email });
+  return response.data;
+};
+
+// Verify OTP
+export const verifyOTP = async (email, otp) => {
+  const response = await api.post("/auth/otp/verify/", { email, otp });
+  return response.data;
+};
+
+// Resend OTP
+export const resendOTP = async (email) => {
+  const response = await api.post("/auth/otp/resend/", { email });
+  return response.data;
+};
