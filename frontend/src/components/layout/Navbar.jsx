@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut } from 'lucide-react';
 import Button from '../common/Button';
 import logo from '@/assets/logos/logo.png';
+import { logoutUser } from "@/Services/authService";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,10 +27,19 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('role');
-    navigate('/');
-    setIsOpen(false);
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("Navbar Logout Error:", err);
+    } finally {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      setIsOpen(false);
+      navigate("/login", { replace: true });
+    }
   };
 
   if (isAuthPage) return null;

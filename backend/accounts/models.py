@@ -15,9 +15,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("admin", "Admin"),
     )
 
-    id = models.UUIDField(
+    id = models.AutoField(
         primary_key=True,
-        default=uuid.uuid4,
         editable=False
     )
     full_name = models.CharField(
@@ -58,6 +57,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     updated_at = models.DateTimeField(
         auto_now=True
+    )
+
+    profile_image = models.ImageField(
+        upload_to="profile_images/",
+        blank=True,
+        null=True
     )
 
     objects = UserManager()

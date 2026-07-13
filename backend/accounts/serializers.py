@@ -34,7 +34,8 @@ class StudentRegisterSerializer(serializers.ModelSerializer):
 
         extra_kwargs = {
             "password": {
-                "write_only": True
+                "write_only": True,
+                "validators": [validate_password]
             }
         }
 
@@ -119,7 +120,8 @@ class VendorRegisterSerializer(serializers.ModelSerializer):
 
         extra_kwargs = {
             "password": {
-                "write_only": True
+                "write_only": True,
+                "validators": [validate_password]
             }
         }
 

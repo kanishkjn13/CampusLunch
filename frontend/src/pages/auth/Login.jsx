@@ -93,6 +93,7 @@ const Login = () => {
       localStorage.setItem("access", data.access);
       localStorage.setItem("refresh", data.refresh);
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("role", data.user.role);
 
       // Redirect by role
       switch (data.user.role) {

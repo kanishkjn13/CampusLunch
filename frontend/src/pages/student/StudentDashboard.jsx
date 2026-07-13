@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
 import Footer from '@/components/layout/Footer';
-import { changePassword, logoutUser } from "@/Services/authService";
+import { changePassword, logoutUser, updateUserProfileApi, forgotPassword } from "@/Services/authService";
+import { getVendors, getVendorDetails } from "@/Services/studentService";
+import { createSubscription, getStudentSubscriptions, pauseSubscription, resumeSubscription, cancelSubscription } from "@/Services/subscriptionService";
 import { jsPDF } from 'jspdf';
 import {
   Search,
@@ -224,7 +226,8 @@ const StudentDashboard = () => {
     setOrders,
     ratings,
     setRatings,
-    kitchenStatuses
+    kitchenStatuses,
+    setSellers
   } = useContext(StudentContext);
 
   // Layout Tab Navigation
@@ -269,6 +272,192 @@ const StudentDashboard = () => {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
+  const [selectedMealType, setSelectedMealType] = useState('All');
+  const [vendors, setVendors] = useState([]);
+  const [vendorsLoading, setVendorsLoading] = useState(false);
+  const [vendorsError, setVendorsError] = useState(false);
+  const [selectedVendorDetails, setSelectedVendorDetails] = useState(null);
+  const [vendorDetailsLoading, setVendorDetailsLoading] = useState(false);
+
+  // Subscription management states & handlers
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subscriptionsLoading, setSubscriptionsLoading] = useState(false);
+  const [subscriptionsError, setSubscriptionsError] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    plan_type: 'Weekly',
+    breakfast: false,
+    lunch: false,
+    dinner: false,
+    start_date: new Date().toISOString().split('T')[0]
+  });
+  const [confirmCancelModal, setConfirmCancelModal] = useState({ isOpen: false, subscriptionId: null });
+
+  const fetchSubscriptionsList = async () => {
+    setSubscriptionsLoading(true);
+    setSubscriptionsError(false);
+    try {
+      const data = await getStudentSubscriptions();
+      setSubscriptions(data);
+    } catch (err) {
+      console.error("Failed to fetch subscriptions:", err);
+      setSubscriptionsError(true);
+    } finally {
+      setSubscriptionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'subscriptions') {
+      fetchSubscriptionsList();
+    }
+  }, [activeTab]);
+
+  const handlePauseSubscription = async (id) => {
+    try {
+      await pauseSubscription(id);
+      fetchSubscriptionsList();
+    } catch (err) {
+      console.error("Failed to pause subscription:", err);
+      alert("Failed to pause subscription: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleResumeSubscription = async (id) => {
+    try {
+      await resumeSubscription(id);
+      fetchSubscriptionsList();
+    } catch (err) {
+      console.error("Failed to resume subscription:", err);
+      alert("Failed to resume subscription: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleCancelSubscription = async (id) => {
+    try {
+      await cancelSubscription(id);
+      setConfirmCancelModal({ isOpen: false, subscriptionId: null });
+      fetchSubscriptionsList();
+    } catch (err) {
+      console.error("Failed to cancel subscription:", err);
+      alert("Failed to cancel subscription: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleCreateSubscriptionSubmit = async (e) => {
+    e.preventDefault();
+    if (!subscriptionForm.breakfast && !subscriptionForm.lunch && !subscriptionForm.dinner) {
+      alert("Please select at least one meal type (Breakfast, Lunch, or Dinner).");
+      return;
+    }
+    try {
+      await createSubscription({
+        vendor_id: selectedVendorDetails.id,
+        plan_type: subscriptionForm.plan_type,
+        breakfast: subscriptionForm.breakfast,
+        lunch: subscriptionForm.lunch,
+        dinner: subscriptionForm.dinner,
+        start_date: subscriptionForm.start_date
+      });
+      alert("Subscribed successfully!");
+      setShowSubscriptionModal(false);
+      // Reset form
+      setSubscriptionForm({
+        plan_type: 'Weekly',
+        breakfast: false,
+        lunch: false,
+        dinner: false,
+        start_date: new Date().toISOString().split('T')[0]
+      });
+      setActiveTab('subscriptions');
+    } catch (err) {
+      console.error("Failed to create subscription:", err);
+      const errors = err.response?.data;
+      let errMsg = "Failed to subscribe.";
+      if (errors) {
+        if (Array.isArray(errors)) {
+          errMsg = errors.join(" ");
+        } else if (typeof errors === "object") {
+          errMsg = Object.values(errors).flat().join(" ");
+        }
+      }
+      alert(errMsg);
+    }
+  };
+
+  const fetchVendorsList = async () => {
+    setVendorsLoading(true);
+    setVendorsError(false);
+    try {
+      let foodTypeParam = "";
+      if (filterType === "Veg" || filterType === "Jain") {
+        foodTypeParam = filterType;
+      } else if (filterType === "Non-Veg") {
+        foodTypeParam = "Non-Veg";
+      }
+      
+      const data = await getVendors(searchQuery, selectedMealType, foodTypeParam);
+      setVendors(data);
+    } catch (err) {
+      console.error("Failed to fetch vendors:", err);
+      setVendorsError(true);
+    } finally {
+      setVendorsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVendorsList();
+  }, [searchQuery, filterType, selectedMealType]);
+
+  const handleViewVendorDetails = async (vendorId) => {
+    setVendorDetailsLoading(true);
+    try {
+      const details = await getVendorDetails(vendorId);
+      setSelectedVendorDetails(details);
+      setSelectedSellerId(vendorId);
+      setActiveTab('vendor-details');
+
+      // Update global context sellers to make sure it plays nicely with addToCart lookup
+      const formattedSeller = {
+        id: details.id,
+        name: details.full_name,
+        photo: details.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80",
+        rating: "4.8",
+        reviews: "24",
+        servingTime: "10:00 AM - 08:00 PM",
+        vendorLocation: "Campus Hub",
+        distance: "0.2 km",
+        meals: (details.menu_items || []).map(m => ({
+          id: m.id,
+          name: m.name,
+          description: m.description,
+          price: Number(m.price),
+          image: m.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80",
+          type: m.food_type,
+          availableQty: m.is_available ? 999 : 0
+        }))
+      };
+
+      if (setSellers) {
+        setSellers(prev => {
+          const index = prev.findIndex(s => s.id === details.id);
+          if (index >= 0) {
+            const next = [...prev];
+            next[index] = formattedSeller;
+            return next;
+          } else {
+            return [...prev, formattedSeller];
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch vendor details:", err);
+      alert("Failed to load vendor menu details.");
+    } finally {
+      setVendorDetailsLoading(false);
+    }
+  };
 
   // Checkout Form states
   const [checkoutForm, setCheckoutForm] = useState({
@@ -308,6 +497,9 @@ const StudentDashboard = () => {
     avatar: localStorage.getItem('student_avatar') || user.avatar
   });
   const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [resetRequestLoading, setResetRequestLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [cartConflictModal, setCartConflictModal] = useState({
     isOpen: false,
@@ -579,15 +771,40 @@ const StudentDashboard = () => {
   };
 
   // Save profile updates
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    localStorage.setItem('name', profileForm.name);
-    localStorage.setItem('phone', profileForm.phone);
-    localStorage.setItem('email', profileForm.email);
-    updateUserProfile(profileForm);
-    setProfileSuccess(true);
-    triggerToast('Profile information updated successfully!');
-    setTimeout(() => setProfileSuccess(false), 3000);
+    setProfileLoading(true);
+    try {
+      const updatedData = await updateUserProfileApi({
+        full_name: profileForm.name,
+        phone: profileForm.phone,
+      });
+
+      // Sync state and localStorage
+      localStorage.setItem('name', updatedData.full_name);
+      localStorage.setItem('phone', updatedData.phone);
+      
+      const storedUserStr = localStorage.getItem("user");
+      if (storedUserStr) {
+        const u = JSON.parse(storedUserStr);
+        u.full_name = updatedData.full_name;
+        u.phone = updatedData.phone;
+        localStorage.setItem("user", JSON.stringify(u));
+      }
+
+      updateUserProfile({
+        name: updatedData.full_name,
+        phone: updatedData.phone,
+      });
+
+      setProfileSuccess(true);
+      triggerToast('Profile information updated successfully!');
+      setTimeout(() => setProfileSuccess(false), 3000);
+    } catch (err) {
+      triggerToast(err.response?.data?.full_name?.[0] || err.response?.data?.phone?.[0] || 'Unable to update profile.');
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -643,6 +860,14 @@ const StudentDashboard = () => {
               </button>
 
               <button
+                className={`sidebar-nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`}
+                onClick={() => setActiveTab('subscriptions')}
+              >
+                <Calendar size={20} />
+                <span>Subscriptions</span>
+              </button>
+
+              <button
                 className={`sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveTab('profile')}
               >
@@ -677,6 +902,7 @@ const StudentDashboard = () => {
                   {activeTab === 'order-success' && 'Order Confirmed'}
                   {activeTab === 'track-order' && 'Live Status Tracker'}
                   {activeTab === 'orders' && 'My Orders'}
+                  {activeTab === 'subscriptions' && 'My Subscriptions'}
                   {activeTab === 'profile' && 'Profile Details'}
                 </h2>
               </div>
@@ -753,6 +979,38 @@ const StudentDashboard = () => {
                         onClick={() => setFilterType('Jain')}
                       >
                         Jain
+                      </button>
+                    </div>
+
+                    {/* Meal Type Toggles */}
+                    <div className="category-scroll-container" style={{ marginTop: '8px', display: 'flex', gap: '8px', overflowX: 'auto' }}>
+                      <button
+                        className={`category-pill ${selectedMealType === 'All' ? 'active-veg' : 'inactive-blue'}`}
+                        onClick={() => setSelectedMealType('All')}
+                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
+                      >
+                        All Meals
+                      </button>
+                      <button
+                        className={`category-pill ${selectedMealType === 'Breakfast' ? 'active-veg' : 'inactive-blue'}`}
+                        onClick={() => setSelectedMealType('Breakfast')}
+                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
+                      >
+                        🌅 Breakfast
+                      </button>
+                      <button
+                        className={`category-pill ${selectedMealType === 'Lunch' ? 'active-veg' : 'inactive-blue'}`}
+                        onClick={() => setSelectedMealType('Lunch')}
+                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
+                      >
+                        ☀️ Lunch
+                      </button>
+                      <button
+                        className={`category-pill ${selectedMealType === 'Dinner' ? 'active-veg' : 'inactive-blue'}`}
+                        onClick={() => setSelectedMealType('Dinner')}
+                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
+                      >
+                        🌙 Dinner
                       </button>
                     </div>
 
@@ -871,97 +1129,71 @@ const StudentDashboard = () => {
                       </div>
                     )}
 
-                    {/* Grouped Catalog - Horizontal Scrolls under Seller Headings */}
+                    {/* Grouped Catalog - Database-driven Vendor Cards Grid */}
                     <div>
-                      <h3 className="dashboard-heading" style={{ fontSize: '0.95rem' }}>Explore Kitchens</h3>
+                      <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginBottom: '14px' }}>Explore Kitchens</h3>
 
-                      {filteredSellers.map(seller => (
-                        <div key={seller.id} className="seller-section" style={{ marginBottom: '24px' }}>
-                          {/* Seller Heading */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                            <div>
-                              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{seller.name}</h4>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                                  ★ {getSellerRatingInfo(seller.name).rating} ({getSellerRatingInfo(seller.name).reviews} reviews)
-                                </span>
-                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#cbd5e1' }}></span>
-                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{seller.servingTime}</span>
-                              </div>
-                            </div>
-                            <span
-                              style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700, cursor: 'pointer' }}
-                              onClick={() => {
-                                setSelectedSellerId(seller.id);
-                                setActiveTab('vendor-details');
+                      {vendorsLoading ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
+                          <RefreshCw className="animate-spin" size={24} style={{ color: '#855300' }} />
+                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading active kitchens...</span>
+                        </div>
+                      ) : vendorsError ? (
+                        <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
+                          <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>Failed to load kitchens.</p>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#7f1d1d' }}>Please check your network connection and try again.</p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {vendors.map(vendor => (
+                            <div
+                              key={vendor.id}
+                              className="order-again-card"
+                              onClick={() => handleViewVendorDetails(vendor.id)}
+                              style={{
+                                cursor: 'pointer',
+                                padding: '14px',
+                                display: 'flex',
+                                gap: '14px',
+                                alignItems: 'center',
+                                backgroundColor: '#ffffff',
+                                borderRadius: '16px',
+                                border: '1px solid rgba(0, 0, 0, 0.04)',
+                                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
+                                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                               }}
                             >
-                              View Menu
-                            </span>
-                          </div>
-
-                          {/* Horizontal scroll list */}
-                          <div className="horizontal-meal-scroll" style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
-                            {seller.meals.map(meal => (
-                              <div
-                                key={meal.id}
-                                className="horizontal-meal-card"
-                                style={{
-                                  flexShrink: 0,
-                                  width: '145px',
-                                  backgroundColor: '#ffffff',
-                                  borderRadius: '16px',
-                                  overflow: 'hidden',
-                                  border: '1px solid rgba(0, 0, 0, 0.04)',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  position: 'relative'
-                                }}
-                              >
-                                <img
-                                  src={meal.image}
-                                  alt={meal.name}
-                                  onClick={() => setSelectedMeal({ ...meal, sellerId: seller.id })}
-                                  style={{ width: '100%', height: '95px', objectFit: 'cover', cursor: 'pointer' }}
-                                />
-                                <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', gap: '6px' }}>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <h5
-                                      onClick={() => setSelectedMeal({ ...meal, sellerId: seller.id })}
-                                      style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: '1.2', height: '28px', overflow: 'hidden', cursor: 'pointer' }}
-                                    >
-                                      {meal.name}
-                                    </h5>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                      {meal.availableQty === 0 ? (
-                                        <span style={{ fontSize: '0.64rem', fontWeight: 700, color: '#ef4444' }}>Out of stock</span>
-                                      ) : meal.availableQty < 5 ? (
-                                        <span style={{ fontSize: '0.64rem', fontWeight: 700, color: '#d97706' }}>Low stock ({meal.availableQty} left)</span>
-                                      ) : (
-                                        <span style={{ fontSize: '0.64rem', fontWeight: 700, color: '#059669' }}>In stock ({meal.availableQty} left)</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#855300' }}>₹{meal.price}</span>
-                                    <button
-                                      className="food-plus-btn"
-                                      style={{ position: 'static', width: '24px', height: '24px' }}
-                                      onClick={() => handleAddToCart(meal, seller.id)}
-                                    >
-                                      <Plus size={14} />
-                                    </button>
-                                  </div>
+                              <img
+                                src={vendor.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80"}
+                                alt={vendor.full_name}
+                                style={{ width: '70px', height: '70px', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }}
+                              />
+                              <div style={{ flex: 1, textAlign: 'left' }}>
+                                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 3px 0' }}>
+                                  {vendor.full_name}
+                                </h4>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 6px 0', lineHeight: '1.3', height: '32px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                  {vendor.description}
+                                </p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 800 }}>★ 4.8</span>
+                                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#cbd5e1' }}></span>
+                                  <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>Open</span>
+                                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#cbd5e1' }}></span>
+                                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Serving Fresh</span>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-
-                      {filteredSellers.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
-                          <p style={{ margin: 0 }}>No meals found matching search filters.</p>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#fcf8f2', color: '#855300' }}>
+                                <ChevronRight size={18} />
+                              </div>
+                            </div>
+                          ))}
+                          {vendors.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '30px 24px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', color: '#64748b' }}>
+                              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>No Active Kitchens Found</p>
+                              <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>Try adjusting your search criteria or meal category filters.</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -971,7 +1203,7 @@ const StudentDashboard = () => {
               )}
 
               {/* VENDOR DETAILS TAB VIEW */}
-              {activeTab === 'vendor-details' && activeSeller && (
+              {activeTab === 'vendor-details' && selectedVendorDetails && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {/* Back banner */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -986,71 +1218,110 @@ const StudentDashboard = () => {
 
                   <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', height: '140px' }}>
                     <img
-                      src={activeSeller.photo}
-                      alt={activeSeller.name}
+                      src={selectedVendorDetails.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=200&fit=crop&q=80"}
+                      alt={selectedVendorDetails.full_name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.7))', display: 'flex', alignItems: 'flex-end', padding: '16px' }}>
-                      <h2 style={{ color: '#ffffff', fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>{activeSeller.name}</h2>
+                      <h2 style={{ color: '#ffffff', fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>{selectedVendorDetails.full_name}</h2>
                     </div>
                   </div>
 
                   <div className="order-again-card" style={{ display: 'block', padding: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f59e0b' }}>★ {activeSeller.rating} Ratings</span>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Serving: {activeSeller.servingTime}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f59e0b' }}>★ 4.8 Ratings</span>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Serving: Fresh Daily</span>
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: '#475569', margin: '4px 0 0 0' }}>Location: {activeSeller.vendorLocation}</p>
-                    <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '4px 0 0 0' }}>Distance: {activeSeller.distance}</p>
+                    <p style={{ fontSize: '0.82rem', color: '#475569', margin: '4px 0 0 0' }}>Location: Campus Hub Kitchen</p>
+                    <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '4px 0 0 0' }}>Contact: {selectedVendorDetails.phone || "N/A"}</p>
+                    <div style={{ marginTop: '12px', borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>
+                      <button
+                        className="order-action-btn btn-solid"
+                        style={{ width: '100%', padding: '10px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer' }}
+                        onClick={() => {
+                          setSubscriptionForm({
+                            plan_type: 'Weekly',
+                            breakfast: false,
+                            lunch: false,
+                            dinner: false,
+                            start_date: new Date().toISOString().split('T')[0]
+                          });
+                          setShowSubscriptionModal(true);
+                        }}
+                      >
+                        Subscribe to Meal Plan
+                      </button>
+                    </div>
                   </div>
 
                   {/* Menu List */}
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>Today's Menu Items</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {activeSeller.meals.map(meal => (
-                      <div key={meal.id} className="order-again-card" style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                          <img
-                            src={meal.image}
-                            alt={meal.name}
-                            onClick={() => setSelectedMeal({ ...meal, sellerId: activeSeller.id })}
-                            style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-                              <h4
-                                onClick={() => setSelectedMeal({ ...meal, sellerId: activeSeller.id })}
-                                style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, cursor: 'pointer' }}
-                              >
-                                {meal.name}
-                              </h4>
-                              <span style={{
-                                fontSize: '0.64rem',
-                                fontWeight: 700,
-                                color: meal.availableQty === 0 ? '#ef4444' : meal.availableQty < 5 ? '#d97706' : '#059669',
-                                backgroundColor: meal.availableQty === 0 ? '#fef2f2' : meal.availableQty < 5 ? '#fffbeb' : '#ecfdf5',
-                                padding: '1px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                {meal.availableQty === 0 ? 'Out of stock' : meal.availableQty < 5 ? `Low stock (${meal.availableQty} left)` : `In stock (${meal.availableQty} left)`}
-                              </span>
-                            </div>
-                            <p style={{ margin: '4px 0 6px 0', fontSize: '0.72rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{meal.description}</p>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>₹{meal.price}</span>
-                              <button
-                                className="order-action-btn btn-solid"
-                                style={{ padding: '4px 10px', fontSize: '0.7rem', borderRadius: '6px' }}
-                                onClick={() => handleAddToCart(meal, activeSeller.id)}
-                              >
-                                Add to Cart
-                              </button>
+                  {vendorDetailsLoading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+                      <RefreshCw className="animate-spin" size={20} style={{ color: '#855300' }} />
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {selectedVendorDetails.menu_items && selectedVendorDetails.menu_items.map(meal => (
+                        <div key={meal.id} className="order-again-card" style={{ padding: '12px' }}>
+                          <div style={{ display: 'flex', gap: '12px' }}>
+                            <img
+                              src={meal.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&h=100&fit=crop&q=80"}
+                              alt={meal.name}
+                              onClick={() => setSelectedMeal({ ...meal, sellerId: selectedVendorDetails.id })}
+                              style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }}
+                            />
+                            <div style={{ flex: 1, textAlign: 'left' }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                                <h4
+                                  onClick={() => setSelectedMeal({ ...meal, sellerId: selectedVendorDetails.id })}
+                                  style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, cursor: 'pointer' }}
+                                >
+                                  {meal.name}
+                                </h4>
+                                <span style={{
+                                  fontSize: '0.62rem',
+                                  padding: '2px 6px',
+                                  borderRadius: '6px',
+                                  backgroundColor: meal.food_type === 'Veg' ? '#e2fbe8' : '#fdeeed',
+                                  color: meal.food_type === 'Veg' ? '#15803d' : '#b91c1c',
+                                  fontWeight: 800
+                                }}>
+                                  {meal.food_type}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.62rem',
+                                  padding: '2px 6px',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#f1f5f9',
+                                  color: '#475569',
+                                  fontWeight: 800
+                                }}>
+                                  {meal.meal_type}
+                                </span>
+                              </div>
+                              <p style={{ margin: '4px 0 6px 0', fontSize: '0.72rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{meal.description}</p>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>₹{meal.price}</span>
+                                <button
+                                  className="order-action-btn btn-solid"
+                                  style={{ padding: '4px 10px', fontSize: '0.7rem', borderRadius: '6px' }}
+                                  onClick={() => handleAddToCart({ ...meal, price: Number(meal.price) }, selectedVendorDetails.id)}
+                                >
+                                  Add to Cart
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                      {(!selectedVendorDetails.menu_items || selectedVendorDetails.menu_items.length === 0) && (
+                        <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
+                          No available menu items found today.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1775,6 +2046,167 @@ const StudentDashboard = () => {
                 </div>
               )}
 
+              {/* SUBSCRIPTIONS VIEW */}
+              {activeTab === 'subscriptions' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginBottom: '4px' }}>Active Meal Plans</h3>
+                  {subscriptionsLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
+                      <RefreshCw className="animate-spin" size={24} style={{ color: '#855300' }} />
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading subscriptions...</span>
+                    </div>
+                  ) : subscriptionsError ? (
+                    <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
+                      <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>Failed to load subscriptions.</p>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#7f1d1d' }}>Please check your network connection and try again.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Active / Paused Plans */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {subscriptions.filter(sub => sub.status === 'Active' || sub.status === 'Paused').map(sub => (
+                          <div
+                            key={sub.id}
+                            className="order-again-card"
+                            style={{
+                              padding: '16px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px',
+                              backgroundColor: '#ffffff',
+                              borderRadius: '16px',
+                              border: '1px solid rgba(0, 0, 0, 0.04)',
+                              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                              <img
+                                src={sub.vendor?.profile_image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=150&fit=crop&q=80"}
+                                alt={sub.vendor?.full_name}
+                                style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }}
+                              />
+                              <div style={{ flex: 1, textAlign: 'left' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                                    {sub.vendor?.full_name || sub.vendor?.email}
+                                  </h4>
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: sub.status === 'Active' ? '#e2fbe8' : '#fff3e0',
+                                    color: sub.status === 'Active' ? '#15803d' : '#e65100',
+                                    fontWeight: 800
+                                  }}>
+                                    {sub.status}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700 }}>
+                                    {sub.plan_type}
+                                  </span>
+                                  {sub.breakfast && <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>Breakfast</span>}
+                                  {sub.lunch && <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>Lunch</span>}
+                                  {sub.dinner && <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>Dinner</span>}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px', fontSize: '0.72rem', color: '#64748b' }}>
+                              <span>Start: {sub.start_date}</span>
+                              <span>End: {sub.end_date}</span>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                              {sub.status === 'Active' ? (
+                                <button
+                                  className="order-action-btn btn-outline"
+                                  style={{ flex: 1, padding: '8px', fontSize: '0.75rem', borderRadius: '8px', cursor: 'pointer' }}
+                                  onClick={() => handlePauseSubscription(sub.id)}
+                                >
+                                  Pause Plan
+                                </button>
+                              ) : (
+                                <button
+                                  className="order-action-btn btn-solid"
+                                  style={{ flex: 1, padding: '8px', fontSize: '0.75rem', borderRadius: '8px', cursor: 'pointer' }}
+                                  onClick={() => handleResumeSubscription(sub.id)}
+                                >
+                                  Resume Plan
+                                </button>
+                              )}
+                              <button
+                                className="order-action-btn"
+                                style={{ flex: 1, padding: '8px', fontSize: '0.75rem', borderRadius: '8px', backgroundColor: '#fdeeed', color: '#b91c1c', border: '1px solid #fca5a5', cursor: 'pointer' }}
+                                onClick={() => setConfirmCancelModal({ isOpen: true, subscriptionId: sub.id })}
+                              >
+                                Cancel Plan
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+
+                        {subscriptions.filter(sub => sub.status === 'Active' || sub.status === 'Paused').length === 0 && (
+                          <div style={{ textAlign: 'center', padding: '30px 24px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', color: '#64748b' }}>
+                            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>No Active Subscriptions</p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>Browse kitchens and subscribe to get delicious daily meals.</p>
+                            <button
+                              className="order-action-btn btn-solid"
+                              style={{ margin: '12px auto 0 auto', padding: '6px 14px', fontSize: '0.72rem', borderRadius: '6px', cursor: 'pointer' }}
+                              onClick={() => setActiveTab('home')}
+                            >
+                              Browse Kitchens
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Subscription History */}
+                      <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginTop: '16px', marginBottom: '4px' }}>Subscription History</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {subscriptions.filter(sub => sub.status === 'Cancelled' || sub.status === 'Completed').map(sub => (
+                          <div
+                            key={sub.id}
+                            style={{
+                              padding: '12px 14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              backgroundColor: '#fafbfc',
+                              borderRadius: '12px',
+                              border: '1px solid rgba(0, 0, 0, 0.02)'
+                            }}
+                          >
+                            <div style={{ textAlign: 'left' }}>
+                              <h5 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155', margin: 0 }}>
+                                {sub.vendor?.full_name || sub.vendor?.email}
+                              </h5>
+                              <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                {sub.plan_type} • Ended on {sub.end_date}
+                              </span>
+                            </div>
+                            <span style={{
+                              fontSize: '0.62rem',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: sub.status === 'Completed' ? '#f1f5f9' : '#fdeeed',
+                              color: sub.status === 'Completed' ? '#475569' : '#b91c1c',
+                              fontWeight: 800
+                            }}>
+                              {sub.status}
+                            </span>
+                          </div>
+                        ))}
+
+                        {subscriptions.filter(sub => sub.status === 'Cancelled' || sub.status === 'Completed').length === 0 && (
+                          <p style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', margin: '10px 0' }}>No past subscription history.</p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* PROFILE VIEW */}
               {activeTab === 'profile' && (
                 <div className="profile-page-container">
@@ -1971,9 +2403,10 @@ const StudentDashboard = () => {
                         <button
                           type="submit"
                           className="order-action-btn btn-solid"
-                          style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
+                          disabled={profileLoading}
+                          style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800, opacity: profileLoading ? 0.7 : 1 }}
                         >
-                          Save Changes
+                          {profileLoading ? 'Saving...' : 'Save Changes'}
                         </button>
                       </form>
                     </div>
@@ -2131,6 +2564,7 @@ const StudentDashboard = () => {
                           }
 
                           try {
+                            setPasswordLoading(true);
                             await changePassword({
                               current_password: currentPassword,
                               new_password: newPassword,
@@ -2162,12 +2596,15 @@ const StudentDashboard = () => {
                               triggerToast("Unable to change password.");
 
                             }
+                          } finally {
+                            setPasswordLoading(false);
                           }
                         }}
                         className="order-action-btn btn-solid"
-                        style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
+                        disabled={passwordLoading}
+                        style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800, opacity: passwordLoading ? 0.7 : 1 }}
                       >
-                        Update Password
+                        {passwordLoading ? "Updating..." : "Update Password"}
                       </button>
                     </div>
                   )}
@@ -2196,14 +2633,23 @@ const StudentDashboard = () => {
                       </div>
 
                       <button
-                        onClick={() => {
-                          triggerToast('Password reset link sent to ' + user.email);
-                          setProfileSubTab('menu');
+                        onClick={async () => {
+                          setResetRequestLoading(true);
+                          try {
+                            await forgotPassword(user.email);
+                            triggerToast('Password reset link sent to ' + user.email);
+                            setProfileSubTab('menu');
+                          } catch (err) {
+                            triggerToast("Unable to send password reset link.");
+                          } finally {
+                            setResetRequestLoading(false);
+                          }
                         }}
                         className="order-action-btn btn-solid"
-                        style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800 }}
+                        disabled={resetRequestLoading}
+                        style={{ padding: '10px 0', borderRadius: '8px', fontWeight: 800, opacity: resetRequestLoading ? 0.7 : 1 }}
                       >
-                        Send Reset Link
+                        {resetRequestLoading ? "Sending..." : "Send Reset Link"}
                       </button>
                     </div>
                   )}
@@ -2337,6 +2783,17 @@ const StudentDashboard = () => {
                 </div>
                 <span>Cart</span>
                 {activeTab === 'cart' && <div className="active-dot"></div>}
+              </button>
+
+              <button
+                className={`bottom-nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`}
+                onClick={() => setActiveTab('subscriptions')}
+              >
+                <div className="nav-item-icon-wrapper">
+                  <Calendar size={22} />
+                </div>
+                <span>Plans</span>
+                {activeTab === 'subscriptions' && <div className="active-dot"></div>}
               </button>
 
               <button
@@ -2627,6 +3084,178 @@ const StudentDashboard = () => {
                 onClick={handleConfirmReplaceCart}
               >
                 Yes, Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Subscription Form Modal */}
+      {showSubscriptionModal && selectedVendorDetails && (
+        <div className="custom-modal-overlay" style={{ zIndex: 10000 }}>
+          <div className="custom-modal-card" style={{ maxWidth: '360px', padding: '24px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#855300', margin: '0 0 16px 0', textAlign: 'center' }}>Subscribe to Meal Plan</h3>
+            <form onSubmit={handleCreateSubscriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
+              
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Plan Type</label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid ' + (subscriptionForm.plan_type === 'Weekly' ? '#855300' : '#cbd5e1'),
+                      backgroundColor: subscriptionForm.plan_type === 'Weekly' ? '#fff9f0' : '#ffffff',
+                      color: subscriptionForm.plan_type === 'Weekly' ? '#855300' : '#475569',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setSubscriptionForm({ ...subscriptionForm, plan_type: 'Weekly' })}
+                  >
+                    Weekly (7 Days)
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid ' + (subscriptionForm.plan_type === 'Monthly' ? '#855300' : '#cbd5e1'),
+                      backgroundColor: subscriptionForm.plan_type === 'Monthly' ? '#fff9f0' : '#ffffff',
+                      color: subscriptionForm.plan_type === 'Monthly' ? '#855300' : '#475569',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setSubscriptionForm({ ...subscriptionForm, plan_type: 'Monthly' })}
+                  >
+                    Monthly (30 Days)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Select Meals</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#1e293b', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={subscriptionForm.breakfast}
+                      onChange={(e) => setSubscriptionForm({ ...subscriptionForm, breakfast: e.target.checked })}
+                      style={{ width: '16px', height: '16px', accentColor: '#855300' }}
+                    />
+                    Breakfast
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#1e293b', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={subscriptionForm.lunch}
+                      onChange={(e) => setSubscriptionForm({ ...subscriptionForm, lunch: e.target.checked })}
+                      style={{ width: '16px', height: '16px', accentColor: '#855300' }}
+                    />
+                    Lunch
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#1e293b', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={subscriptionForm.dinner}
+                      onChange={(e) => setSubscriptionForm({ ...subscriptionForm, dinner: e.target.checked })}
+                      style={{ width: '16px', height: '16px', accentColor: '#855300' }}
+                    />
+                    Dinner
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Start Date</label>
+                <input
+                  type="date"
+                  value={subscriptionForm.start_date}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setSubscriptionForm({ ...subscriptionForm, start_date: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    boxSizing: 'border-box'
+                  }}
+                  required
+                />
+              </div>
+
+              {/* Dynamic calculations info */}
+              <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>End Date:</span>
+                  <span style={{ fontWeight: 800 }}>
+                    {subscriptionForm.start_date ? (() => {
+                      const d = new Date(subscriptionForm.start_date);
+                      d.setDate(d.getDate() + (subscriptionForm.plan_type === 'Weekly' ? 7 : 30));
+                      return d.toISOString().split('T')[0];
+                    })() : 'N/A'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Calculated Price:</span>
+                  <span style={{ fontWeight: 900, color: '#059669', fontSize: '0.8rem' }}>
+                    ₹{(() => {
+                      const base = selectedVendorDetails.price || 60;
+                      const count = (subscriptionForm.breakfast ? 1 : 0) + (subscriptionForm.lunch ? 1 : 0) + (subscriptionForm.dinner ? 1 : 0);
+                      const mult = subscriptionForm.plan_type === 'Weekly' ? 7 : 30;
+                      return count * base * mult;
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="custom-modal-btn btn-cancel"
+                  style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem' }}
+                  onClick={() => setShowSubscriptionModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="custom-modal-btn btn-confirm"
+                  style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#855300', color: '#ffffff' }}
+                >
+                  Subscribe
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Subscription Cancel Confirmation Modal */}
+      {confirmCancelModal.isOpen && (
+        <div className="custom-modal-overlay" style={{ zIndex: 10000 }}>
+          <div className="custom-modal-card" style={{ maxWidth: '320px', padding: '24px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 10px 0', color: '#0f172a', textAlign: 'center' }}>Cancel Subscription?</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 20px 0', lineHeight: '1.4', textAlign: 'center' }}>
+              Are you sure you want to cancel this meal plan subscription? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+              <button
+                className="custom-modal-btn btn-cancel"
+                style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem' }}
+                onClick={() => setConfirmCancelModal({ isOpen: false, subscriptionId: null })}
+              >
+                No, Keep
+              </button>
+              <button
+                className="custom-modal-btn btn-confirm"
+                style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#dc2626', color: '#ffffff' }}
+                onClick={() => handleCancelSubscription(confirmCancelModal.subscriptionId)}
+              >
+                Yes, Cancel
               </button>
             </div>
           </div>

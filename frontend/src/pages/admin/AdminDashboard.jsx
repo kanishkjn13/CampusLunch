@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StudentContext } from '@/context/StudentContext';
-import Footer from '@/components/layout/Footer';
-import { 
-  Grid, 
-  Store, 
-  MessageSquare, 
-  Cpu, 
-  Settings, 
-  Search, 
-  Bell, 
-  HelpCircle, 
-  LogOut, 
-  TrendingUp, 
-  TrendingDown, 
-  GraduationCap, 
-  Check, 
-  X, 
-  AlertCircle, 
-  Percent, 
-  Tag, 
+import {
+  Grid,
+  Store,
+  MessageSquare,
+  Cpu,
+  Settings,
+  Search,
+  Bell,
+  HelpCircle,
+  LogOut,
+  TrendingUp,
+  TrendingDown,
+  GraduationCap,
+  Check,
+  X,
+  AlertCircle,
+  Percent,
+  Tag,
   ChevronDown,
   Plus,
   SlidersHorizontal,
@@ -343,9 +342,18 @@ const AdminDashboard = () => {
     setAdminReplyText('');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('role');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("Admin Logout Error:", err);
+    } finally {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      navigate("/login", { replace: true });
+    }
   };
 
   // Dynamic header configuration based on the active tab
@@ -390,15 +398,15 @@ const AdminDashboard = () => {
     { height: '40%', highlight: false },
     { height: '75%', highlight: false },
     { height: '70%', highlight: false },
-    { height: '58%', highlight: true }, 
+    { height: '58%', highlight: true },
     { height: '85%', highlight: false },
     { height: '45%', highlight: false },
     { height: '52%', highlight: false },
     { height: '78%', highlight: false },
-    { height: '62%', highlight: true }, 
+    { height: '62%', highlight: true },
     { height: '48%', highlight: false },
     { height: '58%', highlight: false },
-    { height: '90%', highlight: true }, 
+    { height: '90%', highlight: true },
     { height: '50%', highlight: false },
     { height: '64%', highlight: false },
     { height: '72%', highlight: false },
@@ -422,35 +430,35 @@ const AdminDashboard = () => {
         </div>
 
         <nav className="sidebar-nav">
-          <button 
+          <button
             className={`admin-nav-item ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
           >
             <Grid size={18} />
             <span>Overview</span>
           </button>
-          <button 
+          <button
             className={`admin-nav-item ${activeTab === 'vendors' ? 'active' : ''}`}
             onClick={() => setActiveTab('vendors')}
           >
             <Store size={18} />
             <span>Vendors</span>
           </button>
-          <button 
+          <button
             className={`admin-nav-item ${activeTab === 'support' ? 'active' : ''}`}
             onClick={() => setActiveTab('support')}
           >
             <MessageSquare size={18} />
             <span>Support</span>
           </button>
-          <button 
+          <button
             className={`admin-nav-item ${activeTab === 'system' ? 'active' : ''}`}
             onClick={() => setActiveTab('system')}
           >
             <Cpu size={18} />
             <span>System</span>
           </button>
-          <button 
+          <button
             className={`admin-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveTab('settings')}
           >
@@ -477,10 +485,10 @@ const AdminDashboard = () => {
         <header className="admin-header">
           <div className="search-bar-wrapper">
             <Search size={18} className="search-bar-icon" />
-            <input 
-              type="text" 
-              placeholder={headerConfig.searchPlaceholder} 
-              className="search-bar-input" 
+            <input
+              type="text"
+              placeholder={headerConfig.searchPlaceholder}
+              className="search-bar-input"
             />
           </div>
 
@@ -500,10 +508,10 @@ const AdminDashboard = () => {
                   {activeTab === 'support' ? 'Support Lead' : 'SUPER ADMIN'}
                 </span>
               </div>
-              <img 
-                src={headerConfig.adminAvatar} 
-                alt="Profile Avatar" 
-                className="profile-avatar-img" 
+              <img
+                src={headerConfig.adminAvatar}
+                alt="Profile Avatar"
+                className="profile-avatar-img"
               />
             </div>
           </div>
@@ -519,14 +527,14 @@ const AdminDashboard = () => {
                   <p className="dashboard-subtitle">Monthly growth and commission stats tracking.</p>
                 </div>
                 <div style={{ position: 'relative' }}>
-                  <button 
+                  <button
                     className="timeframe-dropdown-btn"
                     onClick={() => setShowTimeframeDropdown(prev => !prev)}
                   >
                     <span>{timeframe}</span>
                     <ChevronDown size={16} />
                   </button>
-                  
+
                   {showTimeframeDropdown && (
                     <div style={{
                       position: 'absolute',
@@ -586,11 +594,11 @@ const AdminDashboard = () => {
                   </div>
                   <div className="orange-card-decor">
                     <svg width="150" height="100" viewBox="0 0 150 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="150" height="100" rx="14" fill="white" fillOpacity="0.08"/>
-                      <rect x="6" y="6" width="138" height="88" rx="8" stroke="white" strokeWidth="2.5" strokeOpacity="0.12"/>
-                      <circle cx="75" cy="50" r="22" stroke="white" strokeWidth="4" strokeOpacity="0.15"/>
-                      <rect x="14" y="14" width="28" height="18" rx="4" fill="white" fillOpacity="0.1"/>
-                      <rect x="108" y="68" width="28" height="18" rx="4" fill="white" fillOpacity="0.1"/>
+                      <rect width="150" height="100" rx="14" fill="white" fillOpacity="0.08" />
+                      <rect x="6" y="6" width="138" height="88" rx="8" stroke="white" strokeWidth="2.5" strokeOpacity="0.12" />
+                      <circle cx="75" cy="50" r="22" stroke="white" strokeWidth="4" strokeOpacity="0.15" />
+                      <rect x="14" y="14" width="28" height="18" rx="4" fill="white" fillOpacity="0.1" />
+                      <rect x="108" y="68" width="28" height="18" rx="4" fill="white" fillOpacity="0.1" />
                     </svg>
                   </div>
                 </div>
@@ -690,9 +698,9 @@ const AdminDashboard = () => {
                         </div>
                       ) : (
                         getOpenTickets().map((ticket) => (
-                          <div 
+                          <div
                             key={ticket.id}
-                            className="ticket-item-card" 
+                            className="ticket-item-card"
                             onClick={() => { setActiveTab('support'); setSelectedTicket(ticket.id); }}
                             style={{ cursor: 'pointer' }}
                           >
@@ -885,7 +893,7 @@ const AdminDashboard = () => {
 
                 <div className="tickets-sidebar-list">
                   {/* Ticket 1 */}
-                  <div 
+                  <div
                     className={`ticket-sidebar-card ${selectedTicket === 'TK-8821' ? 'active' : ''}`}
                     onClick={() => setSelectedTicket('TK-8821')}
                   >
@@ -903,7 +911,7 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* Ticket 2 */}
-                  <div 
+                  <div
                     className={`ticket-sidebar-card ${selectedTicket === 'TK-8819' ? 'active' : ''}`}
                     onClick={() => setSelectedTicket('TK-8819')}
                   >
@@ -921,7 +929,7 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* Ticket 3 */}
-                  <div 
+                  <div
                     className={`ticket-sidebar-card ${selectedTicket === 'TK-8815' ? 'active' : ''}`}
                     onClick={() => setSelectedTicket('TK-8815')}
                   >
@@ -939,7 +947,7 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* Ticket 4 */}
-                  <div 
+                  <div
                     className={`ticket-sidebar-card ${selectedTicket === 'TK-8802' ? 'active' : ''}`}
                     onClick={() => setSelectedTicket('TK-8802')}
                   >
@@ -989,10 +997,10 @@ const AdminDashboard = () => {
                     if (msg.sender === 'user') {
                       return (
                         <div className="chat-message-row customer-msg" key={msg.id}>
-                          <img 
-                            src={currentTicketInfo.userAvatar} 
-                            alt={currentTicketInfo.userName} 
-                            className="chat-avatar-circle" 
+                          <img
+                            src={currentTicketInfo.userAvatar}
+                            alt={currentTicketInfo.userName}
+                            className="chat-avatar-circle"
                           />
                           <div className="chat-message-bubble-wrapper">
                             <div className="chat-bubble-header">
@@ -1004,9 +1012,9 @@ const AdminDashboard = () => {
                               {/* Show dal image container for initial spilled container text ID */}
                               {msg.id === 2 && (
                                 <div className="chat-attached-image">
-                                  <img 
-                                    src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&fit=crop&q=80" 
-                                    alt="Spilled dal container soup" 
+                                  <img
+                                    src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&fit=crop&q=80"
+                                    alt="Spilled dal container soup"
                                   />
                                 </div>
                               )}
@@ -1026,10 +1034,10 @@ const AdminDashboard = () => {
                               <p>{msg.text}</p>
                             </div>
                           </div>
-                          <img 
-                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&q=80" 
-                            alt="Alex Chen" 
-                            className="chat-avatar-circle" 
+                          <img
+                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&q=80"
+                            alt="Alex Chen"
+                            className="chat-avatar-circle"
                           />
                         </div>
                       );
@@ -1050,9 +1058,9 @@ const AdminDashboard = () => {
                       <ChevronDown size={14} />
                     </div>
                   </div>
-                  
-                  <textarea 
-                    placeholder={`Type your response to ${currentTicketInfo.userName}...`} 
+
+                  <textarea
+                    placeholder={`Type your response to ${currentTicketInfo.userName}...`}
                     className="reply-textarea-input"
                     value={adminReplyText}
                     onChange={(e) => setAdminReplyText(e.target.value)}
@@ -1088,7 +1096,7 @@ const AdminDashboard = () => {
                       <p className="order-box-total">Total: {currentTicketInfo.orderTotal}</p>
                     </div>
                   </div>
-                  
+
                   <div className="order-details-rows">
                     <div className="order-detail-row">
                       <span className="row-key">Vendor:</span>
@@ -1211,8 +1219,8 @@ const AdminDashboard = () => {
                   {/* Columns chart */}
                   <div className="api-chart-container">
                     {healthBars.map((bar, idx) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className={`api-chart-bar-col ${bar.highlight ? 'highlight-bar' : ''}`}
                         style={{ height: bar.height }}
                       ></div>
@@ -1302,17 +1310,17 @@ const AdminDashboard = () => {
                   <form className="config-form-fields" onSubmit={(e) => e.preventDefault()}>
                     <div className="config-input-group">
                       <label>STANDARD COMMISSION (%)</label>
-                      <input 
-                        type="number" 
-                        value={commissionRate} 
+                      <input
+                        type="number"
+                        value={commissionRate}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value);
                           if (!isNaN(val)) {
                             setCommissionRate(val);
                             localStorage.setItem('admin_commission_rate', val);
                           }
-                        }} 
-                        className="config-text-input" 
+                        }}
+                        className="config-text-input"
                       />
                     </div>
                     <div className="config-input-group">
@@ -1520,7 +1528,7 @@ const AdminDashboard = () => {
                           <p>Currently Enabled</p>
                         </div>
                       </div>
-                      <div 
+                      <div
                         className={`switch-track ${twoFactorEnabled ? 'active' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1649,7 +1657,7 @@ const AdminDashboard = () => {
 
                       <div className="flex justify-between items-center w-full mt-2">
                         <span className="font-semibold text-sm text-slate-700">Use Rounded Corners</span>
-                        <div 
+                        <div
                           className={`switch-track ${roundedCornersEnabled ? 'active' : ''}`}
                           onClick={() => setRoundedCornersEnabled(!roundedCornersEnabled)}
                         >
@@ -1723,7 +1731,7 @@ const AdminDashboard = () => {
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
                 {verificationQueue.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
@@ -1785,10 +1793,10 @@ const AdminDashboard = () => {
               <h2 className="dashboard-heading" style={{ fontSize: '1.25rem', marginBottom: '16px' }}>Edit Commission Rate</h2>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', marginBottom: '8px' }}>STANDARD RATE (%)</label>
-                <input 
-                  type="number" 
-                  value={tempCommission} 
-                  onChange={(e) => setTempCommission(e.target.value)} 
+                <input
+                  type="number"
+                  value={tempCommission}
+                  onChange={(e) => setTempCommission(e.target.value)}
                   style={{
                     width: '100%',
                     height: '40px',
@@ -1802,7 +1810,7 @@ const AdminDashboard = () => {
                 />
               </div>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'end' }}>
-                <button 
+                <button
                   onClick={() => setIsEditingCommission(false)}
                   style={{
                     padding: '8px 16px',
@@ -1816,7 +1824,7 @@ const AdminDashboard = () => {
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     const rate = parseFloat(tempCommission);
                     if (!isNaN(rate) && rate >= 0 && rate <= 100) {
