@@ -858,6 +858,10 @@ const StudentDashboard = () => {
       localStorage.removeItem("name");
       localStorage.removeItem("phone");
       localStorage.removeItem("email");
+      localStorage.removeItem("tiffin_connect_orders");
+      localStorage.removeItem("tiffin_connect_trackers");
+      localStorage.removeItem("tiffin_connect_sellers");
+      localStorage.removeItem("tiffin_connect_ratings");
 
       navigate("/login", { replace: true });
     }

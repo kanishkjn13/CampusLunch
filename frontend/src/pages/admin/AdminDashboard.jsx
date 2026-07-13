@@ -54,13 +54,13 @@ const ticketsData = {
     priority: 'Urgent',
     priorityClass: 'urgent',
     created: 'Oct 12, 10:42 AM',
-    userName: 'John Doe',
-    userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&fit=crop&q=80',
-    userEmail: 'john.doe@gmail.com',
+    userName: 'Student User A',
+    userAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>",
+    userEmail: 'student1@example.com',
     userPhone: '+91 98765 43210',
     orderId: '#99212',
     orderTotal: '₹340.50',
-    orderVendor: 'The Curry Pot',
+    orderVendor: 'Local Kitchen A',
     orderRider: 'K. Sharma',
     orderStatus: 'DELIVERED',
     userTier: 'Platinum',
@@ -75,13 +75,13 @@ const ticketsData = {
     priority: 'High',
     priorityClass: 'high',
     created: 'Oct 12, 09:30 AM',
-    userName: 'Sara Riley',
-    userAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&fit=crop&q=80',
-    userEmail: 'sara.riley@yahoo.com',
+    userName: 'Student User B',
+    userAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>",
+    userEmail: 'student2@example.com',
     userPhone: '+91 87654 32109',
     orderId: '#99208',
     orderTotal: '₹185.00',
-    orderVendor: 'Annapurna Kitchens',
+    orderVendor: 'Local Kitchen B',
     orderRider: 'M. Patel',
     orderStatus: 'DELIVERED',
     userTier: 'Gold',
@@ -96,13 +96,13 @@ const ticketsData = {
     priority: 'Medium',
     priorityClass: 'medium',
     created: 'Oct 12, 07:15 AM',
-    userName: 'Spice Garden',
-    userAvatar: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=80&fit=crop&q=80',
-    userEmail: 'support@spicegarden.com',
+    userName: 'Vendor Kitchen A',
+    userAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>",
+    userEmail: 'vendor@example.com',
     userPhone: '+91 76543 21098',
     orderId: 'N/A (App login)',
     orderTotal: 'N/A',
-    orderVendor: 'Spice Garden',
+    orderVendor: 'Vendor Kitchen A',
     orderRider: 'N/A',
     orderStatus: 'N/A',
     userTier: 'Vendor Partner',
@@ -116,9 +116,9 @@ const ticketsData = {
     priority: 'Low',
     priorityClass: 'low',
     created: 'Oct 12, 05:00 AM',
-    userName: 'Bob Corp',
-    userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&fit=crop&q=80',
-    userEmail: 'bulk@bobcorp.com',
+    userName: 'Corporate Client',
+    userAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>",
+    userEmail: 'partner@example.com',
     userPhone: '+91 65432 10987',
     orderId: 'N/A (Inquiry)',
     orderTotal: 'N/A',
@@ -361,32 +361,32 @@ const AdminDashboard = () => {
     if (activeTab === 'vendors') {
       return {
         searchPlaceholder: "Search vendors, IDs, or locations...",
-        adminName: "Alex Rivera",
-        adminAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80"
+        adminName: "Admin User",
+        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
       };
     } else if (activeTab === 'support') {
       return {
         searchPlaceholder: "Search tickets, vendors, or customers...",
-        adminName: "Alex Chen",
-        adminAvatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&q=80"
+        adminName: "Admin User",
+        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
       };
     } else if (activeTab === 'system') {
       return {
         searchPlaceholder: "Search system logs or configurations...",
         adminName: "Admin User",
-        adminAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80"
+        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
       };
     } else if (activeTab === 'settings') {
       return {
         searchPlaceholder: "Search settings, users, or system logs...",
-        adminName: "Sarah Jenkins",
-        adminAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&q=80"
+        adminName: "Admin User",
+        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
       };
     }
     return {
       searchPlaceholder: "Search orders, vendors or students...",
       adminName: "Admin User",
-      adminAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80"
+      adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
     };
   };
 
@@ -1489,11 +1489,11 @@ const AdminDashboard = () => {
                   <div className="settings-form-grid">
                     <div className="settings-input-group">
                       <label>FULL NAME</label>
-                      <input type="text" defaultValue="Sarah Jenkins" className="settings-text-input" />
+                      <input type="text" defaultValue="Admin User" className="settings-text-input" />
                     </div>
                     <div className="settings-input-group">
                       <label>EMAIL ADDRESS</label>
-                      <input type="email" defaultValue="sarah.jenkins@tiffinhub.com" className="settings-text-input" />
+                      <input type="email" defaultValue="admin@example.com" className="settings-text-input" />
                     </div>
                     <div className="settings-input-group">
                       <label>ADMIN ROLE</label>

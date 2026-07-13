@@ -62,7 +62,7 @@ export const StudentProvider = ({ children }) => {
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   
   // Favorites State (Array of food ids or seller ids)
-  const [favorites, setFavorites] = useState(['m1', 'd1']);
+  const [favorites, setFavorites] = useState([]);
   
   const [orders, setOrders] = useState(() => {
     try {
@@ -70,55 +70,11 @@ export const StudentProvider = ({ children }) => {
       if (saved && saved !== 'undefined') {
         const parsed = JSON.parse(saved);
         const isValid = Array.isArray(parsed) && parsed.every(o => typeof o.items === 'string');
-        if (isValid && parsed.some(o => o.id === 'ORD-88490')) {
+        if (isValid) {
           return parsed;
         }
       }
-      // Seed some realistic historical completed orders with items formatted as a string
-      const historical = [
-        {
-          id: 'ORD-88514',
-          vendor: 'Spice Garden',
-          items: '2x South Indian Deluxe Thali',
-          bill: 220,
-          deliveryStatus: 'Delivered',
-          paymentStatus: 'Paid',
-          customerName: 'John Doe',
-          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toLocaleDateString() // 5 days ago (This Week)
-        },
-        {
-          id: 'ORD-88490',
-          vendor: 'Spice Garden',
-          items: '2x Chole Bhature Combo',
-          bill: 160,
-          deliveryStatus: 'Delivered',
-          paymentStatus: 'Paid',
-          customerName: 'Kunal Sen',
-          date: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toLocaleDateString() // 9 days ago (Last Week)
-        },
-        {
-          id: 'ORD-88412',
-          vendor: 'The Curry Pot',
-          items: '2x Kadai Paneer Combo',
-          bill: 310,
-          deliveryStatus: 'Delivered',
-          paymentStatus: 'Paid',
-          customerName: 'Sara Riley',
-          date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toLocaleDateString() // 10 days ago
-        },
-        {
-          id: 'ORD-88310',
-          vendor: 'Spice Garden',
-          items: '3x Homestyle Lunch Pack',
-          bill: 450,
-          deliveryStatus: 'Delivered',
-          paymentStatus: 'Paid',
-          customerName: 'Amit Sharma',
-          date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toLocaleDateString() // 40 days ago (Older - All-Time)
-        }
-      ];
-      localStorage.setItem('tiffin_connect_orders', JSON.stringify(historical));
-      return historical;
+      return [];
     } catch (e) {
       console.error("Failed to parse orders from localStorage:", e);
       return [];
@@ -384,7 +340,7 @@ export const StudentProvider = ({ children }) => {
         name: 'Tiffin Vendor',
         phone: '+91 98765 43210',
         vehicle: 'Pickup Counter',
-        photo: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&h=100&fit=crop&q=80'
+        photo: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
       },
       eta: 'Ready for Pickup',
       progress: 0,
