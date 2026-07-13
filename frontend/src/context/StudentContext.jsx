@@ -19,6 +19,23 @@ export const TRACKING_STEPS = [
 
 export const StudentProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const loggedInUser = JSON.parse(userStr);
+        if (loggedInUser) {
+          return {
+            ...INITIAL_USER_PROFILE,
+            name: loggedInUser.full_name || loggedInUser.name || INITIAL_USER_PROFILE.name,
+            phone: loggedInUser.phone || INITIAL_USER_PROFILE.phone,
+            email: loggedInUser.email || INITIAL_USER_PROFILE.email,
+            avatar: localStorage.getItem(`student_avatar_${loggedInUser.email}`) || INITIAL_USER_PROFILE.avatar
+          };
+        }
+      } catch (e) {
+        console.error("Failed to parse user from localStorage:", e);
+      }
+    }
     const activeEmail = localStorage.getItem('email') || INITIAL_USER_PROFILE.email;
     return {
       ...INITIAL_USER_PROFILE,
@@ -251,7 +268,21 @@ export const StudentProvider = ({ children }) => {
 
   // Profile Edit Action
   const updateUserProfile = (updatedFields) => {
-    setUser(prev => ({ ...prev, ...updatedFields }));
+    setUser(prev => {
+      const nextUser = { ...prev, ...updatedFields };
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          u.full_name = nextUser.name;
+          u.phone = nextUser.phone;
+          localStorage.setItem("user", JSON.stringify(u));
+        } catch (e) {
+          console.error("Error syncing user profile to localStorage:", e);
+        }
+      }
+      return nextUser;
+    });
   };
 
   // Cart operations

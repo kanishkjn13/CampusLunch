@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StudentContext } from '@/context/StudentContext';
+import { logoutUser } from "@/Services/authService";
 import { 
   Grid, 
   Store, 
@@ -236,9 +237,18 @@ const AdminDashboard = () => {
     setAdminReplyText('');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('role');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("Admin Logout Error:", err);
+    } finally {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      navigate("/login", { replace: true });
+    }
   };
 
   // Dynamic header configuration based on the active tab

@@ -65,3 +65,21 @@ export const logoutUser = async () => {
 
   return response.data;
 };
+
+// Get User Profile
+export const getUserProfile = async () => {
+  const response = await api.get("/auth/profile/");
+  return response.data;
+};
+
+// Update User Profile
+export const updateUserProfileApi = async (data) => {
+  const config = {};
+  if (data instanceof FormData) {
+    config.headers = {
+      "Content-Type": undefined,
+    };
+  }
+  const response = await api.put("/auth/profile/", data, config);
+  return response.data;
+};

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { logoutUser } from "@/Services/authService";
 import { 
   Home, 
   Search, 
@@ -22,10 +23,19 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const role = localStorage.getItem('role') || null;
 
-  const handleLogout = () => {
-    localStorage.removeItem('role');
-    setIsProfileOpen(false);
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("BottomNav Logout Error:", err);
+    } finally {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      setIsProfileOpen(false);
+      navigate("/login", { replace: true });
+    }
   };
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';

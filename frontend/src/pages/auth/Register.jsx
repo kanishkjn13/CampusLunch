@@ -145,8 +145,9 @@ const Register = () => {
       return;
     }
 
-    if (phone.length !== 10) {
-      setError("Enter a valid 10 digit phone number.");
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(phone)) {
+      setError("Enter a valid 10 digit phone number containing only numbers.");
       return;
     }
 
@@ -155,8 +156,15 @@ const Register = () => {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    const passwordStrengthRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordStrengthRegex.test(password)) {
+      setError("Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
       return;
     }
 
