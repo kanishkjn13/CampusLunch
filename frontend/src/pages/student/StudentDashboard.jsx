@@ -1145,9 +1145,35 @@ const StudentDashboard = () => {
                       <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginBottom: '14px' }}>Explore Kitchens</h3>
 
                       {vendorsLoading ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
-                          <RefreshCw className="animate-spin" size={24} style={{ color: '#855300' }} />
-                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading active kitchens...</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {[1, 2, 3].map(i => (
+                            <div
+                              key={i}
+                              className="animate-pulse"
+                              style={{
+                                padding: '14px',
+                                display: 'flex',
+                                gap: '14px',
+                                alignItems: 'center',
+                                backgroundColor: '#ffffff',
+                                borderRadius: '16px',
+                                border: '1px solid rgba(0, 0, 0, 0.04)',
+                                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
+                              }}
+                            >
+                              <div style={{
+                                width: '56px',
+                                height: '56px',
+                                borderRadius: '12px',
+                                backgroundColor: '#e2e8f0'
+                              }}></div>
+                              <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ width: '40%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                                <div style={{ width: '70%', height: '12px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                                <div style={{ width: '50%', height: '10px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ) : vendorsError ? (
                         <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
@@ -1268,8 +1294,28 @@ const StudentDashboard = () => {
                   {/* Menu List */}
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>Today's Menu Items</h3>
                   {vendorDetailsLoading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
-                      <RefreshCw className="animate-spin" size={20} style={{ color: '#855300' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {[1, 2].map(i => (
+                        <div
+                          key={i}
+                          className="animate-pulse"
+                          style={{
+                            padding: '12px',
+                            display: 'flex',
+                            gap: '12px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid rgba(0, 0, 0, 0.04)',
+                          }}
+                        >
+                          <div style={{ width: '64px', height: '64px', borderRadius: '8px', backgroundColor: '#e2e8f0' }}></div>
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
+                            <div style={{ width: '50%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                            <div style={{ width: '80%', height: '10px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                            <div style={{ width: '30%', height: '12px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2062,9 +2108,34 @@ const StudentDashboard = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginBottom: '4px' }}>Active Meal Plans</h3>
                   {subscriptionsLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
-                      <RefreshCw className="animate-spin" size={24} style={{ color: '#855300' }} />
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading subscriptions...</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {[1, 2].map(i => (
+                        <div
+                          key={i}
+                          className="animate-pulse"
+                          style={{
+                            padding: '16px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid rgba(0, 0, 0, 0.04)',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                            <div style={{ width: '56px', height: '56px', borderRadius: '12px', backgroundColor: '#e2e8f0' }}></div>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ width: '40%', height: '14px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                                <div style={{ width: '60px', height: '18px', backgroundColor: '#e2e8f0', borderRadius: '6px' }}></div>
+                              </div>
+                              <div style={{ width: '70%', height: '10px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : subscriptionsError ? (
                     <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
