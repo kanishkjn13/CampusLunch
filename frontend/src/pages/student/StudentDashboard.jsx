@@ -298,7 +298,13 @@ const StudentDashboard = () => {
     setSubscriptionsError(false);
     try {
       const data = await getStudentSubscriptions();
-      setSubscriptions(data);
+      if (Array.isArray(data)) {
+        setSubscriptions(data);
+      } else if (data && Array.isArray(data.results)) {
+        setSubscriptions(data.results);
+      } else {
+        setSubscriptions([]);
+      }
     } catch (err) {
       console.error("Failed to fetch subscriptions:", err);
       setSubscriptionsError(true);
@@ -397,7 +403,13 @@ const StudentDashboard = () => {
       }
       
       const data = await getVendors(searchQuery, selectedMealType, foodTypeParam);
-      setVendors(data);
+      if (Array.isArray(data)) {
+        setVendors(data);
+      } else if (data && Array.isArray(data.results)) {
+        setVendors(data.results);
+      } else {
+        setVendors([]);
+      }
     } catch (err) {
       console.error("Failed to fetch vendors:", err);
       setVendorsError(true);

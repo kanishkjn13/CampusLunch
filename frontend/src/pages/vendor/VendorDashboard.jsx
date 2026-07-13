@@ -98,7 +98,13 @@ const VendorDashboard = () => {
     setSubscribersError(false);
     try {
       const data = await getVendorSubscribers(subscribersSearch, subscribersStatusFilter);
-      setSubscribers(data);
+      if (Array.isArray(data)) {
+        setSubscribers(data);
+      } else if (data && Array.isArray(data.results)) {
+        setSubscribers(data.results);
+      } else {
+        setSubscribers([]);
+      }
     } catch (err) {
       console.error("Failed to fetch subscribers:", err);
       setSubscribersError(true);
