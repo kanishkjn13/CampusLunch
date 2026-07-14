@@ -517,7 +517,7 @@ const VendorDashboard = () => {
       price: Number(newItem.price),
       type: newItem.type,
       description: newItem.description || 'Freshly prepared delicious meal combo.',
-      image: newItem.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>",
+      image: newItem.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E",
       rating: 5.0,
       prepTime: newItem.prepTime || '20 mins',
       availableQty: Number(newItem.quantity || 15),
@@ -1467,7 +1467,7 @@ const VendorDashboard = () => {
                         const cardAccentClass = !item.is_active ? 'accent-empty' : !item.is_available ? 'accent-low' : 'accent-instock';
                         const imageUrl = item.image
                           ? (item.image.startsWith('http') ? item.image : `${getMediaBaseURL()}${item.image}`)
-                          : "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>";
+                          : "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E";
 
                         return (
                           <div key={item.id} className={`availability-item-card ${cardAccentClass}`} style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '16px', gap: '12px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 20px rgba(0,0,0,0.008)' }}>

@@ -111,7 +111,7 @@ const Login = () => {
           name: data.user.full_name || data.user.name || '',
           phone: data.user.phone || '',
           email: data.user.email || '',
-          avatar: localStorage.getItem(`student_avatar_${data.user.email}`) || ''
+          avatar: localStorage.getItem(`student_avatar_${data.user.email}`) || '/images/default-avatar.jpg'
         });
       }
 

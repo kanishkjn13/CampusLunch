@@ -302,7 +302,7 @@ const StudentDashboard = () => {
       setSellers(vendorsList.map(v => ({
         id: v.id,
         name: v.full_name || 'Vendor Kitchen',
-        photo: v.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>",
+        photo: v.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
         rating: '4.8',
         reviews: 12,
         distance: '0.5km',
@@ -329,7 +329,6 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchVendorsList();
-  
   }, [searchQuery, filterType, selectedMealType]);
 
   const handleViewVendorDetails = async (vendorId) => {
@@ -344,7 +343,7 @@ const StudentDashboard = () => {
       const formattedSeller = {
         id: details.id,
         name: details.full_name,
-        photo: details.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>",
+        photo: details.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
         rating: "4.8",
         reviews: "24",
         servingTime: "10:00 AM - 08:00 PM",
@@ -355,7 +354,7 @@ const StudentDashboard = () => {
           name: m.name,
           description: m.description,
           price: Number(m.price),
-          image: m.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>",
+          image: m.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E",
           type: m.food_type,
           availableQty: m.is_available ? 999 : 0
         }))
@@ -416,7 +415,7 @@ const StudentDashboard = () => {
     name: user.name || '',
     phone: user.phone || '',
     email: user.email || '',
-    avatar: user.avatar || ''
+    avatar: user.avatar || '/images/default-avatar.jpg'
   });
 
   useEffect(() => {
@@ -424,7 +423,7 @@ const StudentDashboard = () => {
       name: user.name || '',
       phone: user.phone || '',
       email: user.email || '',
-      avatar: user.avatar || ''
+      avatar: user.avatar || '/images/default-avatar.jpg'
     });
   }, [user]);
 
@@ -976,7 +975,7 @@ const StudentDashboard = () => {
                 )}
 
                 <img
-                  src={user.avatar}
+                  src={user.avatar || "/images/default-avatar.jpg"}
                   alt="Student Avatar"
                   className="student-avatar-circle"
                   onClick={() => setActiveTab('profile')}
@@ -1109,7 +1108,7 @@ const StudentDashboard = () => {
 
                         <div className="order-again-card">
                           <img
-                            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"
+                            src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E"
                             alt="Premium Rajasthani Thali"
                             className="order-again-image"
                           />
@@ -1238,7 +1237,7 @@ const StudentDashboard = () => {
                                             {/* Meal Image */}
                                             <div style={{ position: 'relative', width: '100%', height: '90px', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#e2e8f0' }}>
                                               <img
-                                                src={meal.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V22H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"}
+                                                src={meal.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V22H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E"}
                                                 alt={meal.name}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                               />
@@ -1356,7 +1355,7 @@ const StudentDashboard = () => {
 
                   <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', height: '140px' }}>
                     <img
-                      src={selectedVendorDetails.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>"}
+                      src={selectedVendorDetails.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E"}
                       alt={selectedVendorDetails.full_name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
@@ -1387,7 +1386,7 @@ const StudentDashboard = () => {
                         <div key={meal.id} className="order-again-card" style={{ padding: '12px' }}>
                           <div style={{ display: 'flex', gap: '12px' }}>
                             <img
-                              src={meal.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"}
+                              src={meal.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E"}
                               alt={meal.name}
                               onClick={() => setSelectedMeal({ ...meal, sellerId: selectedVendorDetails.id })}
                               style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }}
@@ -2178,7 +2177,7 @@ const StudentDashboard = () => {
                       {/* Header block */}
                       <div className="profile-chef-header" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.04)', marginBottom: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
                         <img
-                          src={profileForm.avatar || user.avatar}
+                          src={profileForm.avatar || user.avatar || "/images/default-avatar.jpg"}
                           alt="Student Avatar"
                           style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%', border: '3px solid #855300', padding: '2px' }}
                         />
@@ -2288,7 +2287,7 @@ const StudentDashboard = () => {
                       <div className="profile-chef-header" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ position: 'relative', width: '80px', height: '80px', marginBottom: '8px' }}>
                           <img
-                            src={profileForm.avatar || user.avatar}
+                            src={profileForm.avatar || user.avatar || "/images/default-avatar.jpg"}
                             alt="Student Face Photo"
                             className="profile-chef-avatar"
                             style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }}
