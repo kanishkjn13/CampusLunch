@@ -329,51 +329,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchVendorsList();
-    const pollInterval = setInterval(() => {
-      // Fetch in background without resetting loading spinner state to prevent layout flickering
-      let foodTypeParam = "";
-      if (filterType === "Veg" || filterType === "Jain") {
-        foodTypeParam = filterType;
-      } else if (filterType === "Non-Veg") {
-        foodTypeParam = "Non-Veg";
-      }
-      getVendors(searchQuery, selectedMealType, foodTypeParam)
-        .then(data => {
-          const vendorsList = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
-          setVendors(vendorsList);
-          // Sync sellers list in context so cart stock levels update too
-          setSellers(prev => {
-            return vendorsList.map(v => {
-              const matchedPrev = prev.find(p => p.id === v.id);
-              return {
-                id: v.id,
-                name: v.full_name || 'Vendor Kitchen',
-                photo: v.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>",
-                rating: '4.8',
-                reviews: 12,
-                distance: '0.5km',
-                servingTime: '12:00 PM - 3:00 PM',
-                vendorLocation: 'Campus Area',
-                type: ['Veg'],
-                meals: (v.menu_items || []).map(m => {
-                  const prevMeal = matchedPrev ? (matchedPrev.meals || []).find(pm => pm.id === m.id) : null;
-                  return {
-                    id: m.id,
-                    name: m.name,
-                    price: Number(m.price),
-                    type: m.food_type || 'Veg',
-                    description: m.description || '',
-                    availableQty: prevMeal ? prevMeal.availableQty : (m.is_available ? 999 : 0),
-                    prepTime: '15 mins'
-                  };
-                })
-              };
-            });
-          });
-        })
-        .catch(err => console.error("Background fetch failed:", err));
-    }, 3000);
-    return () => clearInterval(pollInterval);
+  
   }, [searchQuery, filterType, selectedMealType]);
 
   const handleViewVendorDetails = async (vendorId) => {
