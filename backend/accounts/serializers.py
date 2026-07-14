@@ -11,6 +11,7 @@ User = get_user_model()
 from .models import EmailOTP
 
 
+
 class StudentRegisterSerializer(serializers.ModelSerializer):
 
     confirm_password = serializers.CharField(
@@ -178,7 +179,6 @@ class VendorRegisterSerializer(serializers.ModelSerializer):
                     "accept_terms": "Please accept Terms & Conditions."
                 }
             )
-
         # Check if email is verified
         email = attrs.get("email")
         if not EmailOTP.objects.filter(email=email, verified=True).exists():

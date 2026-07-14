@@ -7,7 +7,6 @@ import {
   vendorRegister,
   sendOTP,
   verifyOTP,
-  resendOTP,
 } from "@/Services/authService";
 
 const Register = () => {
@@ -70,15 +69,6 @@ const Register = () => {
       return () => clearTimeout(timer);
     }
   }, [showOtpModal]);
-
-  const handleGoogleRegister = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      navigate('/auth/google/callback', {
-        state: { access_token: tokenResponse.access_token }
-      });
-    },
-    onError: () => setError("Google Sign Up failed. Please try again.")
-  });
 
   const handleOtpChange = (index, value) => {
     const cleanVal = value.replace(/\D/g, '');
@@ -190,7 +180,7 @@ const Register = () => {
     setOtpError('');
     setOtpSuccess('');
     try {
-      await resendOTP(email);
+      await sendOTP(email);
       setCooldown(30);
       setOtpValues(['', '', '', '', '', '']);
       if (otpRefs[0].current) {
@@ -203,6 +193,19 @@ const Register = () => {
       setOtpLoading(false);
     }
   };
+
+
+
+  const handleGoogleRegister = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      navigate('/auth/google/callback', {
+        state: { access_token: tokenResponse.access_token }
+      });
+    },
+    onError: () => setError("Google Sign Up failed. Please try again.")
+  });
+
+
 
   const [selfie, setSelfie] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
@@ -950,6 +953,8 @@ const Register = () => {
           </div>
         </div>
       </div>
+
+
 
       {/* Verification Code Modal */}
       {showOtpModal && (

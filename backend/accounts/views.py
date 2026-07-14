@@ -8,7 +8,6 @@ from rest_framework.generics import CreateAPIView,GenericAPIView
 from rest_framework.permissions import AllowAny  ,IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import EmailOTP
 from .utils import send_otp_email, send_password_reset_email
 
@@ -252,7 +251,6 @@ class ProfileView(APIView):
 
 User = get_user_model()
 
-
 class SendOTPView(APIView):
     permission_classes = [AllowAny]
 
@@ -261,13 +259,12 @@ class SendOTPView(APIView):
         if not email:
             return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if email is already registered/verified in User table
         if User.objects.filter(email=email).exists():
             return Response({"detail": "Email already verified / registered."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
 
-        # Cooldown check: 30-second cooldown
+        # Cooldown check
         last_otp = EmailOTP.objects.filter(email=email).order_by("-created_at").first()
         if last_otp and (now - last_otp.created_at) < timedelta(seconds=30):
             cooldown_left = 30 - int((now - last_otp.created_at).total_seconds())
@@ -276,7 +273,7 @@ class SendOTPView(APIView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
 
-        # Rate limit check: Maximum 3 requests in 10 minutes
+        # Rate limit check
         ten_mins_ago = now - timedelta(minutes=10)
         recent_requests_count = EmailOTP.objects.filter(email=email, created_at__gte=ten_mins_ago).count()
         if recent_requests_count >= 3:
@@ -285,30 +282,30 @@ class SendOTPView(APIView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
 
-        # Generate OTP
-        otp = f"{random.randint(100000, 999999)}"
+        # Delete old unverified records
+        EmailOTP.objects.filter(email=email, verified=False).delete()
 
-        # Send Email
+        otp = f"{random.randint(100000, 999999)}"
+        expires_at = now + timedelta(minutes=5)
+
         try:
             send_otp_email(email, otp)
         except Exception as e:
             print(f"\n[SANDBOX FALLBACK] Failed to send email via SMTP: {str(e)}")
             print(f"Generated OTP for {email} is: {otp}\n")
-            # Proceed successfully in case SMTP fails/timeouts so the user can sign up using logs OTP
-            EmailOTP.objects.create(email=email, otp=otp)
+            EmailOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
+            from django.core.cache import cache
+            cache.delete(f"otp_attempts_{email}")
             return Response(
                 {"message": "OTP generated. (Sandbox Mode: Retrieve your OTP from the server logs)"},
                 status=status.HTTP_200_OK
             )
 
-        # Save to database
-        EmailOTP.objects.create(email=email, otp=otp)
+        EmailOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
+        from django.core.cache import cache
+        cache.delete(f"otp_attempts_{email}")
 
         return Response({"message": "OTP sent successfully."}, status=status.HTTP_200_OK)
-
-
-class ResendOTPView(SendOTPView):
-    pass
 
 
 class VerifyOTPView(APIView):
@@ -321,23 +318,30 @@ class VerifyOTPView(APIView):
         if not email or not otp:
             return Response({"detail": "Email and OTP code are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Find latest unverified OTP for this email
+        from django.core.cache import cache
+        cache_key = f"otp_attempts_{email}"
+        attempts = cache.get(cache_key, 0)
+
         otp_record = EmailOTP.objects.filter(email=email, verified=False).order_by("-created_at").first()
+        if not otp_record:
+            return Response({"detail": "No OTP found for this email. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not otp_record or otp_record.otp != otp:
-            return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+        if attempts >= 3:
+            otp_record.delete()
+            cache.delete(cache_key)
+            return Response({"detail": "Too many failed attempts. This OTP has been invalidated. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check expiration (5 minutes)
-        if (timezone.now() - otp_record.created_at) > timedelta(minutes=5):
+        if timezone.now() > otp_record.expires_at:
             return Response({"detail": "Expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Mark verified and invalidate/clear OTP code
+        if otp_record.otp != otp:
+            cache.set(cache_key, attempts + 1, timeout=300)
+            return Response({"detail": f"Invalid OTP. {3 - (attempts + 1)} attempts remaining."}, status=status.HTTP_400_BAD_REQUEST)
+
         otp_record.verified = True
         otp_record.otp = ""
         otp_record.save()
 
+        cache.delete(cache_key)
+
         return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
-
-
-
- 

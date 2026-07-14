@@ -28,10 +28,14 @@ from drf_spectacular.views import (
 )
 
 
+from accounts.views import SendOTPView, VerifyOTPView
+
 urlpatterns = [
 
     path("admin/", admin.site.urls),
 
+    path("api/send-otp/", SendOTPView.as_view(), name="send-otp"),
+    path("api/verify-otp/", VerifyOTPView.as_view(), name="verify-otp"),
     path("api/auth/", include("accounts.urls")),
     path("api/vendors/", include("vendors.urls")),
     path("api/students/", include("students.urls")),

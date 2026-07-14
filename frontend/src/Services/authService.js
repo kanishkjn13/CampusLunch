@@ -86,18 +86,12 @@ export const updateUserProfileApi = async (data) => {
 
 // Send OTP
 export const sendOTP = async (email) => {
-  const response = await api.post("/auth/otp/send/", { email });
+  const response = await api.post("/send-otp/", { email });
   return response.data;
 };
 
 // Verify OTP
 export const verifyOTP = async (email, otp) => {
-  const response = await api.post("/auth/otp/verify/", { email, otp });
-  return response.data;
-};
-
-// Resend OTP
-export const resendOTP = async (email) => {
-  const response = await api.post("/auth/otp/resend/", { email });
+  const response = await api.post("/verify-otp/", { email, otp });
   return response.data;
 };

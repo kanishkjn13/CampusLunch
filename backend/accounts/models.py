@@ -82,8 +82,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 class EmailOTP(models.Model):
     email = models.EmailField()
     otp = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
     verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.email} - {self.otp} - Verified: {self.verified}"
