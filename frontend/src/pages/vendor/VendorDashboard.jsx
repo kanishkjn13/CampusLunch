@@ -182,7 +182,7 @@ const VendorDashboard = () => {
     image: ''
   });
 
-  const { orders: contextOrders, setOrders, ratings: contextRatings, sellers, setSellers, setActiveTrackers } = useContext(StudentContext);
+  const { orders: contextOrders, setOrders, ratings: contextRatings, sellers, setSellers, activeTrackers, setActiveTrackers } = useContext(StudentContext);
 
   const fetchMenu = async () => {
     setMenuLoading(true);
@@ -367,7 +367,7 @@ const VendorDashboard = () => {
         items: o.items,
         price: `₹${o.bill}`,
         timeLeft: 'At Counter',
-        status: 'NOT DELIVERED',
+        status: o.deliveryStatus || 'Confirmed',
         color: 'accent-gold'
       }));
 
@@ -458,6 +458,49 @@ const VendorDashboard = () => {
 
     setConfirmModal({ isOpen: false, orderId: null });
     setExpandedOrderId(null);
+  };
+
+  const handleAdvanceStatus = (id) => {
+    const tracker = (activeTrackers || []).find(t => t.orderId === id);
+    if (!tracker) {
+      handleDeliverTrigger(id);
+      return;
+    }
+
+    const currentIdx = tracker.statusIndex;
+    if (currentIdx === 0) {
+      // Confirmed -> Preparing Food
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Preparing' } : o));
+      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 1, eta: '15 mins', location: 'Kitchen Preparing' } : t));
+    } else if (currentIdx === 1) {
+      // Preparing Food -> Packed
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Packed' } : o));
+      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 2, eta: '10 mins', location: 'Kitchen Packing Counter' } : t));
+    } else if (currentIdx === 2) {
+      // Packed -> Picked Up (Transit)
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Transit' } : o));
+      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 3, eta: '8 mins', location: 'Out for delivery courier' } : t));
+    } else if (currentIdx === 3) {
+      // Picked Up -> Out For Delivery
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Out For Delivery' } : o));
+      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 4, eta: '3 mins', location: 'Near Hostel block' } : t));
+    } else if (currentIdx === 4) {
+      // Out For Delivery -> Delivered
+      handleDeliverTrigger(id);
+    }
+  };
+
+  const getOrderButtonLabel = (orderId) => {
+    const tracker = (activeTrackers || []).find(t => t.orderId === orderId);
+    if (!tracker) return "Mark as Delivered";
+    switch (tracker.statusIndex) {
+      case 0: return "Start Preparing";
+      case 1: return "Pack Order";
+      case 2: return "Hand to Courier";
+      case 3: return "Out for Delivery";
+      case 4: return "Mark as Delivered";
+      default: return "Mark as Delivered";
+    }
   };
 
   const handleAddNewTiffin = (e) => {
@@ -1225,9 +1268,9 @@ const VendorDashboard = () => {
                                   <button
                                     className="order-action-btn btn-solid"
                                     style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800 }}
-                                    onClick={() => handleDeliverTrigger(order.id)}
+                                    onClick={() => handleAdvanceStatus(order.id)}
                                   >
-                                    Mark as Delivered
+                                    {getOrderButtonLabel(order.id)}
                                   </button>
                                 </div>
                               </div>
@@ -1317,9 +1360,9 @@ const VendorDashboard = () => {
                                     <button
                                       className="order-action-btn btn-solid"
                                       style={{ padding: '8px 16px', borderRadius: '8px' }}
-                                      onClick={() => handleDeliverTrigger(order.id)}
+                                      onClick={() => handleAdvanceStatus(order.id)}
                                     >
-                                      Mark as Delivered
+                                      {getOrderButtonLabel(order.id)}
                                     </button>
                                   </div>
                                 </div>
