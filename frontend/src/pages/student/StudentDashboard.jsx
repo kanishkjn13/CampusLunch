@@ -2,9 +2,9 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
-import { changePassword, logoutUser, updateUserProfileApi, forgotPassword } from "@/Services/authService";
+import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, deleteUserProfileApi } from "@/Services/authService";
 import { getVendors, getVendorDetails } from "@/Services/studentService";
-import { createSubscription, getStudentSubscriptions, pauseSubscription, resumeSubscription, cancelSubscription } from "@/Services/subscriptionService";
+
 import { jsPDF } from 'jspdf';
 import {
   Search,
@@ -226,15 +226,18 @@ const StudentDashboard = () => {
     ratings,
     setRatings,
     kitchenStatuses,
-    setSellers
+    setSellers,
+    notifications,
+    deleteNotification,
+    markAllNotificationsRead
   } = useContext(StudentContext);
 
   // Layout Tab Navigation
   const [activeTab, setActiveTab] = useState('home');
   const [profileSubTab, setProfileSubTab] = useState('menu');
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [smsUpdates, setSmsUpdates] = useState(false);
+  const [inAppNotifications, setInAppNotifications] = useState(true);
+  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
+  const [actionLoading, setActionLoading] = useState({ isLoading: false, message: '' });
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -278,117 +281,7 @@ const StudentDashboard = () => {
   const [selectedVendorDetails, setSelectedVendorDetails] = useState(null);
   const [vendorDetailsLoading, setVendorDetailsLoading] = useState(false);
 
-  // Subscription management states & handlers
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [subscriptionsLoading, setSubscriptionsLoading] = useState(false);
-  const [subscriptionsError, setSubscriptionsError] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [subscriptionForm, setSubscriptionForm] = useState({
-    plan_type: 'Weekly',
-    breakfast: false,
-    lunch: false,
-    dinner: false,
-    start_date: new Date().toISOString().split('T')[0]
-  });
-  const [confirmCancelModal, setConfirmCancelModal] = useState({ isOpen: false, subscriptionId: null });
 
-  const fetchSubscriptionsList = async () => {
-    setSubscriptionsLoading(true);
-    setSubscriptionsError(false);
-    try {
-      const data = await getStudentSubscriptions();
-      if (Array.isArray(data)) {
-        setSubscriptions(data);
-      } else if (data && Array.isArray(data.results)) {
-        setSubscriptions(data.results);
-      } else {
-        setSubscriptions([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch subscriptions:", err);
-      setSubscriptionsError(true);
-    } finally {
-      setSubscriptionsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'subscriptions') {
-      fetchSubscriptionsList();
-    }
-  }, [activeTab]);
-
-  const handlePauseSubscription = async (id) => {
-    try {
-      await pauseSubscription(id);
-      fetchSubscriptionsList();
-    } catch (err) {
-      console.error("Failed to pause subscription:", err);
-      alert("Failed to pause subscription: " + (err.response?.data?.detail || err.message));
-    }
-  };
-
-  const handleResumeSubscription = async (id) => {
-    try {
-      await resumeSubscription(id);
-      fetchSubscriptionsList();
-    } catch (err) {
-      console.error("Failed to resume subscription:", err);
-      alert("Failed to resume subscription: " + (err.response?.data?.detail || err.message));
-    }
-  };
-
-  const handleCancelSubscription = async (id) => {
-    try {
-      await cancelSubscription(id);
-      setConfirmCancelModal({ isOpen: false, subscriptionId: null });
-      fetchSubscriptionsList();
-    } catch (err) {
-      console.error("Failed to cancel subscription:", err);
-      alert("Failed to cancel subscription: " + (err.response?.data?.detail || err.message));
-    }
-  };
-
-  const handleCreateSubscriptionSubmit = async (e) => {
-    e.preventDefault();
-    if (!subscriptionForm.breakfast && !subscriptionForm.lunch && !subscriptionForm.dinner) {
-      alert("Please select at least one meal type (Breakfast, Lunch, or Dinner).");
-      return;
-    }
-    try {
-      await createSubscription({
-        vendor_id: selectedVendorDetails.id,
-        plan_type: subscriptionForm.plan_type,
-        breakfast: subscriptionForm.breakfast,
-        lunch: subscriptionForm.lunch,
-        dinner: subscriptionForm.dinner,
-        start_date: subscriptionForm.start_date
-      });
-      alert("Subscribed successfully!");
-      setShowSubscriptionModal(false);
-      // Reset form
-      setSubscriptionForm({
-        plan_type: 'Weekly',
-        breakfast: false,
-        lunch: false,
-        dinner: false,
-        start_date: new Date().toISOString().split('T')[0]
-      });
-      setActiveTab('subscriptions');
-    } catch (err) {
-      console.error("Failed to create subscription:", err);
-      const errors = err.response?.data;
-      let errMsg = "Failed to subscribe.";
-      if (errors) {
-        if (Array.isArray(errors)) {
-          errMsg = errors.join(" ");
-        } else if (typeof errors === "object") {
-          errMsg = Object.values(errors).flat().join(" ");
-        }
-      }
-      alert(errMsg);
-    }
-  };
 
   const fetchVendorsList = async () => {
     setVendorsLoading(true);
@@ -400,7 +293,7 @@ const StudentDashboard = () => {
       } else if (filterType === "Non-Veg") {
         foodTypeParam = "Non-Veg";
       }
-      
+
       const data = await getVendors(searchQuery, selectedMealType, foodTypeParam);
       const vendorsList = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
       setVendors(vendorsList);
@@ -419,10 +312,10 @@ const StudentDashboard = () => {
         meals: (v.menu_items || []).map(m => ({
           id: m.id,
           name: m.name,
-          price: m.price,
+          price: Number(m.price),
           type: m.food_type || 'Veg',
           description: m.description || '',
-          availableQty: m.available_qty || 999,
+          availableQty: m.is_available ? 999 : 0,
           prepTime: '15 mins'
         }))
       })));
@@ -821,7 +714,7 @@ const StudentDashboard = () => {
       // Sync state and localStorage
       localStorage.setItem('name', updatedData.full_name);
       localStorage.setItem('phone', updatedData.phone);
-      
+
       const storedUserStr = localStorage.getItem("user");
       if (storedUserStr) {
         const u = JSON.parse(storedUserStr);
@@ -846,6 +739,8 @@ const StudentDashboard = () => {
   };
 
   const handleLogout = async () => {
+    setActionLoading({ isLoading: true, message: 'Logging out securely...' });
+    await new Promise(resolve => setTimeout(resolve, 1500));
     try {
       await logoutUser();
     } catch (err) {
@@ -863,11 +758,46 @@ const StudentDashboard = () => {
       localStorage.removeItem("tiffin_connect_sellers");
       localStorage.removeItem("tiffin_connect_ratings");
 
+      setActionLoading({ isLoading: false, message: '' });
       navigate("/login", { replace: true });
     }
   };
   return (
     <div className="student-device-wrapper">
+      {actionLoading.isLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          color: '#ffffff',
+          fontFamily: 'Outfit, sans-serif'
+        }}>
+          <style>{`
+            @keyframes loadProgress {
+              0% { width: 0%; }
+              50% { width: 70%; }
+              100% { width: 100%; }
+            }
+          `}</style>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '0.5px' }}>
+              {actionLoading.message}
+            </span>
+            <div style={{ width: '220px', height: '6px', backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: '99px', overflow: 'hidden', position: 'relative' }}>
+              <div style={{ height: '100%', width: '0%', backgroundColor: '#f59e0b', borderRadius: '99px', animation: 'loadProgress 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards' }} />
+            </div>
+          </div>
+        </div>
+      )}
       <div className="student-phone-frame">
 
         <div className="student-dashboard-layout">
@@ -904,13 +834,7 @@ const StudentDashboard = () => {
                 <span>Cart</span>
               </button>
 
-              <button
-                className={`sidebar-nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`}
-                onClick={() => setActiveTab('subscriptions')}
-              >
-                <Calendar size={20} />
-                <span>Subscriptions</span>
-              </button>
+
 
               <button
                 className={`sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
@@ -947,13 +871,109 @@ const StudentDashboard = () => {
                   {activeTab === 'order-success' && 'Order Confirmed'}
                   {activeTab === 'track-order' && 'Live Status Tracker'}
                   {activeTab === 'orders' && 'My Orders'}
-                  {activeTab === 'subscriptions' && 'My Subscriptions'}
                   {activeTab === 'profile' && 'Profile Details'}
                 </h2>
               </div>
 
               {/* Header Right Actions */}
-              <div className="header-right-actions" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div className="header-right-actions" style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
+                
+                {/* Notification Bell Icon */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}>
+                  <Bell size={20} style={{ color: '#475569' }} />
+                  {notifications && notifications.filter(n => n.unread).length > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#ef4444',
+                      color: '#ffffff',
+                      fontSize: '0.62rem',
+                      fontWeight: 900,
+                      borderRadius: '50%',
+                      width: '15px',
+                      height: '15px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1.5px solid #ffffff'
+                    }}>
+                      {notifications.filter(n => n.unread).length}
+                    </span>
+                  )}
+                </div>
+
+                {/* Notifications Dropdown Panel */}
+                {showNotificationsDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '40px',
+                    width: '300px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '16px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    zIndex: 10500,
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e293b' }}>Notifications</span>
+                      {notifications && notifications.filter(n => n.unread).length > 0 && (
+                        <button
+                          onClick={() => {
+                            if (markAllNotificationsRead) markAllNotificationsRead();
+                          }}
+                          style={{ border: 'none', background: 'transparent', color: '#855300', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }} className="category-scroll-container">
+                      {notifications && notifications.length > 0 ? (
+                        notifications.map(n => (
+                          <div
+                            key={n.id}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              backgroundColor: n.unread ? '#fffbeb' : '#f8fafc',
+                              borderLeft: `3px solid ${n.unread ? '#f59e0b' : '#cbd5e1'}`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '2px',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e293b' }}>{n.title}</span>
+                              <button
+                                onClick={() => {
+                                  if (deleteNotification) deleteNotification(n.id);
+                                }}
+                                style={{ border: 'none', background: 'transparent', color: '#94a3b8', fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}
+                              >
+                                &times;
+                              </button>
+                            </div>
+                            <span style={{ fontSize: '0.68rem', color: '#475569', lineHeight: '1.3', display: 'block' }}>{n.message}</span>
+                            <span style={{ fontSize: '0.58rem', color: '#94a3b8', marginTop: '2px' }}>{n.time}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '20px 0', fontSize: '0.72rem', color: '#94a3b8' }}>
+                          No notifications yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <img
                   src={user.avatar}
                   alt="Student Avatar"
@@ -997,67 +1017,7 @@ const StudentDashboard = () => {
                       />
                     </div>
 
-                    {/* Category Toggles */}
-                    <div className="category-scroll-container">
-                      <button
-                        className={`category-pill ${filterType === 'All' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setFilterType('All')}
-                      >
-                        All
-                      </button>
-                      <button
-                        className={`category-pill ${filterType === 'Veg' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setFilterType('Veg')}
-                      >
-                        <span className="category-dot veg"></span>
-                        Veg
-                      </button>
-                      <button
-                        className={`category-pill ${filterType === 'Non-Veg' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setFilterType('Non-Veg')}
-                      >
-                        <span className="category-dot nonveg"></span>
-                        Non-Veg
-                      </button>
-                      <button
-                        className={`category-pill ${filterType === 'Jain' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setFilterType('Jain')}
-                      >
-                        Jain
-                      </button>
-                    </div>
 
-                    {/* Meal Type Toggles */}
-                    <div className="category-scroll-container" style={{ marginTop: '8px', display: 'flex', gap: '8px', overflowX: 'auto' }}>
-                      <button
-                        className={`category-pill ${selectedMealType === 'All' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setSelectedMealType('All')}
-                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
-                      >
-                        All Meals
-                      </button>
-                      <button
-                        className={`category-pill ${selectedMealType === 'Breakfast' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setSelectedMealType('Breakfast')}
-                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
-                      >
-                        🌅 Breakfast
-                      </button>
-                      <button
-                        className={`category-pill ${selectedMealType === 'Lunch' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setSelectedMealType('Lunch')}
-                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
-                      >
-                        ☀️ Lunch
-                      </button>
-                      <button
-                        className={`category-pill ${selectedMealType === 'Dinner' ? 'active-veg' : 'inactive-blue'}`}
-                        onClick={() => setSelectedMealType('Dinner')}
-                        style={{ border: '1px solid #cbd5e1', padding: '6px 12px', fontSize: '0.72rem', borderRadius: '20px' }}
-                      >
-                        🌙 Dinner
-                      </button>
-                    </div>
 
                     {/* Live Orders sliding carousel */}
                     {getActiveTrackersList().length > 0 && (
@@ -1190,55 +1150,170 @@ const StudentDashboard = () => {
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          {vendors.map(vendor => (
-                            <div
-                              key={vendor.id}
-                              className="order-again-card"
-                              onClick={() => handleViewVendorDetails(vendor.id)}
-                              style={{
-                                cursor: 'pointer',
-                                padding: '14px',
-                                display: 'flex',
-                                gap: '14px',
-                                alignItems: 'center',
-                                backgroundColor: '#ffffff',
-                                borderRadius: '16px',
-                                border: '1px solid rgba(0, 0, 0, 0.04)',
-                                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
-                                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                              }}
-                            >
-                              <img
-                                src={vendor.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>"}
-                                alt={vendor.full_name}
-                                style={{ width: '70px', height: '70px', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }}
-                              />
-                              <div style={{ flex: 1, textAlign: 'left' }}>
-                                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 3px 0' }}>
-                                  {vendor.full_name}
-                                </h4>
-                                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 6px 0', lineHeight: '1.3', height: '32px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                  {vendor.description}
-                                </p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 800 }}>★ 4.8</span>
-                                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#cbd5e1' }}></span>
-                                  <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>Open</span>
-                                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#cbd5e1' }}></span>
-                                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Serving Fresh</span>
+                          {(() => {
+                            const activeVendors = vendors.filter(vendor => 
+                              vendor.menu_items && 
+                              vendor.menu_items.length > 0 && 
+                              localStorage.getItem('kitchen_status_' + vendor.full_name) !== 'closed'
+                            );
+                            if (activeVendors.length === 0) {
+                              return (
+                                <div style={{ textAlign: 'center', padding: '30px 24px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', color: '#64748b' }}>
+                                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>No Active Kitchens Found</p>
+                                  <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>Try adjusting your search criteria or meal category filters.</p>
+                                </div>
+                              );
+                            }
+                            return activeVendors.map(vendor => (
+                              <div
+                                key={vendor.id}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '8px',
+                                  textAlign: 'left',
+                                  marginBottom: '24px'
+                                }}
+                              >
+                                {/* Vendor Header (Only Name and Action link) */}
+                                <div 
+                                  onClick={() => handleViewVendorDetails(vendor.id)}
+                                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '0 4px' }}
+                                >
+                                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#855300', margin: 0, fontFamily: 'serif' }}>
+                                    {vendor.full_name}
+                                  </h4>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', color: '#b45309', fontWeight: 800 }}>
+                                    <span>View Kitchen</span>
+                                    <ChevronRight size={14} />
+                                  </div>
+                                </div>
+
+                                {/* Tiffins List from Vendor */}
+                                <div style={{ 
+                                  display: 'flex', 
+                                  gap: '12px', 
+                                  overflowX: 'auto', 
+                                  paddingBottom: '6px',
+                                  scrollbarWidth: 'none',
+                                  msOverflowStyle: 'none'
+                                }}>
+                                  {vendor.menu_items.map(meal => {
+                                    const ratingInfo = getSellerRatingInfo(vendor.full_name);
+                                    const displayRating = ratingInfo.reviews > 0 ? ratingInfo.rating : '4.8';
+                                    
+                                    const contextSeller = sellers.find(s => s.id === vendor.id);
+                                    const contextMeal = contextSeller ? contextSeller.meals.find(m => m.id === meal.id) : null;
+                                    const availableStock = contextMeal ? contextMeal.availableQty : 15;
+                                    
+                                    return (
+                                      <div
+                                        key={meal.id}
+                                        style={{
+                                          flexShrink: 0,
+                                          width: '180px',
+                                          backgroundColor: '#fafbfc',
+                                          borderRadius: '16px',
+                                          padding: '10px',
+                                          border: '1.5px solid rgba(0, 0, 0, 0.025)',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '6px',
+                                          position: 'relative',
+                                          opacity: availableStock <= 0 ? 0.6 : 1
+                                        }}
+                                      >
+                                        {/* Meal Image */}
+                                        <div style={{ position: 'relative', width: '100%', height: '90px', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#e2e8f0' }}>
+                                          <img
+                                            src={meal.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V22H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"}
+                                            alt={meal.name}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                          />
+                                          <span style={{
+                                            position: 'absolute',
+                                            top: '6px',
+                                            left: '6px',
+                                            width: '10px',
+                                            height: '10px',
+                                            borderRadius: '50%',
+                                            backgroundColor: meal.food_type === 'Veg' || meal.food_type === 'Jain' ? '#10b981' : '#ef4444',
+                                            border: '2px solid #ffffff',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                          }} title={meal.food_type}></span>
+                                          <span style={{
+                                            position: 'absolute',
+                                            top: '6px',
+                                            right: '6px',
+                                            backgroundColor: 'rgba(255,255,255,0.92)',
+                                            color: '#f59e0b',
+                                            fontSize: '0.62rem',
+                                            fontWeight: 800,
+                                            padding: '2px 6px',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '2px',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                          }}>
+                                            ★ {displayRating}
+                                          </span>
+                                        </div>
+
+                                        {/* Meal Info */}
+                                        <div style={{ textAlign: 'left' }}>
+                                          <h5 style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b', margin: '0 0 2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {meal.name}
+                                          </h5>
+                                          <p style={{ fontSize: '0.65rem', color: '#64748b', margin: '0 0 6px 0', height: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {meal.description}
+                                          </p>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            {availableStock > 0 ? (
+                                              <span style={{ fontSize: '0.62rem', color: availableStock <= 5 ? '#ef4444' : '#059669', fontWeight: 700, backgroundColor: availableStock <= 5 ? '#fef2f2' : '#f0fdf4', padding: '2px 6px', borderRadius: '4px' }}>
+                                                {availableStock <= 5 ? `Only ${availableStock} left` : `Stock: ${availableStock}`}
+                                              </span>
+                                            ) : (
+                                              <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                                                Out of stock
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a' }}>
+                                              ₹{meal.price}
+                                            </span>
+                                            <button
+                                              disabled={availableStock <= 0}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleAddToCart(meal, vendor.id);
+                                              }}
+                                              style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '50%',
+                                                backgroundColor: availableStock <= 0 ? '#cbd5e1' : '#855300',
+                                                color: '#ffffff',
+                                                border: 'none',
+                                                cursor: availableStock <= 0 ? 'not-allowed' : 'pointer',
+                                                boxShadow: availableStock <= 0 ? 'none' : '0 2px 4px rgba(133, 83, 0, 0.2)'
+                                              }}
+                                            >
+                                              <Plus size={14} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#fcf8f2', color: '#855300' }}>
-                                <ChevronRight size={18} />
-                              </div>
-                            </div>
-                          ))}
-                          {vendors.length === 0 && (
-                            <div style={{ textAlign: 'center', padding: '30px 24px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', color: '#64748b' }}>
-                              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>No Active Kitchens Found</p>
-                              <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>Try adjusting your search criteria or meal category filters.</p>
-                            </div>
-                          )}
+                            ));
+                          })()}
                         </div>
                       )}
                     </div>
@@ -1279,24 +1354,7 @@ const StudentDashboard = () => {
                     </div>
                     <p style={{ fontSize: '0.82rem', color: '#475569', margin: '4px 0 0 0' }}>Location: Campus Hub Kitchen</p>
                     <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '4px 0 0 0' }}>Contact: {selectedVendorDetails.phone || "N/A"}</p>
-                    <div style={{ marginTop: '12px', borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>
-                      <button
-                        className="order-action-btn btn-solid"
-                        style={{ width: '100%', padding: '10px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer' }}
-                        onClick={() => {
-                          setSubscriptionForm({
-                            plan_type: 'Weekly',
-                            breakfast: false,
-                            lunch: false,
-                            dinner: false,
-                            start_date: new Date().toISOString().split('T')[0]
-                          });
-                          setShowSubscriptionModal(true);
-                        }}
-                      >
-                        Subscribe to Meal Plan
-                      </button>
-                    </div>
+
                   </div>
 
                   {/* Menu List */}
@@ -1975,7 +2033,6 @@ const StudentDashboard = () => {
                       <span className="material-symbols-outlined" style={{ fontSize: '1.8rem', color: '#d97706' }}>info</span>
                       <div>
                         <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#855300' }}>No active orders for now</h4>
-                        <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#b45309', fontWeight: 500 }}>Your active live tracking states will appear here once you place a new tiffin checkout.</p>
                       </div>
                     </div>
                   )}
@@ -2091,166 +2148,7 @@ const StudentDashboard = () => {
                 </div>
               )}
 
-              {/* SUBSCRIPTIONS VIEW */}
-              {activeTab === 'subscriptions' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginBottom: '4px' }}>Active Meal Plans</h3>
-                  {subscriptionsLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
-                      <RefreshCw className="animate-spin" size={24} style={{ color: '#855300' }} />
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading subscriptions...</span>
-                    </div>
-                  ) : subscriptionsError ? (
-                    <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
-                      <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>Failed to load subscriptions.</p>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#7f1d1d' }}>Please check your network connection and try again.</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Active / Paused Plans */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {subscriptions.filter(sub => sub.status === 'Active' || sub.status === 'Paused').map(sub => (
-                          <div
-                            key={sub.id}
-                            className="order-again-card"
-                            style={{
-                              padding: '16px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '12px',
-                              backgroundColor: '#ffffff',
-                              borderRadius: '16px',
-                              border: '1px solid rgba(0, 0, 0, 0.04)',
-                              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)'
-                            }}
-                          >
-                            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                              <img
-                                src={sub.vendor?.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/></svg>"}
-                                alt={sub.vendor?.full_name}
-                                style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }}
-                              />
-                              <div style={{ flex: 1, textAlign: 'left' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                                    {sub.vendor?.full_name || sub.vendor?.email}
-                                  </h4>
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    padding: '3px 8px',
-                                    borderRadius: '6px',
-                                    backgroundColor: sub.status === 'Active' ? '#e2fbe8' : '#fff3e0',
-                                    color: sub.status === 'Active' ? '#15803d' : '#e65100',
-                                    fontWeight: 800
-                                  }}>
-                                    {sub.status}
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                                  <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700 }}>
-                                    {sub.plan_type}
-                                  </span>
-                                  {sub.breakfast && <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>Breakfast</span>}
-                                  {sub.lunch && <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>Lunch</span>}
-                                  {sub.dinner && <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>Dinner</span>}
-                                </div>
-                              </div>
-                            </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px', fontSize: '0.72rem', color: '#64748b' }}>
-                              <span>Start: {sub.start_date}</span>
-                              <span>End: {sub.end_date}</span>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                              {sub.status === 'Active' ? (
-                                <button
-                                  className="order-action-btn btn-outline"
-                                  style={{ flex: 1, padding: '8px', fontSize: '0.75rem', borderRadius: '8px', cursor: 'pointer' }}
-                                  onClick={() => handlePauseSubscription(sub.id)}
-                                >
-                                  Pause Plan
-                                </button>
-                              ) : (
-                                <button
-                                  className="order-action-btn btn-solid"
-                                  style={{ flex: 1, padding: '8px', fontSize: '0.75rem', borderRadius: '8px', cursor: 'pointer' }}
-                                  onClick={() => handleResumeSubscription(sub.id)}
-                                >
-                                  Resume Plan
-                                </button>
-                              )}
-                              <button
-                                className="order-action-btn"
-                                style={{ flex: 1, padding: '8px', fontSize: '0.75rem', borderRadius: '8px', backgroundColor: '#fdeeed', color: '#b91c1c', border: '1px solid #fca5a5', cursor: 'pointer' }}
-                                onClick={() => setConfirmCancelModal({ isOpen: true, subscriptionId: sub.id })}
-                              >
-                                Cancel Plan
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-
-                        {subscriptions.filter(sub => sub.status === 'Active' || sub.status === 'Paused').length === 0 && (
-                          <div style={{ textAlign: 'center', padding: '30px 24px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', color: '#64748b' }}>
-                            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>No Active Subscriptions</p>
-                            <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>Browse kitchens and subscribe to get delicious daily meals.</p>
-                            <button
-                              className="order-action-btn btn-solid"
-                              style={{ margin: '12px auto 0 auto', padding: '6px 14px', fontSize: '0.72rem', borderRadius: '6px', cursor: 'pointer' }}
-                              onClick={() => setActiveTab('home')}
-                            >
-                              Browse Kitchens
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Subscription History */}
-                      <h3 className="dashboard-heading" style={{ fontSize: '0.95rem', marginTop: '16px', marginBottom: '4px' }}>Subscription History</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {subscriptions.filter(sub => sub.status === 'Cancelled' || sub.status === 'Completed').map(sub => (
-                          <div
-                            key={sub.id}
-                            style={{
-                              padding: '12px 14px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              backgroundColor: '#fafbfc',
-                              borderRadius: '12px',
-                              border: '1px solid rgba(0, 0, 0, 0.02)'
-                            }}
-                          >
-                            <div style={{ textAlign: 'left' }}>
-                              <h5 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155', margin: 0 }}>
-                                {sub.vendor?.full_name || sub.vendor?.email}
-                              </h5>
-                              <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                                {sub.plan_type} • Ended on {sub.end_date}
-                              </span>
-                            </div>
-                            <span style={{
-                              fontSize: '0.62rem',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              backgroundColor: sub.status === 'Completed' ? '#f1f5f9' : '#fdeeed',
-                              color: sub.status === 'Completed' ? '#475569' : '#b91c1c',
-                              fontWeight: 800
-                            }}>
-                              {sub.status}
-                            </span>
-                          </div>
-                        ))}
-
-                        {subscriptions.filter(sub => sub.status === 'Cancelled' || sub.status === 'Completed').length === 0 && (
-                          <p style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', margin: '10px 0' }}>No past subscription history.</p>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
 
               {/* PROFILE VIEW */}
               {activeTab === 'profile' && (
@@ -2471,45 +2369,17 @@ const StudentDashboard = () => {
                       <div className="profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>Manage Notifications</h4>
 
-                        {/* Toggle 1 */}
+                        {/* In-App Notifications Toggle */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>Push Notifications</span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>For real-time delivery tracking alerts</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>In-App Notifications</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>For real-time delivery tracking alerts and system updates</span>
                           </div>
                           <button
-                            onClick={() => setPushNotifications(!pushNotifications)}
-                            style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: pushNotifications ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
+                            onClick={() => setInAppNotifications(!inAppNotifications)}
+                            style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: inAppNotifications ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
                           >
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ffffff', position: 'absolute', left: pushNotifications ? '20px' : '4px', top: '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}></div>
-                          </button>
-                        </div>
-
-                        {/* Toggle 2 */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>Email Alerts</span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>For billing receipts and transaction logs</span>
-                          </div>
-                          <button
-                            onClick={() => setEmailAlerts(!emailAlerts)}
-                            style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: emailAlerts ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
-                          >
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ffffff', position: 'absolute', left: emailAlerts ? '20px' : '4px', top: '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}></div>
-                          </button>
-                        </div>
-
-                        {/* Toggle 3 */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>SMS Updates</span>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Receive driver arrival notices over SMS</span>
-                          </div>
-                          <button
-                            onClick={() => setSmsUpdates(!smsUpdates)}
-                            style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: smsUpdates ? '#855300' : '#cbd5e1', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s', padding: 0 }}
-                          >
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ffffff', position: 'absolute', left: smsUpdates ? '20px' : '4px', top: '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}></div>
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#ffffff', position: 'absolute', left: inAppNotifications ? '20px' : '4px', top: '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}></div>
                           </button>
                         </div>
                       </div>
@@ -2829,16 +2699,7 @@ const StudentDashboard = () => {
                 {activeTab === 'cart' && <div className="active-dot"></div>}
               </button>
 
-              <button
-                className={`bottom-nav-item ${activeTab === 'subscriptions' ? 'active' : ''}`}
-                onClick={() => setActiveTab('subscriptions')}
-              >
-                <div className="nav-item-icon-wrapper">
-                  <Calendar size={22} />
-                </div>
-                <span>Plans</span>
-                {activeTab === 'subscriptions' && <div className="active-dot"></div>}
-              </button>
+
 
               <button
                 className={`bottom-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
@@ -3088,10 +2949,21 @@ const StudentDashboard = () => {
               <button
                 className="custom-modal-btn btn-confirm"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#ef4444', color: '#ffffff' }}
-                onClick={() => {
+                onClick={async () => {
                   setShowDeleteConfirm(false);
+                  setActionLoading({ isLoading: true, message: 'Deleting account permanently...' });
+                  try {
+                    await deleteUserProfileApi();
+                  } catch (err) {
+                    console.error("Account deletion failed:", err);
+                  }
+                  await new Promise(resolve => setTimeout(resolve, 1800));
                   triggerToast('Account deleted successfully.');
                   localStorage.removeItem('role');
+                  localStorage.removeItem('access');
+                  localStorage.removeItem('refresh');
+                  localStorage.removeItem('user');
+                  setActionLoading({ isLoading: false, message: '' });
                   navigate('/');
                 }}
               >
@@ -3134,183 +3006,13 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      {/* Subscription Form Modal */}
-      {showSubscriptionModal && selectedVendorDetails && (
-        <div className="custom-modal-overlay" style={{ zIndex: 10000 }}>
-          <div className="custom-modal-card" style={{ maxWidth: '360px', padding: '24px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#855300', margin: '0 0 16px 0', textAlign: 'center' }}>Subscribe to Meal Plan</h3>
-            <form onSubmit={handleCreateSubscriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
-              
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Plan Type</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid ' + (subscriptionForm.plan_type === 'Weekly' ? '#855300' : '#cbd5e1'),
-                      backgroundColor: subscriptionForm.plan_type === 'Weekly' ? '#fff9f0' : '#ffffff',
-                      color: subscriptionForm.plan_type === 'Weekly' ? '#855300' : '#475569',
-                      fontWeight: 800,
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setSubscriptionForm({ ...subscriptionForm, plan_type: 'Weekly' })}
-                  >
-                    Weekly (7 Days)
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid ' + (subscriptionForm.plan_type === 'Monthly' ? '#855300' : '#cbd5e1'),
-                      backgroundColor: subscriptionForm.plan_type === 'Monthly' ? '#fff9f0' : '#ffffff',
-                      color: subscriptionForm.plan_type === 'Monthly' ? '#855300' : '#475569',
-                      fontWeight: 800,
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setSubscriptionForm({ ...subscriptionForm, plan_type: 'Monthly' })}
-                  >
-                    Monthly (30 Days)
-                  </button>
-                </div>
-              </div>
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Select Meals</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#1e293b', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={subscriptionForm.breakfast}
-                      onChange={(e) => setSubscriptionForm({ ...subscriptionForm, breakfast: e.target.checked })}
-                      style={{ width: '16px', height: '16px', accentColor: '#855300' }}
-                    />
-                    Breakfast
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#1e293b', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={subscriptionForm.lunch}
-                      onChange={(e) => setSubscriptionForm({ ...subscriptionForm, lunch: e.target.checked })}
-                      style={{ width: '16px', height: '16px', accentColor: '#855300' }}
-                    />
-                    Lunch
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#1e293b', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={subscriptionForm.dinner}
-                      onChange={(e) => setSubscriptionForm({ ...subscriptionForm, dinner: e.target.checked })}
-                      style={{ width: '16px', height: '16px', accentColor: '#855300' }}
-                    />
-                    Dinner
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Start Date</label>
-                <input
-                  type="date"
-                  value={subscriptionForm.start_date}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setSubscriptionForm({ ...subscriptionForm, start_date: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '0.85rem',
-                    boxSizing: 'border-box'
-                  }}
-                  required
-                />
-              </div>
-
-              {/* Dynamic calculations info */}
-              <div style={{ backgroundColor: '#f8fafc', padding: '10px 12px', borderRadius: '8px', fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>End Date:</span>
-                  <span style={{ fontWeight: 800 }}>
-                    {subscriptionForm.start_date ? (() => {
-                      const d = new Date(subscriptionForm.start_date);
-                      d.setDate(d.getDate() + (subscriptionForm.plan_type === 'Weekly' ? 7 : 30));
-                      return d.toISOString().split('T')[0];
-                    })() : 'N/A'}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Calculated Price:</span>
-                  <span style={{ fontWeight: 900, color: '#059669', fontSize: '0.8rem' }}>
-                    ₹{(() => {
-                      const base = selectedVendorDetails.price || 60;
-                      const count = (subscriptionForm.breakfast ? 1 : 0) + (subscriptionForm.lunch ? 1 : 0) + (subscriptionForm.dinner ? 1 : 0);
-                      const mult = subscriptionForm.plan_type === 'Weekly' ? 7 : 30;
-                      return count * base * mult;
-                    })()}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="button"
-                  className="custom-modal-btn btn-cancel"
-                  style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem' }}
-                  onClick={() => setShowSubscriptionModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="custom-modal-btn btn-confirm"
-                  style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#855300', color: '#ffffff' }}
-                >
-                  Subscribe
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Subscription Cancel Confirmation Modal */}
-      {confirmCancelModal.isOpen && (
-        <div className="custom-modal-overlay" style={{ zIndex: 10000 }}>
-          <div className="custom-modal-card" style={{ maxWidth: '320px', padding: '24px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 10px 0', color: '#0f172a', textAlign: 'center' }}>Cancel Subscription?</h3>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 20px 0', lineHeight: '1.4', textAlign: 'center' }}>
-              Are you sure you want to cancel this meal plan subscription? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-              <button
-                className="custom-modal-btn btn-cancel"
-                style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem' }}
-                onClick={() => setConfirmCancelModal({ isOpen: false, subscriptionId: null })}
-              >
-                No, Keep
-              </button>
-              <button
-                className="custom-modal-btn btn-confirm"
-                style={{ flex: 1, padding: '10px 0', fontSize: '0.82rem', backgroundColor: '#dc2626', color: '#ffffff' }}
-                onClick={() => handleCancelSubscription(confirmCancelModal.subscriptionId)}
-              >
-                Yes, Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Toast confirmation overlays */}
       {toastMessage && (
         <div style={{
           position: 'fixed',
-          bottom: '100px',
+          top: '24px',
           left: '50%',
           transform: 'translateX(-50%)',
           backgroundColor: '#0f172a',
@@ -3323,7 +3025,7 @@ const StudentDashboard = () => {
           fontWeight: 700,
           textAlign: 'center',
           minWidth: '280px',
-          animation: 'slideUp 0.3s ease-out'
+          animation: 'slideDown 0.3s ease-out'
         }}>
           {toastMessage}
         </div>

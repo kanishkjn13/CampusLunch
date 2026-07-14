@@ -78,7 +78,17 @@ const Landing = () => {
             <Link to="/register" className="btn btn-primary hero-cta-btn hero-cta-link">
               Register as Student
             </Link>
-            <Link to="/register?role=vendor" className="btn btn-secondary hero-sec-btn hero-sec-link">
+            <Link
+              to="/register?role=vendor"
+              className="btn btn-secondary hero-sec-btn hero-sec-link"
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#855300',
+                borderColor: '#855300',
+                borderWidth: '2px',
+                borderStyle: 'solid'
+              }}
+            >
               Join as Vendor
             </Link>
           </div>

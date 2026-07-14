@@ -248,6 +248,11 @@ class ProfileView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def delete(self, request):
+        user = request.user
+        user.delete()
+        return Response({"message": "Account deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
 
 User = get_user_model()
 

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StudentContext } from '@/context/StudentContext';
 import logo from '@/assets/logos/logo.png';
-import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, getUserProfile } from "@/Services/authService";
+import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, getUserProfile, deleteUserProfileApi } from "@/Services/authService";
 import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem } from "@/Services/menuService";
-import { getVendorSubscribers } from "@/Services/subscriptionService";
+
 import { getMediaBaseURL } from '@/APIs/axios';
 import {
   Menu,
@@ -35,7 +35,7 @@ const VendorDashboard = () => {
   const navigate = useNavigate();
   // Vendor details from localStorage (reactive state hooks)
   const storedSelfie = localStorage.getItem('vendor_selfie');
-  const [vendorChefAvatar, setVendorChefAvatar] = useState(storedSelfie || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>");
+  const [vendorChefAvatar, setVendorChefAvatar] = useState(storedSelfie || "/images/default-avatar.jpg");
 
   const getStoredVendorUser = (field, fallback) => {
     const userStr = localStorage.getItem("user");
@@ -84,41 +84,7 @@ const VendorDashboard = () => {
   });
   const [menuImageFile, setMenuImageFile] = useState(null);
   const [menuImagePreview, setMenuImagePreview] = useState(null);
-
-  // Subscribers tab states & functions
-  const [subscribers, setSubscribers] = useState([]);
-  const [subscribersLoading, setSubscribersLoading] = useState(false);
-  const [subscribersError, setSubscribersError] = useState(false);
-  const [subscribersSearch, setSubscribersSearch] = useState('');
-  const [subscribersStatusFilter, setSubscribersStatusFilter] = useState('');
-  const [selectedSubscriberDetails, setSelectedSubscriberDetails] = useState(null);
   const [activeBottomTab, setActiveBottomTab] = useState('home');
-
-  const fetchSubscribersList = async () => {
-    setSubscribersLoading(true);
-    setSubscribersError(false);
-    try {
-      const data = await getVendorSubscribers(subscribersSearch, subscribersStatusFilter);
-      if (Array.isArray(data)) {
-        setSubscribers(data);
-      } else if (data && Array.isArray(data.results)) {
-        setSubscribers(data.results);
-      } else {
-        setSubscribers([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch subscribers:", err);
-      setSubscribersError(true);
-    } finally {
-      setSubscribersLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeBottomTab === 'subscribers') {
-      fetchSubscribersList();
-    }
-  }, [activeBottomTab, subscribersSearch, subscribersStatusFilter]);
 
   // Nested settings states
   const [activeProfileSubPage, setActiveProfileSubPage] = useState('menu'); // 'menu', 'edit-profile', 'operating-settings', 'change-password', 'reset-password-request', 'help-center-faq'
@@ -147,6 +113,7 @@ const VendorDashboard = () => {
 
   const [passwordResetEmail, setPasswordResetEmail] = useState('');
   const [deleteAccountModal, setDeleteAccountModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState({ isLoading: false, message: '' });
 
   const [kitchenOpen, setKitchenOpen] = useState(() => {
     const status = localStorage.getItem('kitchen_status_' + vendorName);
@@ -702,19 +669,32 @@ const VendorDashboard = () => {
     }
   };
 
-  const handleDeleteAccountConfirm = () => {
+  const handleDeleteAccountConfirm = async () => {
+    setDeleteAccountModal(false);
+    setActionLoading({ isLoading: true, message: 'Deleting kitchen account permanently...' });
+    try {
+      await deleteUserProfileApi();
+    } catch (err) {
+      console.error("Account deletion failed:", err);
+    }
+    await new Promise(resolve => setTimeout(resolve, 1800));
     // Clear credentials
     localStorage.removeItem('role');
     localStorage.removeItem('vendor_name');
     localStorage.removeItem('vendor_phone');
     localStorage.removeItem('vendor_email');
     localStorage.removeItem('vendor_selfie');
+    localStorage.removeItem('access');
+    localStorage.removeItem('refresh');
+    localStorage.removeItem('user');
 
-    setDeleteAccountModal(false);
+    setActionLoading({ isLoading: false, message: '' });
     navigate('/');
   };
 
   const handleLogout = async () => {
+    setActionLoading({ isLoading: true, message: 'Logging out securely...' });
+    await new Promise(resolve => setTimeout(resolve, 1500));
     try {
       await logoutUser();
     } catch (err) {
@@ -728,6 +708,8 @@ const VendorDashboard = () => {
       localStorage.removeItem('vendor_phone');
       localStorage.removeItem('vendor_email');
       localStorage.removeItem('vendor_selfie');
+      
+      setActionLoading({ isLoading: false, message: '' });
       navigate("/login", { replace: true });
     }
   };
@@ -826,6 +808,40 @@ const VendorDashboard = () => {
 
   return (
     <div className="vendor-device-wrapper">
+      {actionLoading.isLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          color: '#ffffff',
+          fontFamily: 'Outfit, sans-serif'
+        }}>
+          <style>{`
+            @keyframes loadProgress {
+              0% { width: 0%; }
+              50% { width: 70%; }
+              100% { width: 100%; }
+            }
+          `}</style>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '0.5px' }}>
+              {actionLoading.message}
+            </span>
+            <div style={{ width: '220px', height: '6px', backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: '99px', overflow: 'hidden', position: 'relative' }}>
+              <div style={{ height: '100%', width: '0%', backgroundColor: '#f59e0b', borderRadius: '99px', animation: 'loadProgress 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards' }} />
+            </div>
+          </div>
+        </div>
+      )}
       <div className="vendor-phone-frame">
 
         <div className="vendor-dashboard-layout">
@@ -870,13 +886,7 @@ const VendorDashboard = () => {
                 <span>Reviews</span>
               </button>
 
-              <button
-                className={`sidebar-nav-item ${activeBottomTab === 'subscribers' ? 'active' : ''}`}
-                onClick={() => setActiveBottomTab('subscribers')}
-              >
-                <Users size={20} />
-                <span>Subscribers</span>
-              </button>
+
 
               <button
                 className={`sidebar-nav-item ${activeBottomTab === 'profile' ? 'active' : ''}`}
@@ -1688,147 +1698,6 @@ const VendorDashboard = () => {
                 </div>
               )}
 
-              {/* SUBSCRIBERS TAB VIEW */}
-              {activeBottomTab === 'subscribers' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
-                  {/* Search and Filters */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                      <input
-                        type="text"
-                        placeholder="Search subscriber name..."
-                        value={subscribersSearch}
-                        onChange={(e) => setSubscribersSearch(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 12px 12px 42px',
-                          borderRadius: '16px',
-                          border: '1.5px solid rgba(0, 0, 0, 0.08)',
-                          fontSize: '0.85rem',
-                          backgroundColor: '#ffffff',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-
-                    {/* Status filter scrollbar */}
-                    <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', scrollbarWidth: 'none' }}>
-                      {[
-                        { label: 'All', value: '' },
-                        { label: 'Active', value: 'Active' },
-                        { label: 'Paused', value: 'Paused' },
-                        { label: 'Cancelled', value: 'Cancelled' },
-                        { label: 'Completed', value: 'Completed' }
-                      ].map(filter => (
-                        <button
-                          key={filter.label}
-                          onClick={() => setSubscribersStatusFilter(filter.value)}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: '20px',
-                            fontSize: '0.75rem',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            border: subscribersStatusFilter === filter.value ? 'none' : '1px solid rgba(0, 0, 0, 0.08)',
-                            backgroundColor: subscribersStatusFilter === filter.value ? '#855300' : '#ffffff',
-                            color: subscribersStatusFilter === filter.value ? '#ffffff' : '#475569',
-                            whiteSpace: 'nowrap',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {filter.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Subscribers List */}
-                  {subscribersLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
-                      <RotateCw className="animate-spin" size={24} style={{ color: '#855300' }} />
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Loading subscribers...</span>
-                    </div>
-                  ) : subscribersError ? (
-                    <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ef4444', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
-                      <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>Failed to load subscribers.</p>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#7f1d1d' }}>Please check your network connection and try again.</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {subscribers.map(sub => (
-                        <div
-                          key={sub.id}
-                          style={{
-                            padding: '14px',
-                            display: 'flex',
-                            gap: '14px',
-                            alignItems: 'center',
-                            backgroundColor: '#ffffff',
-                            borderRadius: '16px',
-                            border: '1px solid rgba(0, 0, 0, 0.04)',
-                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
-                          }}
-                        >
-                          <img
-                            src={sub.student?.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"}
-                            alt={sub.student?.full_name}
-                            style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                          <div style={{ flex: 1, textAlign: 'left' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                                {sub.student?.full_name || sub.student?.email}
-                              </h4>
-                              <span style={{
-                                fontSize: '0.62rem',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: 800,
-                                backgroundColor: sub.status === 'Active' ? '#e2fbe8' : sub.status === 'Paused' ? '#fff3e0' : sub.status === 'Cancelled' ? '#fdeeed' : '#f1f5f9',
-                                color: sub.status === 'Active' ? '#15803d' : sub.status === 'Paused' ? '#e65100' : sub.status === 'Cancelled' ? '#b91c1c' : '#475569'
-                              }}>
-                                {sub.status}
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                                {sub.plan_type} • {[
-                                  sub.breakfast ? 'Breakfast' : '',
-                                  sub.lunch ? 'Lunch' : '',
-                                  sub.dinner ? 'Dinner' : ''
-                                ].filter(Boolean).join(', ')}
-                              </span>
-                              <button
-                                onClick={() => setSelectedSubscriberDetails(sub)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#855300',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                  padding: 0
-                                }}
-                              >
-                                View Details &rarr;
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-
-                      {subscribers.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '30px 24px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', color: '#64748b' }}>
-                          <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 'bold' }}>No Subscribers Found</p>
-                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>Try adjusting your search criteria or status filters.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* PROFILE TAB VIEW */}
               {activeBottomTab === 'profile' && (
                 <div className="profile-page-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
@@ -2622,16 +2491,7 @@ const VendorDashboard = () => {
                 {activeBottomTab === 'reviews' && <div className="active-dot"></div>}
               </button>
 
-              <button
-                className={`bottom-nav-item ${activeBottomTab === 'subscribers' ? 'active' : ''}`}
-                onClick={() => setActiveBottomTab('subscribers')}
-              >
-                <div className="nav-item-icon-wrapper">
-                  <Users size={22} />
-                </div>
-                <span>Subscribers</span>
-                {activeBottomTab === 'subscribers' && <div className="active-dot"></div>}
-              </button>
+
 
               <button
                 className={`bottom-nav-item ${activeBottomTab === 'profile' ? 'active' : ''}`}
@@ -2672,77 +2532,7 @@ const VendorDashboard = () => {
               </div>
             )}
 
-            {/* Subscriber Details Modal */}
-            {selectedSubscriberDetails && (
-              <div className="custom-modal-overlay" style={{ zIndex: 10000 }}>
-                <div className="custom-modal-card" style={{ maxWidth: '360px', padding: '24px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#855300', margin: '0 0 16px 0', textAlign: 'center' }}>Subscriber Details</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
-                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                      <img
-                        src={selectedSubscriberDetails.student?.profile_image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"}
-                        alt={selectedSubscriberDetails.student?.full_name}
-                        style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
-                      <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                          {selectedSubscriberDetails.student?.full_name || 'Student User'}
-                        </h4>
-                        <span style={{
-                          fontSize: '0.62rem',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontWeight: 800,
-                          backgroundColor: selectedSubscriberDetails.status === 'Active' ? '#e2fbe8' : selectedSubscriberDetails.status === 'Paused' ? '#fff3e0' : selectedSubscriberDetails.status === 'Cancelled' ? '#fdeeed' : '#f1f5f9',
-                          color: selectedSubscriberDetails.status === 'Active' ? '#15803d' : selectedSubscriberDetails.status === 'Paused' ? '#e65100' : selectedSubscriberDetails.status === 'Cancelled' ? '#b91c1c' : '#475569'
-                        }}>
-                          {selectedSubscriberDetails.status}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', color: '#475569' }}>
-                      <div>
-                        <strong>Email: </strong>
-                        <span>{selectedSubscriberDetails.student?.email}</span>
-                      </div>
-                      <div>
-                        <strong>Phone: </strong>
-                        <span>{selectedSubscriberDetails.student?.phone || 'N/A'}</span>
-                      </div>
-                      <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
-                        <strong>Plan Type: </strong>
-                        <span>{selectedSubscriberDetails.plan_type}</span>
-                      </div>
-                      <div>
-                        <strong>Meals Selection: </strong>
-                        <span>{[
-                          selectedSubscriberDetails.breakfast ? 'Breakfast' : '',
-                          selectedSubscriberDetails.lunch ? 'Lunch' : '',
-                          selectedSubscriberDetails.dinner ? 'Dinner' : ''
-                        ].filter(Boolean).join(', ')}</span>
-                      </div>
-                      <div>
-                        <strong>Start Date: </strong>
-                        <span>{selectedSubscriberDetails.start_date}</span>
-                      </div>
-                      <div>
-                        <strong>End Date: </strong>
-                        <span>{selectedSubscriberDetails.end_date}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      className="custom-modal-btn btn-confirm"
-                      style={{ width: '100%', padding: '10px 0', fontSize: '0.82rem', marginTop: '10px', backgroundColor: '#855300', color: '#ffffff', cursor: 'pointer' }}
-                      onClick={() => setSelectedSubscriberDetails(null)}
-                    >
-                      Close Details
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
           </div>
         </div>

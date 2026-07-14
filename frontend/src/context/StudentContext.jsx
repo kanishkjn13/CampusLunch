@@ -115,7 +115,6 @@ export const StudentProvider = ({ children }) => {
     }
   });
 
-  // Kitchen statuses state
   const [kitchenStatuses, setKitchenStatuses] = useState(() => {
     const statuses = {};
     INITIAL_SELLERS.forEach(s => {
@@ -123,6 +122,20 @@ export const StudentProvider = ({ children }) => {
     });
     return statuses;
   });
+
+  const addNotification = (title, message, type = 'info') => {
+    setNotifications(prev => [
+      {
+        id: Date.now() + Math.random(),
+        title,
+        message,
+        time: 'Just now',
+        unread: true,
+        type
+      },
+      ...(prev || [])
+    ]);
+  };
 
   useEffect(() => {
     localStorage.setItem('tiffin_connect_orders', JSON.stringify(orders));
@@ -165,7 +178,20 @@ export const StudentProvider = ({ children }) => {
           const saved = localStorage.getItem('tiffin_connect_orders');
           if (saved && saved !== 'undefined') {
             const parsedOrders = JSON.parse(saved);
-            setOrders(parsedOrders);
+            setOrders(prevOrders => {
+              // Trigger notifications for status updates
+              parsedOrders.forEach(newOrd => {
+                const oldOrd = prevOrders.find(o => o.id === newOrd.id);
+                if (oldOrd && oldOrd.deliveryStatus !== newOrd.deliveryStatus) {
+                  addNotification(
+                    `Order ${newOrd.deliveryStatus}`,
+                    `Order ${newOrd.id} from ${newOrd.vendor} is now ${newOrd.deliveryStatus}!`,
+                    newOrd.deliveryStatus === 'Delivered' ? 'success' : 'info'
+                  );
+                }
+              });
+              return parsedOrders;
+            });
             // Auto-advance trackers of delivered/cancelled orders to index 5 (Delivered)
             setActiveTrackers(prev => {
               let updated = false;
@@ -424,6 +450,12 @@ export const StudentProvider = ({ children }) => {
     // Update orders list in state
     setOrders(prev => [...newOrders, ...prev]);
 
+    addNotification(
+      'Order Confirmed',
+      `Your order of ${newOrders.map(o => o.items).join(', ')} has been successfully placed!`,
+      'success'
+    );
+
     clearCart();
     setLoading(false);
     
@@ -457,6 +489,7 @@ export const StudentProvider = ({ children }) => {
       toggleFavorite,
       markAllNotificationsRead,
       deleteNotification,
+      addNotification,
       placeOrder,
       setOrders,
       ratings,

@@ -84,6 +84,12 @@ export const updateUserProfileApi = async (data) => {
   return response.data;
 };
 
+// Delete User Profile
+export const deleteUserProfileApi = async () => {
+  const response = await api.delete("/auth/profile/");
+  return response.data;
+};
+
 // Send OTP
 export const sendOTP = async (email) => {
   const response = await api.post("/send-otp/", { email });

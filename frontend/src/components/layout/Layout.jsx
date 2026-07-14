@@ -8,13 +8,14 @@ const Layout = ({ children }) => {
   const location = useLocation();
   
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password';
+  const isSupportChat = location.pathname === '/support-chat';
   const isDashboardPage = location.pathname.startsWith('/admin') || location.pathname === '/vendor-dashboard' || location.pathname === '/student';
   const pathsWithFooter = ['/', '/privacy', '/terms', '/about', '/faq'];
   const showFooter = pathsWithFooter.includes(location.pathname);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (isAuthPage) {
+    if (isAuthPage || isSupportChat || isDashboardPage) {
       document.body.style.paddingBottom = '0px';
     } else {
       document.body.style.paddingBottom = '70px';
@@ -22,7 +23,7 @@ const Layout = ({ children }) => {
     return () => {
       document.body.style.paddingBottom = '';
     };
-  }, [location.pathname, isAuthPage]);
+  }, [location.pathname, isAuthPage, isSupportChat, isDashboardPage]);
 
   return (
     <div className="page-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -34,7 +35,7 @@ const Layout = ({ children }) => {
       
       {showFooter && <Footer />}
       
-      {!isDashboardPage && <BottomNav />}
+      {!isDashboardPage && !isSupportChat && <BottomNav />}
     </div>
   );
 };

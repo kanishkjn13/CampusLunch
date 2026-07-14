@@ -4,12 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from .permissions import IsStudentUser
-from .models import Subscription
 from .serializers import (
     StudentVendorSerializer,
     StudentVendorDetailSerializer,
-    SubscriptionSerializer,
-    CreateSubscriptionSerializer,
 )
 
 User = get_user_model()
@@ -53,63 +50,4 @@ class VendorViewSet(viewsets.ReadOnlyModelViewSet):
             return StudentVendorDetailSerializer
         return StudentVendorSerializer
 
-class SubscriptionViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for students to manage their meal subscriptions.
-    """
-    permission_classes = [IsAuthenticated, IsStudentUser]
 
-    def get_queryset(self):
-        queryset = Subscription.objects.filter(student=self.request.user)
-        status_param = self.request.query_params.get("status", None)
-        if status_param == "active":
-            queryset = queryset.filter(status__in=["Active", "Paused"])
-        elif status_param == "history":
-            queryset = queryset.filter(status__in=["Cancelled", "Completed"])
-        elif status_param:
-            queryset = queryset.filter(status=status_param)
-        return queryset
-
-    def get_serializer_class(self):
-        if self.action == "create":
-            return CreateSubscriptionSerializer
-        return SubscriptionSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(student=self.request.user)
-
-    @action(detail=True, methods=["post"])
-    def pause(self, request, pk=None):
-        subscription = self.get_object()
-        if subscription.status != "Active":
-            return Response(
-                {"detail": "Only active subscriptions can be paused."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        subscription.status = "Paused"
-        subscription.save()
-        return Response(SubscriptionSerializer(subscription).data)
-
-    @action(detail=True, methods=["post"])
-    def resume(self, request, pk=None):
-        subscription = self.get_object()
-        if subscription.status != "Paused":
-            return Response(
-                {"detail": "Only paused subscriptions can be resumed."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        subscription.status = "Active"
-        subscription.save()
-        return Response(SubscriptionSerializer(subscription).data)
-
-    @action(detail=True, methods=["post"])
-    def cancel(self, request, pk=None):
-        subscription = self.get_object()
-        if subscription.status not in ["Active", "Paused"]:
-            return Response(
-                {"detail": "Only active or paused subscriptions can be cancelled."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        subscription.status = "Cancelled"
-        subscription.save()
-        return Response(SubscriptionSerializer(subscription).data)

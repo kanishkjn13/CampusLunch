@@ -917,18 +917,18 @@ h3 {
 }
 
 .hero-sec-btn:hover {
-  background-color: #8b5a00 !important;
-  color: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #855300 !important;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(133, 83, 1, 0.3) !important;
-  border-color: #8b5a00 !important;
+  box-shadow: 0 6px 16px rgba(133, 83, 1, 0.15) !important;
+  border-color: #855300 !important;
 }
 
 .hero-sec-btn:active,
 .hero-sec-btn:focus {
   background-color: #ffffff !important;
-  color: #855301 !important;
-  border-color: rgba(133, 83, 1, 0.25) !important;
+  color: #855300 !important;
+  border-color: #855300 !important;
   transform: scale(0.95) !important;
   box-shadow: 0 4px 12px rgba(133, 83, 1, 0.08) !important;
 }

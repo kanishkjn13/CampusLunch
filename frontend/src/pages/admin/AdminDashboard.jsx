@@ -362,31 +362,31 @@ const AdminDashboard = () => {
       return {
         searchPlaceholder: "Search vendors, IDs, or locations...",
         adminName: "Admin User",
-        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
+        adminAvatar: "/images/default-avatar.jpg"
       };
     } else if (activeTab === 'support') {
       return {
         searchPlaceholder: "Search tickets, vendors, or customers...",
         adminName: "Admin User",
-        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
+        adminAvatar: "/images/default-avatar.jpg"
       };
     } else if (activeTab === 'system') {
       return {
         searchPlaceholder: "Search system logs or configurations...",
         adminName: "Admin User",
-        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
+        adminAvatar: "/images/default-avatar.jpg"
       };
     } else if (activeTab === 'settings') {
       return {
         searchPlaceholder: "Search settings, users, or system logs...",
         adminName: "Admin User",
-        adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
+        adminAvatar: "/images/default-avatar.jpg"
       };
     }
     return {
       searchPlaceholder: "Search orders, vendors or students...",
       adminName: "Admin User",
-      adminAvatar: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a1a1aa'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>"
+      adminAvatar: "/images/default-avatar.jpg"
     };
   };
 
@@ -1292,10 +1292,10 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Middle Row: Commission & Vendor Subscription Tiers */}
-              <div className="system-config-grid">
+              {/* Middle Row: Commission Config */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '24px' }}>
                 {/* Commission Config Form Card */}
-                <div className="kpi-card-white config-panel-card">
+                <div className="kpi-card-white config-panel-card" style={{ width: '100%', boxSizing: 'border-box' }}>
                   <div className="config-card-title-row">
                     <div className="config-icon-box bg-orange-tint">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1335,59 +1335,6 @@ const AdminDashboard = () => {
                       <span>Enable Surge Multiplier</span>
                     </label>
                   </form>
-                </div>
-
-                {/* Vendor Subscription Tiers Card Table */}
-                <div className="kpi-card-white config-panel-card tiers-table-card">
-                  <div className="config-card-title-row justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="config-icon-box bg-blue-tint">
-                        <Tag size={18} />
-                      </div>
-                      <h3>Vendor Subscription Tiers</h3>
-                    </div>
-                    <button className="add-tier-action-btn">
-                      <Plus size={14} />
-                      <span>Add Tier</span>
-                    </button>
-                  </div>
-
-                  <div className="tiers-table-container">
-                    <table className="tiers-data-table">
-                      <thead>
-                        <tr>
-                          <th>TIER NAME</th>
-                          <th>MONTHLY PRICE</th>
-                          <th>COMMISSION %</th>
-                          <th>FEATURES</th>
-                          <th className="text-right">ACTION</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="font-bold">Basic Vendor</td>
-                          <td>$29.00</td>
-                          <td>18%</td>
-                          <td className="text-secondary text-xs">Basic Analytics, 50 orders/mo</td>
-                          <td className="text-right"><button className="tier-edit-btn"><Edit2 size={13} /></button></td>
-                        </tr>
-                        <tr>
-                          <td className="font-bold">Pro Partner</td>
-                          <td>$79.00</td>
-                          <td>12%</td>
-                          <td className="text-secondary text-xs">Priority Support, Unlimited, Pro Dashboard</td>
-                          <td className="text-right"><button className="tier-edit-btn"><Edit2 size={13} /></button></td>
-                        </tr>
-                        <tr>
-                          <td className="font-bold text-orange-accent">Enterprise Elite</td>
-                          <td>$199.00</td>
-                          <td>8%</td>
-                          <td className="text-secondary text-xs">Dedicated Manager, API Access, Premium Ads</td>
-                          <td className="text-right"><button className="tier-edit-btn"><Edit2 size={13} /></button></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               </div>
 
