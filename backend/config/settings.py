@@ -31,12 +31,14 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", cast=bool)
 
 
-ALLOWED_HOSTS = os.getenv(
-    "ALLOWED_HOSTS",
-    "localhost,127.0.0.1",
-    "campuslunch-backend.onrender.com"
-    
-).split(",")
+ALLOWED_HOSTS = [
+    host.strip().strip('"\'')
+    for host in config(
+        "ALLOWED_HOSTS",
+        default="localhost,127.0.0.1,campuslunch-backend.onrender.com"
+    ).split(",")
+]
+
 
 CSRF_TRUSTED_ORIGINS = [
     "https://campuslunch.pages.dev",
@@ -229,6 +231,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 CORS_ALLOWED_ORIGINS = [
     "https://campuslunch.pages.dev",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
