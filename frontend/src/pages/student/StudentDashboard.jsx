@@ -1161,7 +1161,7 @@ const StudentDashboard = () => {
                               );
                             }
                             return activeVendors.map(vendor => {
-                              const isClosed = localStorage.getItem('kitchen_status_' + vendor.full_name) === 'closed';
+                              const isClosed = !vendor.is_active || localStorage.getItem('kitchen_status_' + vendor.full_name) === 'closed';
                               return (
                                 <div
                                   key={vendor.id}

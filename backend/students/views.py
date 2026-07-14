@@ -18,7 +18,7 @@ class VendorViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsStudentUser]
 
     def get_queryset(self):
-        queryset = User.objects.filter(role="vendor", is_active=True)
+        queryset = User.objects.filter(role="vendor")
 
         # Search by vendor name
         search_query = self.request.query_params.get("search", None)
