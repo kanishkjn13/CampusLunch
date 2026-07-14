@@ -43,6 +43,14 @@ class StudentVendorSerializer(serializers.ModelSerializer):
     def get_menu_items(self, obj):
         # Retrieve only active and available menu items for this vendor
         items = MenuItem.objects.filter(vendor=obj, is_available=True, is_active=True)
+        request = self.context.get('request')
+        if request:
+            meal_type = request.query_params.get("meal_type")
+            if meal_type:
+                items = items.filter(meal_type__iexact=meal_type)
+            food_type = request.query_params.get("food_type")
+            if food_type:
+                items = items.filter(food_type__iexact=food_type)
         return StudentMenuItemSerializer(items, many=True, context=self.context).data
 
 class StudentVendorDetailSerializer(serializers.ModelSerializer):
@@ -67,6 +75,14 @@ class StudentVendorDetailSerializer(serializers.ModelSerializer):
     def get_menu_items(self, obj):
         # Retrieve only active and available menu items for this vendor
         items = MenuItem.objects.filter(vendor=obj, is_available=True, is_active=True)
+        request = self.context.get('request')
+        if request:
+            meal_type = request.query_params.get("meal_type")
+            if meal_type:
+                items = items.filter(meal_type__iexact=meal_type)
+            food_type = request.query_params.get("food_type")
+            if food_type:
+                items = items.filter(food_type__iexact=food_type)
         return StudentMenuItemSerializer(items, many=True, context=self.context).data
 
 class UserMiniSerializer(serializers.ModelSerializer):

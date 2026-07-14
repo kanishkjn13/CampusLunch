@@ -25,24 +25,6 @@ class VendorViewSet(viewsets.ReadOnlyModelViewSet):
         if search_query:
             queryset = queryset.filter(full_name__icontains=search_query)
 
-        # Filter by Meal Type
-        meal_type = self.request.query_params.get("meal_type", None)
-        if meal_type:
-            queryset = queryset.filter(
-                menu_items__meal_type__iexact=meal_type,
-                menu_items__is_available=True,
-                menu_items__is_active=True
-            ).distinct()
-
-        # Filter Veg / Non-Veg
-        food_type = self.request.query_params.get("food_type", None)
-        if food_type:
-            queryset = queryset.filter(
-                menu_items__food_type__iexact=food_type,
-                menu_items__is_available=True,
-                menu_items__is_active=True
-            ).distinct()
-
         return queryset
 
     def get_serializer_class(self):

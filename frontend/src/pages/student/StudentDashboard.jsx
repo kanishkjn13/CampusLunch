@@ -1151,11 +1151,7 @@ const StudentDashboard = () => {
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           {(() => {
-                            const activeVendors = vendors.filter(vendor => 
-                              vendor.menu_items && 
-                              vendor.menu_items.length > 0 && 
-                              localStorage.getItem('kitchen_status_' + vendor.full_name) !== 'closed'
-                            );
+                            const activeVendors = vendors;
                             if (activeVendors.length === 0) {
                               return (
                                 <div style={{ textAlign: 'center', padding: '30px 24px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9', color: '#64748b' }}>
@@ -1164,155 +1160,176 @@ const StudentDashboard = () => {
                                 </div>
                               );
                             }
-                            return activeVendors.map(vendor => (
-                              <div
-                                key={vendor.id}
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '8px',
-                                  textAlign: 'left',
-                                  marginBottom: '24px'
-                                }}
-                              >
-                                {/* Vendor Header (Only Name and Action link) */}
-                                <div 
-                                  onClick={() => handleViewVendorDetails(vendor.id)}
-                                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '0 4px' }}
+                            return activeVendors.map(vendor => {
+                              const isClosed = localStorage.getItem('kitchen_status_' + vendor.full_name) === 'closed';
+                              return (
+                                <div
+                                  key={vendor.id}
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '8px',
+                                    textAlign: 'left',
+                                    marginBottom: '24px'
+                                  }}
                                 >
-                                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#855300', margin: 0, fontFamily: 'serif' }}>
-                                    {vendor.full_name}
-                                  </h4>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', color: '#b45309', fontWeight: 800 }}>
-                                    <span>View Kitchen</span>
-                                    <ChevronRight size={14} />
+                                  {/* Vendor Header (Only Name and Action link) */}
+                                  <div 
+                                    onClick={() => handleViewVendorDetails(vendor.id)}
+                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '0 4px' }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#855300', margin: 0, fontFamily: 'serif' }}>
+                                        {vendor.full_name}
+                                      </h4>
+                                      {isClosed && (
+                                        <span style={{ fontSize: '0.62rem', color: '#dc2626', backgroundColor: '#fee2e2', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, marginLeft: '8px' }}>
+                                          Closed
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', color: '#b45309', fontWeight: 800 }}>
+                                      <span>View Kitchen</span>
+                                      <ChevronRight size={14} />
+                                    </div>
                                   </div>
-                                </div>
 
-                                {/* Tiffins List from Vendor */}
-                                <div style={{ 
-                                  display: 'flex', 
-                                  gap: '12px', 
-                                  overflowX: 'auto', 
-                                  paddingBottom: '6px',
-                                  scrollbarWidth: 'none',
-                                  msOverflowStyle: 'none'
-                                }}>
-                                  {vendor.menu_items.map(meal => {
-                                    const ratingInfo = getSellerRatingInfo(vendor.full_name);
-                                    const displayRating = ratingInfo.reviews > 0 ? ratingInfo.rating : '4.8';
-                                    
-                                    const contextSeller = sellers.find(s => s.id === vendor.id);
-                                    const contextMeal = contextSeller ? contextSeller.meals.find(m => m.id === meal.id) : null;
-                                    const availableStock = contextMeal ? contextMeal.availableQty : 15;
-                                    
-                                    return (
-                                      <div
-                                        key={meal.id}
-                                        style={{
-                                          flexShrink: 0,
-                                          width: '180px',
-                                          backgroundColor: '#fafbfc',
-                                          borderRadius: '16px',
-                                          padding: '10px',
-                                          border: '1.5px solid rgba(0, 0, 0, 0.025)',
-                                          display: 'flex',
-                                          flexDirection: 'column',
-                                          gap: '6px',
-                                          position: 'relative',
-                                          opacity: availableStock <= 0 ? 0.6 : 1
-                                        }}
-                                      >
-                                        {/* Meal Image */}
-                                        <div style={{ position: 'relative', width: '100%', height: '90px', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#e2e8f0' }}>
-                                          <img
-                                            src={meal.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V22H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"}
-                                            alt={meal.name}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                          />
-                                          <span style={{
-                                            position: 'absolute',
-                                            top: '6px',
-                                            left: '6px',
-                                            width: '10px',
-                                            height: '10px',
-                                            borderRadius: '50%',
-                                            backgroundColor: meal.food_type === 'Veg' || meal.food_type === 'Jain' ? '#10b981' : '#ef4444',
-                                            border: '2px solid #ffffff',
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                                          }} title={meal.food_type}></span>
-                                          <span style={{
-                                            position: 'absolute',
-                                            top: '6px',
-                                            right: '6px',
-                                            backgroundColor: 'rgba(255,255,255,0.92)',
-                                            color: '#f59e0b',
-                                            fontSize: '0.62rem',
-                                            fontWeight: 800,
-                                            padding: '2px 6px',
-                                            borderRadius: '6px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '2px',
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                                          }}>
-                                            ★ {displayRating}
-                                          </span>
-                                        </div>
-
-                                        {/* Meal Info */}
-                                        <div style={{ textAlign: 'left' }}>
-                                          <h5 style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b', margin: '0 0 2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {meal.name}
-                                          </h5>
-                                          <p style={{ fontSize: '0.65rem', color: '#64748b', margin: '0 0 6px 0', height: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {meal.description}
-                                          </p>
-                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                            {availableStock > 0 ? (
-                                              <span style={{ fontSize: '0.62rem', color: availableStock <= 5 ? '#ef4444' : '#059669', fontWeight: 700, backgroundColor: availableStock <= 5 ? '#fef2f2' : '#f0fdf4', padding: '2px 6px', borderRadius: '4px' }}>
-                                                {availableStock <= 5 ? `Only ${availableStock} left` : `Stock: ${availableStock}`}
-                                              </span>
-                                            ) : (
-                                              <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                                                Out of stock
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a' }}>
-                                              ₹{meal.price}
-                                            </span>
-                                            <button
-                                              disabled={availableStock <= 0}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleAddToCart(meal, vendor.id);
-                                              }}
-                                              style={{
+                                  {/* Tiffins List from Vendor */}
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    gap: '12px', 
+                                    overflowX: 'auto', 
+                                    paddingBottom: '6px',
+                                    scrollbarWidth: 'none',
+                                    msOverflowStyle: 'none'
+                                  }}>
+                                    {!vendor.menu_items || vendor.menu_items.length === 0 ? (
+                                      <div style={{ padding: '16px 8px', fontSize: '0.74rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'left', width: '100%' }}>
+                                        No meals matching categories.
+                                      </div>
+                                    ) : (
+                                      vendor.menu_items.map(meal => {
+                                        const ratingInfo = getSellerRatingInfo(vendor.full_name);
+                                        const displayRating = ratingInfo.reviews > 0 ? ratingInfo.rating : '4.8';
+                                        
+                                        const contextSeller = sellers.find(s => s.id === vendor.id);
+                                        const contextMeal = contextSeller ? contextSeller.meals.find(m => m.id === meal.id) : null;
+                                        const availableStock = contextMeal ? contextMeal.availableQty : 15;
+                                        const disabledAction = isClosed || availableStock <= 0;
+                                        
+                                        return (
+                                          <div
+                                            key={meal.id}
+                                            style={{
+                                              flexShrink: 0,
+                                              width: '180px',
+                                              backgroundColor: '#fafbfc',
+                                              borderRadius: '16px',
+                                              padding: '10px',
+                                              border: '1.5px solid rgba(0, 0, 0, 0.025)',
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              gap: '6px',
+                                              position: 'relative',
+                                              opacity: disabledAction ? 0.6 : 1
+                                            }}
+                                          >
+                                            {/* Meal Image */}
+                                            <div style={{ position: 'relative', width: '100%', height: '90px', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#e2e8f0' }}>
+                                              <img
+                                                src={meal.image || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><rect width='24' height='24' fill='%23f1f5f9'/><path d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V22H11v7zm4-6v8h3v11h2V3h-5z'/></svg>"}
+                                                alt={meal.name}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                              />
+                                              <span style={{
+                                                position: 'absolute',
+                                                top: '6px',
+                                                left: '6px',
+                                                width: '10px',
+                                                height: '10px',
+                                                borderRadius: '50%',
+                                                backgroundColor: meal.food_type === 'Veg' || meal.food_type === 'Jain' ? '#10b981' : '#ef4444',
+                                                border: '2px solid #ffffff',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                              }} title={meal.food_type}></span>
+                                              <span style={{
+                                                position: 'absolute',
+                                                top: '6px',
+                                                right: '6px',
+                                                backgroundColor: 'rgba(255,255,255,0.92)',
+                                                color: '#f59e0b',
+                                                fontSize: '0.62rem',
+                                                fontWeight: 800,
+                                                padding: '2px 6px',
+                                                borderRadius: '6px',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                justifyContent: 'center',
-                                                width: '24px',
-                                                height: '24px',
-                                                borderRadius: '50%',
-                                                backgroundColor: availableStock <= 0 ? '#cbd5e1' : '#855300',
-                                                color: '#ffffff',
-                                                border: 'none',
-                                                cursor: availableStock <= 0 ? 'not-allowed' : 'pointer',
-                                                boxShadow: availableStock <= 0 ? 'none' : '0 2px 4px rgba(133, 83, 0, 0.2)'
-                                              }}
-                                            >
-                                              <Plus size={14} />
-                                            </button>
+                                                gap: '2px',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                              }}>
+                                                ★ {displayRating}
+                                              </span>
+                                            </div>
+
+                                            {/* Meal Info */}
+                                            <div style={{ textAlign: 'left' }}>
+                                              <h5 style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b', margin: '0 0 2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {meal.name}
+                                              </h5>
+                                              <p style={{ fontSize: '0.65rem', color: '#64748b', margin: '0 0 6px 0', height: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {meal.description}
+                                              </p>
+                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                {isClosed ? (
+                                                  <span style={{ fontSize: '0.62rem', color: '#ef4444', fontWeight: 700, backgroundColor: '#fef2f2', padding: '2px 6px', borderRadius: '4px' }}>
+                                                    Kitchen Closed
+                                                  </span>
+                                                ) : availableStock > 0 ? (
+                                                  <span style={{ fontSize: '0.62rem', color: availableStock <= 5 ? '#ef4444' : '#059669', fontWeight: 700, backgroundColor: availableStock <= 5 ? '#fef2f2' : '#f0fdf4', padding: '2px 6px', borderRadius: '4px' }}>
+                                                    {availableStock <= 5 ? `Only ${availableStock} left` : `Stock: ${availableStock}`}
+                                                  </span>
+                                                ) : (
+                                                  <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700, backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                                                    Out of stock
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a' }}>
+                                                  ₹{meal.price}
+                                                </span>
+                                                <button
+                                                  disabled={disabledAction}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAddToCart(meal, vendor.id);
+                                                  }}
+                                                  style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    width: '24px',
+                                                    height: '24px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: disabledAction ? '#cbd5e1' : '#855300',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    cursor: disabledAction ? 'not-allowed' : 'pointer',
+                                                    boxShadow: disabledAction ? 'none' : '0 2px 4px rgba(133, 83, 0, 0.2)'
+                                                  }}
+                                                >
+                                                  <Plus size={14} />
+                                                </button>
+                                              </div>
+                                            </div>
                                           </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                        );
+                                      })
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ));
+                              );
+                            });
                           })()}
                         </div>
                       )}
