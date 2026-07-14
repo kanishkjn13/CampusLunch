@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny  ,IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import EmailOTP
-from .utils import send_otp_email, send_password_reset_email
+from .utils import send_otp_email, send_password_reset_email, InvalidApiKeyError, BrevoAPIError
 
 from .serializers import (
     StudentRegisterSerializer,
@@ -290,15 +290,15 @@ class SendOTPView(APIView):
 
         try:
             send_otp_email(email, otp)
-        except Exception as e:
-            print(f"\n[SANDBOX FALLBACK] Failed to send email via SMTP: {str(e)}")
-            print(f"Generated OTP for {email} is: {otp}\n")
-            EmailOTP.objects.create(email=email, otp=otp, expires_at=expires_at)
-            from django.core.cache import cache
-            cache.delete(f"otp_attempts_{email}")
+        except InvalidApiKeyError as e:
             return Response(
-                {"message": "OTP generated. (Sandbox Mode: Retrieve your OTP from the server logs)"},
-                status=status.HTTP_200_OK
+                {"detail": "Invalid or missing Brevo API key."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            return Response(
+                {"detail": "Failed to send verification email. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         EmailOTP.objects.create(email=email, otp=otp, expires_at=expires_at)

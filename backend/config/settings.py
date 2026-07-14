@@ -231,6 +231,12 @@ EMAIL_TIMEOUT = 5
 
 BREVO_API_KEY = config("BREVO_API_KEY", default="")
 
+if BREVO_API_KEY and not BREVO_API_KEY.startswith("xkeysib-"):
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("Warning: BREVO_API_KEY does not start with xkeysib-.")
+    print("Warning: BREVO_API_KEY does not start with xkeysib-.")
+
 FRONTEND_URL = config("FRONTEND_URL")
 
 
