@@ -7,8 +7,8 @@ import {
 } from '../data/studentMockData';
 
 export const StudentContext = createContext();
-import { getOrders, placeOrderApi, getTrackers, getRatings } from '../Services/studentService';
-import { getUserProfile, updateUserProfileApi } from '../Services/authService';
+import { getVendors, getOrders, placeOrderApi, getTrackers, getRatings } from '../services/studentService';
+import { getUserProfile, updateUserProfileApi } from '../services/authService';
 
 export const TRACKING_STEPS = [
   'Order Confirmed',
@@ -186,36 +186,117 @@ export const StudentProvider = ({ children }) => {
 
     const pollData = async () => {
       try {
-        const [ordersData, trackersData] = await Promise.all([
-          getOrders(),
-          getTrackers()
-        ]);
+        const role = localStorage.getItem('role') || 'student';
+        
+        if (role === 'student') {
+          // Poll orders, trackers, and vendors list for kitchen status / stock quantity
+          const [ordersData, trackersData, vendorsData] = await Promise.all([
+            getOrders(),
+            getTrackers(),
+            getVendors()
+          ]);
+          
+          setOrders(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(ordersData)) {
+              ordersData.forEach(newOrd => {
+                const oldOrd = prev.find(o => o.order_id === newOrd.order_id || o.id === newOrd.id);
+                if (oldOrd && oldOrd.deliveryStatus !== newOrd.deliveryStatus) {
+                  addNotification(
+                    `Order ${newOrd.deliveryStatus}`,
+                    `Order ${newOrd.order_id || newOrd.id} from ${newOrd.vendor} is now ${newOrd.deliveryStatus}!`,
+                    newOrd.deliveryStatus === 'Delivered' ? 'success' : 'info'
+                  );
+                }
+              });
+              return ordersData;
+            }
+            return prev;
+          });
 
-        setOrders(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(ordersData)) {
-            ordersData.forEach(newOrd => {
-              const oldOrd = prev.find(o => o.order_id === newOrd.order_id || o.id === newOrd.id);
-              if (oldOrd && oldOrd.deliveryStatus !== newOrd.deliveryStatus) {
-                addNotification(
-                  `Order ${newOrd.deliveryStatus}`,
-                  `Order ${newOrd.order_id || newOrd.id} from ${newOrd.vendor} is now ${newOrd.deliveryStatus}!`,
-                  newOrd.deliveryStatus === 'Delivered' ? 'success' : 'info'
-                );
+          setActiveTrackers(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(trackersData)) {
+              return trackersData;
+            }
+            return prev;
+          });
+
+          // Sync kitchen status & sellers dynamically based on polled vendorsData
+          if (vendorsData && Array.isArray(vendorsData)) {
+            setSellers(prev => {
+              const formattedSellers = vendorsData.map(v => ({
+                id: v.id,
+                name: v.full_name,
+                is_kitchen_open: v.is_kitchen_open !== false,
+                photo: v.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
+                rating: "4.8",
+                reviews: "24",
+                servingTime: "10:00 AM - 08:00 PM",
+                vendorLocation: "Campus Hub",
+                distance: "0.2 km",
+                meals: (v.menu_items || []).map(m => ({
+                  id: m.id,
+                  name: m.name,
+                  description: m.description,
+                  price: Number(m.price),
+                  image: m.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E",
+                  type: m.food_type,
+                  availableQty: m.is_available ? (m.available_qty ?? 999) : 0
+                }))
+              }));
+              
+              if (JSON.stringify(prev) !== JSON.stringify(formattedSellers)) {
+                return formattedSellers;
               }
+              return prev;
             });
-            return ordersData;
-          }
-          return prev;
-        });
 
-        setActiveTrackers(prev => {
-          if (JSON.stringify(prev) !== JSON.stringify(trackersData)) {
-            return trackersData;
+            setKitchenStatuses(prev => {
+              const nextStatuses = {};
+              vendorsData.forEach(v => {
+                nextStatuses[v.full_name] = v.is_kitchen_open !== false;
+              });
+              if (JSON.stringify(prev) !== JSON.stringify(nextStatuses)) {
+                return nextStatuses;
+              }
+              return prev;
+            });
           }
-          return prev;
-        });
+
+        } else if (role === 'vendor') {
+          // Poll orders and vendor profile details
+          const [ordersData, profileData] = await Promise.all([
+            getOrders(),
+            getUserProfile()
+          ]);
+
+          setOrders(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(ordersData)) {
+              return ordersData;
+            }
+            return prev;
+          });
+
+          // Sync kitchen open status & triggers from profile updates
+          if (profileData) {
+            setUser(prev => {
+              if (prev.is_kitchen_open !== (profileData.is_kitchen_open !== false)) {
+                return {
+                  ...prev,
+                  is_kitchen_open: profileData.is_kitchen_open !== false
+                };
+              }
+              return prev;
+            });
+            
+            const kitchenName = profileData.full_name || 'Sharma Tiffin Center';
+            const localStatus = profileData.is_kitchen_open !== false ? 'open' : 'closed';
+            if (localStorage.getItem('kitchen_status_' + kitchenName) !== localStatus) {
+              localStorage.setItem('kitchen_status_' + kitchenName, localStatus);
+            }
+          }
+        }
       } catch (err) {
-        console.error("Failed to poll live order updates:", err);
+        console.error("Failed to poll live updates:", err);
       }
     };
 

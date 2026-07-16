@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import logo from '@/assets/logos/logo.png';
-import { loginUser } from "@/Services/authService";
+import { loginUser } from "@/services/authService";
 import { StudentContext } from '@/context/StudentContext';
 
 const Login = () => {

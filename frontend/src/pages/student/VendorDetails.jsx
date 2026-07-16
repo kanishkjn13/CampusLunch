@@ -4,7 +4,7 @@ import { Star, MapPin, Clock, ArrowLeft, CheckCircle, RefreshCw } from 'lucide-r
 import Button from '@/components/common/Button';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
-import { getVendorDetails } from "@/Services/studentService";
+import { getVendorDetails } from "@/services/studentService";
 
 const VendorDetails = () => {
   const { id } = useParams();

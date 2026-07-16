@@ -7,7 +7,7 @@ import {
   vendorRegister,
   sendOTP,
   verifyOTP,
-} from "@/Services/authService";
+} from "@/services/authService";
 
 const Register = () => {
   const location = useLocation();

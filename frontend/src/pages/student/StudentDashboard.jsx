@@ -2,8 +2,8 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
-import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, deleteUserProfileApi } from "@/Services/authService";
-import { getVendors, getVendorDetails, submitRatingApi } from "@/Services/studentService";
+import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, deleteUserProfileApi } from "@/services/authService";
+import { getVendors, getVendorDetails, submitRatingApi } from "@/services/studentService";
 
 import { jsPDF } from 'jspdf';
 import {

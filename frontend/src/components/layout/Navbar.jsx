@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut } from 'lucide-react';
 import Button from '../common/Button';
 import logo from '@/assets/logos/logo.png';
-import { logoutUser } from "@/Services/authService";
+import { logoutUser } from "@/services/authService";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);

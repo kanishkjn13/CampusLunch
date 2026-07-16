@@ -2,9 +2,9 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StudentContext } from '@/context/StudentContext';
 import logo from '@/assets/logos/logo.png';
-import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, getUserProfile, deleteUserProfileApi } from "@/Services/authService";
-import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem } from "@/Services/menuService";
-import { updateOrderApi, updateOrderTrackerApi, placeOrderApi } from "@/Services/studentService";
+import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, getUserProfile, deleteUserProfileApi } from "@/services/authService";
+import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem } from "@/services/menuService";
+import { updateOrderApi, updateOrderTrackerApi, placeOrderApi } from "@/services/studentService";
 
 import { getMediaBaseURL } from '@/APIs/axios';
 import {
@@ -29,7 +29,9 @@ import {
   Package,
   MessageSquare,
   Plus,
-  ArrowLeft
+  ArrowLeft,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 const VendorDashboard = () => {
@@ -221,8 +223,8 @@ const VendorDashboard = () => {
 
   const { orders: contextOrders, setOrders, ratings: contextRatings, sellers, setSellers, activeTrackers, setActiveTrackers } = useContext(StudentContext);
 
-  const fetchMenu = async () => {
-    setMenuLoading(true);
+  const fetchMenu = async (showLoading = false) => {
+    if (showLoading) setMenuLoading(true);
     try {
       const data = await getMenuItems();
       if (Array.isArray(data)) {
@@ -236,13 +238,15 @@ const VendorDashboard = () => {
       console.error("Error fetching menu items:", err);
       setMenuItems([]);
     } finally {
-      setMenuLoading(false);
+      if (showLoading) setMenuLoading(false);
     }
   };
 
   useEffect(() => {
     if (activeBottomTab === 'availability') {
-      fetchMenu();
+      fetchMenu(true);
+      const interval = setInterval(() => fetchMenu(false), 3000);
+      return () => clearInterval(interval);
     }
   }, [activeBottomTab]);
 
@@ -346,9 +350,9 @@ const VendorDashboard = () => {
 
   const handleToggleAvailability = async (item) => {
     try {
-      const formData = new FormData();
-      formData.append("is_available", !item.is_available);
-      await updateMenuItem(item.id, formData);
+      await updateMenuItem(item.id, {
+        is_available: !item.is_available
+      });
       fetchMenu();
     } catch (err) {
       console.error("Failed to toggle availability:", err);
@@ -358,9 +362,9 @@ const VendorDashboard = () => {
 
   const handleToggleActive = async (item) => {
     try {
-      const formData = new FormData();
-      formData.append("is_active", !item.is_active);
-      await updateMenuItem(item.id, formData);
+      await updateMenuItem(item.id, {
+        is_active: !item.is_active
+      });
       fetchMenu();
     } catch (err) {
       console.error("Failed to toggle active status:", err);
@@ -371,10 +375,10 @@ const VendorDashboard = () => {
   const handleUpdateStock = async (item, change) => {
     try {
       const newQty = Math.max(0, (item.available_qty ?? 0) + change);
-      const formData = new FormData();
-      formData.append("available_qty", newQty);
-      formData.append("is_available", newQty > 0);
-      await updateMenuItem(item.id, formData);
+      await updateMenuItem(item.id, {
+        available_qty: newQty,
+        is_available: newQty > 0
+      });
       fetchMenu();
     } catch (err) {
       console.error("Failed to update stock quantity:", err);
@@ -1606,71 +1610,76 @@ const VendorDashboard = () => {
                           : "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E";
 
                         return (
-                          <div key={item.id} className={`availability-item-card ${cardAccentClass}`} style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '16px', gap: '14px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 20px rgba(0,0,0,0.008)' }}>
-                            <div style={{ display: 'flex', gap: '12px' }}>
+                          <div
+                            key={item.id}
+                            className={`availability-item-card ${cardAccentClass}`}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 16px',
+                              borderRadius: '16px',
+                              backgroundColor: '#ffffff',
+                              border: '1px solid rgba(0,0,0,0.05)',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                              gap: '12px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                               <img
                                 src={imageUrl}
                                 alt={item.name}
-                                style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover' }}
+                                style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }}
+                                onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-avatar.jpg'; }}
                               />
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-                                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>{item.name}</h4>
-                                <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#855300' }}>₹{item.price}</p>
-                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                  {item.description || 'No description provided.'}
-                                </p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, textAlign: 'left' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#0f172a', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {item.name}
+                                </h4>
+                                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#855300' }}>₹{Number(item.price).toFixed(2)}</span>
                               </div>
                             </div>
 
-                            {/* Stock Controller UX */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Stock:</span>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: isOutOfStock ? '#e11d48' : '#166534' }}>
-                                  {isOutOfStock ? 'Out of Stock' : `${item.available_qty} items`}
-                                </span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+                            {/* Minimal Stock & Actions Row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                              {/* Stock Adjuster Pill */}
+                              <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '20px', padding: '2px 4px' }}>
                                 <button
-                                  onClick={() => handleUpdateStock(item, -1)}
-                                  style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', padding: '4px 10px', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleUpdateStock(item, -1); }}
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b' }}
                                 >
                                   -
                                 </button>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 900, minWidth: '32px', textAlign: 'center', color: '#0f172a' }}>{item.available_qty ?? 0}</span>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 800, minWidth: '20px', textAlign: 'center', color: isOutOfStock ? '#ef4444' : '#0f172a' }}>
+                                  {item.available_qty ?? 0}
+                                </span>
                                 <button
-                                  onClick={() => handleUpdateStock(item, 1)}
-                                  style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', padding: '4px 10px', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleUpdateStock(item, 1); }}
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b' }}
                                 >
                                   +
                                 </button>
                               </div>
-                            </div>
 
-                            {/* Actions and availability toggle */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '10px', marginTop: '2px' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>
-                                <input
-                                  type="checkbox"
-                                  checked={item.is_available}
-                                  onChange={() => handleToggleAvailability(item)}
-                                  style={{ accentColor: '#855300', cursor: 'pointer' }}
-                                />
-                                Available
-                              </label>
-
-                              <div style={{ display: 'flex', gap: '8px' }}>
+                              {/* Edit & Delete Actions */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <button
-                                  onClick={() => handleOpenEditMenu(item)}
-                                  style={{ border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontSize: '0.72rem', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenEditMenu(item); }}
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b', padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s ease' }}
+                                  title="Edit Item"
                                 >
-                                  Edit
+                                  <Pencil size={15} />
                                 </button>
                                 <button
-                                  onClick={() => handleOpenDeleteMenu(item)}
-                                  style={{ border: '1px solid rgba(225,29,72,0.1)', background: '#fff1f2', color: '#e11d48', fontSize: '0.72rem', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenDeleteMenu(item); }}
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.2s ease' }}
+                                  title="Delete Item"
                                 >
-                                  Delete
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             </div>
@@ -2468,7 +2477,6 @@ const VendorDashboard = () => {
                         </div>
                         <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '8px' }}>JPEG, PNG, WebP (Max 5MB)</span>
                       </div>
-
                       {/* Food Name */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Food Name *</label>
@@ -2478,12 +2486,12 @@ const VendorDashboard = () => {
                           value={menuForm.name}
                           onChange={(e) => setMenuForm(prev => ({ ...prev, name: e.target.value }))}
                           placeholder="e.g. Special Kadai Paneer"
-                          style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
+                          style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
                         />
                       </div>
 
                       {/* Price & Stock in 2 columns */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', width: '100%' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Price (₹) *</label>
                           <input
@@ -2493,7 +2501,7 @@ const VendorDashboard = () => {
                             value={menuForm.price}
                             onChange={(e) => setMenuForm(prev => ({ ...prev, price: e.target.value }))}
                             placeholder="e.g. 120"
-                            style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
+                            style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
                           />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -2505,7 +2513,7 @@ const VendorDashboard = () => {
                             value={menuForm.available_qty}
                             onChange={(e) => setMenuForm(prev => ({ ...prev, available_qty: e.target.value }))}
                             placeholder="e.g. 50"
-                            style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
+                            style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
                           />
                         </div>
                       </div>
@@ -2518,7 +2526,7 @@ const VendorDashboard = () => {
                           value={menuForm.description}
                           onChange={(e) => setMenuForm(prev => ({ ...prev, description: e.target.value }))}
                           placeholder="Provide a delicious description of portions or ingredients..."
-                          style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', resize: 'none', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s ease' }}
+                          style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', resize: 'none', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s ease' }}
                         />
                       </div>
 

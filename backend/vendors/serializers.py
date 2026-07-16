@@ -54,7 +54,7 @@ class OrderTrackerSerializer(serializers.ModelSerializer):
     orderId = serializers.CharField(source="order.order_id", read_only=True)
     vendorName = serializers.CharField(source="order.vendor.full_name", read_only=True)
     statusIndex = serializers.IntegerField(source="status_index")
-    driverInfo = serializers.SerializerMethodField()
+    driverInfo = serializers.SerializerMethodField(method_name="get_driver_info")
 
     class Meta:
         model = OrderTracker

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { logoutUser } from "@/Services/authService";
+import { logoutUser } from "@/services/authService";
 import { 
   Home, 
   Search, 

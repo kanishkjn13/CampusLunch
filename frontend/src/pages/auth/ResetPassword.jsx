@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { resetPassword } from "@/Services/authService";
+import { resetPassword } from "@/services/authService";
 
 export default function ResetPassword() {
   const navigate = useNavigate();

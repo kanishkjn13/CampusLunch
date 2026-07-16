@@ -227,12 +227,14 @@ MEDIA_URL = "/media/"
 
 MEDIA_ROOT = BASE_DIR / "media"
 
-# CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    "https://campuslunch.pages.dev",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://campuslunch.pages.dev",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
