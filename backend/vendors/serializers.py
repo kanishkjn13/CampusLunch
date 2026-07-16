@@ -19,6 +19,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
             "image",
             "is_available",
             "is_active",
+            "available_qty",
             "created_at",
             "updated_at",
         ]
@@ -90,7 +91,7 @@ class OrderSerializer(serializers.ModelSerializer):
     deliveryStatus = serializers.CharField(source="delivery_status", required=False)
     items = serializers.CharField(source="items_json")
     vendor = serializers.CharField(source="vendor.full_name", read_only=True)
-    customer = serializers.CharField(source="student.full_name", read_only=True)
+    customer = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
 
     class Meta:
@@ -110,6 +111,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "date",
         ]
         read_only_fields = ["id", "order_id", "date"]
+
+    def get_customer(self, obj):
+        return obj.student.full_name if obj.student else "Offline Walk-up"
 
     def get_date(self, obj):
         return obj.created_at.strftime("%b %d, %Y %I:%M %p")

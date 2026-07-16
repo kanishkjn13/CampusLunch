@@ -181,6 +181,49 @@ export const StudentProvider = ({ children }) => {
   }, [user.email]);
 
   useEffect(() => {
+    const token = localStorage.getItem("access");
+    if (!token) return;
+
+    const pollData = async () => {
+      try {
+        const [ordersData, trackersData] = await Promise.all([
+          getOrders(),
+          getTrackers()
+        ]);
+
+        setOrders(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(ordersData)) {
+            ordersData.forEach(newOrd => {
+              const oldOrd = prev.find(o => o.order_id === newOrd.order_id || o.id === newOrd.id);
+              if (oldOrd && oldOrd.deliveryStatus !== newOrd.deliveryStatus) {
+                addNotification(
+                  `Order ${newOrd.deliveryStatus}`,
+                  `Order ${newOrd.order_id || newOrd.id} from ${newOrd.vendor} is now ${newOrd.deliveryStatus}!`,
+                  newOrd.deliveryStatus === 'Delivered' ? 'success' : 'info'
+                );
+              }
+            });
+            return ordersData;
+          }
+          return prev;
+        });
+
+        setActiveTrackers(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(trackersData)) {
+            return trackersData;
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error("Failed to poll live order updates:", err);
+      }
+    };
+
+    const interval = setInterval(pollData, 3000);
+    return () => clearInterval(interval);
+  }, [user.email]);
+
+  useEffect(() => {
     if (orders.length > 0) {
       const val = Date.now().toString();
       const prevVal = localStorage.getItem('sync_orders_trigger');

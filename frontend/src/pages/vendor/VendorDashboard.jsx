@@ -4,7 +4,7 @@ import { StudentContext } from '@/context/StudentContext';
 import logo from '@/assets/logos/logo.png';
 import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, getUserProfile, deleteUserProfileApi } from "@/Services/authService";
 import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem } from "@/Services/menuService";
-import { updateOrderApi, updateOrderTrackerApi } from "@/Services/studentService";
+import { updateOrderApi, updateOrderTrackerApi, placeOrderApi } from "@/Services/studentService";
 
 import { getMediaBaseURL } from '@/APIs/axios';
 import {
@@ -36,7 +36,8 @@ const VendorDashboard = () => {
   const navigate = useNavigate();
   // Vendor details from localStorage (reactive state hooks)
   const storedSelfie = localStorage.getItem('vendor_selfie');
-  const [vendorChefAvatar, setVendorChefAvatar] = useState(storedSelfie || "/images/default-avatar.jpg");
+  const validSelfie = (storedSelfie && storedSelfie !== 'null' && storedSelfie !== 'undefined') ? storedSelfie : null;
+  const [vendorChefAvatar, setVendorChefAvatar] = useState(validSelfie || "/images/default-avatar.jpg");
 
   const getStoredVendorUser = (field, fallback) => {
     const userStr = localStorage.getItem("user");
@@ -76,12 +77,13 @@ const VendorDashboard = () => {
   const [menuForm, setMenuForm] = useState({
     name: "",
     price: "",
-    category: "",
+    category: "Main",
     meal_type: "Lunch",
     food_type: "Veg",
     description: "",
     is_available: true,
     is_active: true,
+    available_qty: "50",
   });
   const [menuImageFile, setMenuImageFile] = useState(null);
   const [menuImagePreview, setMenuImagePreview] = useState(null);
@@ -170,6 +172,8 @@ const VendorDashboard = () => {
             ? data.profile_image
             : `${getMediaBaseURL()}${data.profile_image}`;
           setVendorChefAvatar(imageUrl);
+        } else {
+          setVendorChefAvatar("/images/default-avatar.jpg");
         }
       } catch (err) {
         console.error("Failed to load vendor profile from backend:", err);
@@ -184,6 +188,7 @@ const VendorDashboard = () => {
 
   const [ordersSubTab, setOrdersSubTab] = useState('active');
   const [ordersSearch, setOrdersSearch] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [salesPeriod, setSalesPeriod] = useState('today');
   const [reviewsRatingFilter, setReviewsRatingFilter] = useState('all');
@@ -246,12 +251,13 @@ const VendorDashboard = () => {
     setMenuForm({
       name: "",
       price: "",
-      category: "",
+      category: "Main",
       meal_type: "Lunch",
       food_type: "Veg",
       description: "",
       is_available: true,
       is_active: true,
+      available_qty: "50",
     });
     setMenuImageFile(null);
     setMenuImagePreview(null);
@@ -263,12 +269,13 @@ const VendorDashboard = () => {
     setMenuForm({
       name: item.name,
       price: item.price,
-      category: item.category,
-      meal_type: item.meal_type,
-      food_type: item.food_type,
+      category: item.category || "Main",
+      meal_type: item.meal_type || "Lunch",
+      food_type: item.food_type || "Veg",
       description: item.description || "",
       is_available: item.is_available,
       is_active: item.is_active,
+      available_qty: String(item.available_qty ?? 50),
     });
     setMenuImageFile(null);
     const imageUrl = item.image
@@ -296,7 +303,7 @@ const VendorDashboard = () => {
 
   const handleSaveMenuItem = async (e) => {
     e.preventDefault();
-    if (!menuForm.name || !menuForm.price || !menuForm.category) {
+    if (!menuForm.name || !menuForm.price) {
       alert("Please fill in all required fields (*).");
       return;
     }
@@ -310,12 +317,13 @@ const VendorDashboard = () => {
       const formData = new FormData();
       formData.append("name", menuForm.name);
       formData.append("price", menuForm.price);
-      formData.append("category", menuForm.category);
-      formData.append("meal_type", menuForm.meal_type);
-      formData.append("food_type", menuForm.food_type);
+      formData.append("category", menuForm.category || "Main");
+      formData.append("meal_type", menuForm.meal_type || "Lunch");
+      formData.append("food_type", menuForm.food_type || "Veg");
       formData.append("description", menuForm.description);
       formData.append("is_available", menuForm.is_available);
       formData.append("is_active", menuForm.is_active);
+      formData.append("available_qty", menuForm.available_qty || "0");
       if (menuImageFile) {
         formData.append("image", menuImageFile);
       }
@@ -357,6 +365,20 @@ const VendorDashboard = () => {
     } catch (err) {
       console.error("Failed to toggle active status:", err);
       alert("Failed to update activation status.");
+    }
+  };
+
+  const handleUpdateStock = async (item, change) => {
+    try {
+      const newQty = Math.max(0, (item.available_qty ?? 0) + change);
+      const formData = new FormData();
+      formData.append("available_qty", newQty);
+      formData.append("is_available", newQty > 0);
+      await updateMenuItem(item.id, formData);
+      fetchMenu();
+    } catch (err) {
+      console.error("Failed to update stock quantity:", err);
+      alert("Failed to update stock.");
     }
   };
 
@@ -439,23 +461,45 @@ const VendorDashboard = () => {
     }));
   };
 
-  const handleDecreaseQty = (itemId) => {
+  const handleDecreaseQty = async (itemId) => {
     if (!currentSeller) return;
-    setSellers(prevSellers => prevSellers.map(s => {
-      if (s.id === currentSeller.id) {
-        return {
-          ...s,
-          meals: (s.meals || []).map(m => {
-            if (m.id === itemId && (m.availableQty || 0) > 0) {
-              setOfflineSales(s => s + 1);
-              return { ...m, availableQty: m.availableQty - 1 };
-            }
-            return m;
-          })
-        };
-      }
-      return s;
-    }));
+    
+    const meal = foodItems.find(m => m.id === itemId);
+    if (!meal || (meal.availableQty || 0) <= 0) return;
+
+    try {
+      const newOrder = await placeOrderApi({
+        vendor_id: currentSeller.id,
+        items: JSON.stringify([{
+          id: meal.id,
+          name: meal.name,
+          price: meal.price,
+          quantity: 1
+        }]),
+        bill: meal.price,
+        paymentMethod: 'Cash (Offline)',
+        paymentStatus: 'Paid',
+        deliveryStatus: 'Delivered'
+      });
+
+      setOrders(prev => [newOrder, ...prev]);
+
+      setSellers(prevSellers => prevSellers.map(s => {
+        if (s.id === currentSeller.id) {
+          return {
+            ...s,
+            meals: (s.meals || []).map(m => m.id === itemId ? { ...m, availableQty: m.availableQty - 1 } : m)
+          };
+        }
+        return s;
+      }));
+
+      setOfflineSales(s => s + 1);
+
+    } catch (err) {
+      console.error("Failed to record offline sale:", err);
+      alert("Failed to record offline sale in remote database.");
+    }
   };
 
   const handleClearNotifications = () => {
@@ -1057,6 +1101,7 @@ const VendorDashboard = () => {
                 <div className="header-profile-box" onClick={() => setActiveBottomTab('profile')}>
                   <img
                     src={vendorChefAvatar}
+                    onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-avatar.jpg'; }}
                     alt="Vendor Chef"
                     className="vendor-chef-avatar-circle"
                   />
@@ -1380,14 +1425,32 @@ const VendorDashboard = () => {
                   </div>
 
                   {/* Search input bar */}
-                  <div className="orders-search-wrapper" style={{ maxWidth: '400px' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  <div className="orders-search-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '400px', marginBottom: '20px' }}>
+                    <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: isSearchFocused ? '#855300' : '#94a3b8', pointerEvents: 'none', transition: 'color 0.2s ease' }} />
                     <input
                       type="text"
                       className="orders-search-input"
                       placeholder="Search orders..."
                       value={ordersSearch}
                       onChange={(e) => setOrdersSearch(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setIsSearchFocused(false)}
+                      style={{
+                        width: '100%',
+                        height: '46px',
+                        paddingLeft: '44px',
+                        paddingRight: '16px',
+                        borderRadius: '14px',
+                        border: isSearchFocused ? '2px solid #855300' : '1px solid rgba(0, 0, 0, 0.08)',
+                        backgroundColor: '#f8fafc',
+                        outline: 'none',
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        color: '#1e293b',
+                        boxShadow: isSearchFocused ? '0 0 0 3px rgba(133, 83, 0, 0.1)' : 'none',
+                        transition: 'all 0.2s ease-in-out',
+                        fontFamily: "'Outfit', sans-serif"
+                      }}
                     />
                   </div>
 
@@ -1536,13 +1599,14 @@ const VendorDashboard = () => {
                   ) : (
                     <div className="availability-items-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginTop: '10px' }}>
                       {menuItems.map(item => {
-                        const cardAccentClass = !item.is_active ? 'accent-empty' : !item.is_available ? 'accent-low' : 'accent-instock';
+                        const isOutOfStock = !item.is_available || (item.available_qty ?? 0) === 0;
+                        const cardAccentClass = isOutOfStock ? 'accent-low' : 'accent-instock';
                         const imageUrl = item.image
                           ? (item.image.startsWith('http') ? item.image : `${getMediaBaseURL()}${item.image}`)
                           : "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E";
 
                         return (
-                          <div key={item.id} className={`availability-item-card ${cardAccentClass}`} style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '16px', gap: '12px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 20px rgba(0,0,0,0.008)' }}>
+                          <div key={item.id} className={`availability-item-card ${cardAccentClass}`} style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '16px', gap: '14px', borderRadius: '20px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 20px rgba(0,0,0,0.008)' }}>
                             <div style={{ display: 'flex', gap: '12px' }}>
                               <img
                                 src={imageUrl}
@@ -1550,21 +1614,7 @@ const VendorDashboard = () => {
                                 style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover' }}
                               />
                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>{item.name}</h4>
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    fontWeight: 800,
-                                    padding: '3px 8px',
-                                    borderRadius: '6px',
-                                    backgroundColor: item.food_type === 'Veg' ? '#f0fdf4' : '#fef2f2',
-                                    color: item.food_type === 'Veg' ? '#166534' : '#991b1b',
-                                    border: `1px solid ${item.food_type === 'Veg' ? '#bbf7d0' : '#fecaca'}`
-                                  }}>
-                                    {item.food_type}
-                                  </span>
-                                </div>
-
+                                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: '#1e293b' }}>{item.name}</h4>
                                 <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#855300' }}>₹{item.price}</p>
                                 <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                   {item.description || 'No description provided.'}
@@ -1572,60 +1622,53 @@ const VendorDashboard = () => {
                               </div>
                             </div>
 
-                            {/* Attribute Badges */}
-                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '0.68rem', backgroundColor: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                                {item.category}
-                              </span>
-                              <span style={{ fontSize: '0.68rem', backgroundColor: '#fffbeb', color: '#b45309', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                                {item.meal_type}
-                              </span>
-                              <span style={{
-                                fontSize: '0.68rem',
-                                backgroundColor: !item.is_active ? '#fee2e2' : item.is_available ? '#ecfdf5' : '#fef3c7',
-                                color: !item.is_active ? '#991b1b' : item.is_available ? '#065f46' : '#92400e',
-                                padding: '3px 8px',
-                                borderRadius: '6px',
-                                fontWeight: 700
-                              }}>
-                                {!item.is_active ? 'Inactive' : item.is_available ? 'Available' : 'Out of Stock'}
-                              </span>
+                            {/* Stock Controller UX */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Stock:</span>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: isOutOfStock ? '#e11d48' : '#166534' }}>
+                                  {isOutOfStock ? 'Out of Stock' : `${item.available_qty} items`}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+                                <button
+                                  onClick={() => handleUpdateStock(item, -1)}
+                                  style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', padding: '4px 10px', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}
+                                >
+                                  -
+                                </button>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 900, minWidth: '32px', textAlign: 'center', color: '#0f172a' }}>{item.available_qty ?? 0}</span>
+                                <button
+                                  onClick={() => handleUpdateStock(item, 1)}
+                                  style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', padding: '4px 10px', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
 
-                            {/* Status Toggles & Action Buttons */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '10px', marginTop: '4px' }}>
-                              <div style={{ display: 'flex', gap: '14px' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={item.is_available}
-                                    onChange={() => handleToggleAvailability(item)}
-                                    style={{ accentColor: '#855300', cursor: 'pointer' }}
-                                  />
-                                  In Stock
-                                </label>
-
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={item.is_active}
-                                    onChange={() => handleToggleActive(item)}
-                                    style={{ accentColor: '#855300', cursor: 'pointer' }}
-                                  />
-                                  Active
-                                </label>
-                              </div>
+                            {/* Actions and availability toggle */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '10px', marginTop: '2px' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={item.is_available}
+                                  onChange={() => handleToggleAvailability(item)}
+                                  style={{ accentColor: '#855300', cursor: 'pointer' }}
+                                />
+                                Available
+                              </label>
 
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button
                                   onClick={() => handleOpenEditMenu(item)}
-                                  style={{ border: '1px solid #e2e8f0', background: '#ffffff', color: '#475569', fontSize: '0.7rem', padding: '5px 10px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer' }}
+                                  style={{ border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontSize: '0.72rem', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => handleOpenDeleteMenu(item)}
-                                  style={{ border: '1px solid rgba(225,29,72,0.1)', background: '#fff1f2', color: '#e11d48', fontSize: '0.7rem', padding: '5px 10px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer' }}
+                                  style={{ border: '1px solid rgba(225,29,72,0.1)', background: '#fff1f2', color: '#e11d48', fontSize: '0.72rem', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}
                                 >
                                   Delete
                                 </button>
@@ -1824,6 +1867,7 @@ const VendorDashboard = () => {
                         <div className="profile-avatar-container" style={{ position: 'relative' }}>
                           <img
                             src={vendorChefAvatar}
+                            onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-avatar.jpg'; }}
                             alt="Chef Avatar"
                             className="profile-chef-avatar"
                             style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #855300' }}
@@ -1987,6 +2031,7 @@ const VendorDashboard = () => {
                           <div style={{ position: 'relative', width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #855300' }}>
                             <img
                               src={imagePreview || vendorChefAvatar}
+                              onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-avatar.jpg'; }}
                               alt="Chef Profile Preview"
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
@@ -2361,15 +2406,23 @@ const VendorDashboard = () => {
               {/* ADD / EDIT MENU ITEM MODAL */}
               {showMenuModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-                  <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '24px', maxWidth: '480px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
-                    <h4 style={{ fontSize: '1.1rem', fontWeight: 950, margin: '0 0 16px 0', color: '#855300', textAlign: 'left' }}>
-                      {editingMenuItem ? 'Edit Menu Item' : 'Add New Menu Item'}
-                    </h4>
-                    
-                    <form onSubmit={handleSaveMenuItem} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
+                  <div style={{ backgroundColor: '#ffffff', padding: '28px', borderRadius: '28px', maxWidth: '440px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', border: '1px solid rgba(0, 0, 0, 0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <h4 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>
+                        {editingMenuItem ? 'Edit Menu Item' : 'Add Food Item'}
+                      </h4>
+                      <button
+                        onClick={() => setShowMenuModal(false)}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#64748b', fontWeight: 'bold' }}
+                      >
+                        &times;
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveMenuItem} style={{ display: 'flex', flexDirection: 'column', gap: '18px', textAlign: 'left' }}>
                       {/* Image Upload with Live Preview */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '10px' }}>
-                        <div style={{ position: 'relative', width: '120px', height: '100px', borderRadius: '12px', overflow: 'hidden', border: '2px dashed #cbd5e1', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ position: 'relative', width: '130px', height: '110px', borderRadius: '16px', overflow: 'hidden', border: '2px dashed #cbd5e1', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' }}>
                           {menuImagePreview ? (
                             <img
                               src={menuImagePreview}
@@ -2377,7 +2430,10 @@ const VendorDashboard = () => {
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                           ) : (
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', padding: '6px' }}>No Image</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                              <Plus size={20} style={{ color: '#94a3b8' }} />
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Add Photo</span>
+                            </div>
                           )}
                           <label
                             htmlFor="menu-image-upload"
@@ -2386,19 +2442,21 @@ const VendorDashboard = () => {
                               bottom: 0,
                               right: 0,
                               left: 0,
-                              height: '24px',
-                              backgroundColor: 'rgba(133, 83, 0, 0.85)',
+                              height: '26px',
+                              backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                              backdropFilter: 'blur(2px)',
                               color: '#ffffff',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: 'pointer',
-                              fontSize: '0.6rem',
-                              fontWeight: 'bold',
-                              textTransform: 'uppercase'
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
                             }}
                           >
-                            Upload
+                            Browse
                           </label>
                           <input
                             type="file"
@@ -2408,24 +2466,26 @@ const VendorDashboard = () => {
                             style={{ display: 'none' }}
                           />
                         </div>
-                        <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '6px' }}>Max file size: 5MB (PNG/JPEG/WebP)</span>
+                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '8px' }}>JPEG, PNG, WebP (Max 5MB)</span>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>Food Name *</label>
+                      {/* Food Name */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Food Name *</label>
                         <input
                           type="text"
                           required
                           value={menuForm.name}
                           onChange={(e) => setMenuForm(prev => ({ ...prev, name: e.target.value }))}
                           placeholder="e.g. Special Kadai Paneer"
-                          style={{ borderRadius: '10px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                          style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
                         />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>Price (₹) *</label>
+                      {/* Price & Stock in 2 columns */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Price (₹) *</label>
                           <input
                             type="number"
                             required
@@ -2433,94 +2493,62 @@ const VendorDashboard = () => {
                             value={menuForm.price}
                             onChange={(e) => setMenuForm(prev => ({ ...prev, price: e.target.value }))}
                             placeholder="e.g. 120"
-                            style={{ borderRadius: '10px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                            style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
                           />
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>Category *</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Stock Qty *</label>
                           <input
-                            type="text"
+                            type="number"
                             required
-                            value={menuForm.category}
-                            onChange={(e) => setMenuForm(prev => ({ ...prev, category: e.target.value }))}
-                            placeholder="e.g. Punjabi, Thali"
-                            style={{ borderRadius: '10px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem' }}
+                            min="0"
+                            value={menuForm.available_qty}
+                            onChange={(e) => setMenuForm(prev => ({ ...prev, available_qty: e.target.value }))}
+                            placeholder="e.g. 50"
+                            style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s ease', fontFamily: "'Outfit', sans-serif" }}
                           />
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>Meal Type *</label>
-                          <select
-                            value={menuForm.meal_type}
-                            onChange={(e) => setMenuForm(prev => ({ ...prev, meal_type: e.target.value }))}
-                            style={{ borderRadius: '10px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer' }}
-                          >
-                            <option value="Breakfast">Breakfast</option>
-                            <option value="Lunch">Lunch</option>
-                            <option value="Dinner">Dinner</option>
-                          </select>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>Food Type *</label>
-                          <select
-                            value={menuForm.food_type}
-                            onChange={(e) => setMenuForm(prev => ({ ...prev, food_type: e.target.value }))}
-                            style={{ borderRadius: '10px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer' }}
-                          >
-                            <option value="Veg">Veg</option>
-                            <option value="Non-Veg">Non-Veg</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>Description</label>
+                      {/* Description */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Description</label>
                         <textarea
                           rows="3"
                           value={menuForm.description}
                           onChange={(e) => setMenuForm(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Brief description of ingredients or portions..."
-                          style={{ borderRadius: '10px', border: '1px solid #cbd5e1', padding: '8px 12px', fontSize: '0.8rem', resize: 'none', fontFamily: 'inherit' }}
+                          placeholder="Provide a delicious description of portions or ingredients..."
+                          style={{ borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 14px', fontSize: '0.85rem', color: '#1e293b', outline: 'none', backgroundColor: '#f8fafc', resize: 'none', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s ease' }}
                         />
                       </div>
 
-                      <div style={{ display: 'flex', gap: '20px', margin: '4px 0' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, color: '#475569' }}>
+                      {/* Stock availability status checkbox */}
+                      <div style={{ display: 'flex', gap: '20px', margin: '2px 0' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>
                           <input
                             type="checkbox"
                             checked={menuForm.is_available}
                             onChange={(e) => setMenuForm(prev => ({ ...prev, is_available: e.target.checked }))}
-                            style={{ accentColor: '#855300', cursor: 'pointer' }}
+                            style={{ accentColor: '#855300', cursor: 'pointer', width: '16px', height: '16px' }}
                           />
-                          Available (In Stock)
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, color: '#475569' }}>
-                          <input
-                            type="checkbox"
-                            checked={menuForm.is_active}
-                            onChange={(e) => setMenuForm(prev => ({ ...prev, is_active: e.target.checked }))}
-                            style={{ accentColor: '#855300', cursor: 'pointer' }}
-                          />
-                          Active
+                          Available for online orders
                         </label>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', gap: '14px', marginTop: '10px' }}>
                         <button
                           type="button"
                           onClick={() => setShowMenuModal(false)}
-                          className="order-action-btn"
-                          style={{ flex: 1, padding: '10px 0', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#475569', borderRadius: '10px', fontWeight: 800 }}
+                          style={{ flex: 1, padding: '12px 0', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', borderRadius: '12px', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s ease' }}
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
-                          className="order-action-btn btn-solid"
                           disabled={menuLoading}
-                          style={{ flex: 1, padding: '10px 0', borderRadius: '10px', fontWeight: 800, opacity: menuLoading ? 0.7 : 1 }}
+                          className="order-action-btn btn-solid"
+                          style={{ flex: 1, padding: '12px 0', borderRadius: '12px', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', opacity: menuLoading ? 0.7 : 1, transition: 'all 0.2s ease' }}
                         >
                           {menuLoading ? 'Saving...' : 'Save Item'}
                         </button>

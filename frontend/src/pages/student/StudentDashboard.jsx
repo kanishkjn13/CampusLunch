@@ -316,7 +316,7 @@ const StudentDashboard = () => {
           price: Number(m.price),
           type: m.food_type || 'Veg',
           description: m.description || '',
-          availableQty: m.is_available ? 999 : 0,
+          availableQty: m.is_available ? (m.available_qty ?? 999) : 0,
           prepTime: '15 mins'
         }))
       })));
@@ -358,7 +358,7 @@ const StudentDashboard = () => {
           price: Number(m.price),
           image: m.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E",
           type: m.food_type,
-          availableQty: m.is_available ? 999 : 0
+          availableQty: m.is_available ? (m.available_qty ?? 999) : 0
         }))
       };
 
@@ -984,6 +984,7 @@ const StudentDashboard = () => {
 
                 <img
                   src={user.avatar || "/images/default-avatar.jpg"}
+                  onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-avatar.jpg'; }}
                   alt="Student Avatar"
                   className="student-avatar-circle"
                   onClick={() => setActiveTab('profile')}
@@ -2203,6 +2204,7 @@ const StudentDashboard = () => {
                       <div className="profile-chef-header" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.04)', marginBottom: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
                         <img
                           src={profileForm.avatar || user.avatar || "/images/default-avatar.jpg"}
+                          onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-avatar.jpg'; }}
                           alt="Student Avatar"
                           style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%', border: '3px solid #855300', padding: '2px' }}
                         />
@@ -2313,6 +2315,7 @@ const StudentDashboard = () => {
                         <div style={{ position: 'relative', width: '80px', height: '80px', marginBottom: '8px' }}>
                           <img
                             src={profileForm.avatar || user.avatar || "/images/default-avatar.jpg"}
+                            onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-avatar.jpg'; }}
                             alt="Student Face Photo"
                             className="profile-chef-avatar"
                             style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }}

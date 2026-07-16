@@ -18,6 +18,7 @@ class StudentMenuItemSerializer(serializers.ModelSerializer):
             "price",
             "image",
             "is_available",
+            "available_qty",
         ]
 
 class StudentVendorSerializer(serializers.ModelSerializer):

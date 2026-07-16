@@ -28,13 +28,14 @@ class MenuItem(models.Model):
     )
     name = models.CharField(max_length=150)
     description = models.TextField(blank=True, null=True)
-    category = models.CharField(max_length=100)
-    meal_type = models.CharField(max_length=20, choices=MEAL_TYPE_CHOICES)
-    food_type = models.CharField(max_length=20, choices=FOOD_TYPE_CHOICES)
+    category = models.CharField(max_length=100, default="Main", blank=True, null=True)
+    meal_type = models.CharField(max_length=20, choices=MEAL_TYPE_CHOICES, default="Lunch", blank=True, null=True)
+    food_type = models.CharField(max_length=20, choices=FOOD_TYPE_CHOICES, default="Veg", blank=True, null=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     image = models.ImageField(upload_to="menu_items/", blank=True, null=True)
     is_available = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
+    available_qty = models.IntegerField(default=50)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -49,7 +50,7 @@ class MenuItem(models.Model):
 class Order(models.Model):
     id = models.AutoField(primary_key=True)
     order_id = models.CharField(max_length=50, unique=True)
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders", limit_choices_to={"role": "student"})
+    student = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders", limit_choices_to={"role": "student"})
     vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="vendor_orders", limit_choices_to={"role": "vendor"})
     items_json = models.TextField()
     bill = models.DecimalField(max_digits=10, decimal_places=2)
@@ -63,7 +64,8 @@ class Order(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.order_id} - {self.student.email} -> {self.vendor.email}"
+        student_email = self.student.email if self.student else "Offline Walk-up"
+        return f"{self.order_id} - {student_email} -> {self.vendor.email}"
 
 
 class OrderTracker(models.Model):

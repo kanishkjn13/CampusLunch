@@ -58,10 +58,21 @@ class OrderViewSet(viewsets.ModelViewSet):
         count = Order.objects.count()
         new_order_id = f"#TK-{800 + count * 35 + random.randint(0, 24)}"
         
-        order = serializer.save(
-            student=self.request.user,
-            order_id=new_order_id
-        )
+        user = self.request.user
+        if user.role == "vendor":
+            order = serializer.save(
+                vendor=user,
+                student=None,
+                order_id=new_order_id
+            )
+        else:
+            order = serializer.save(
+                student=user,
+                order_id=new_order_id
+            )
+        
+        # Deduct stock of the ordered menu items
+        deduct_menu_item_stock(order)
         
         OrderTracker.objects.create(
             order=order,
@@ -70,6 +81,58 @@ class OrderViewSet(viewsets.ModelViewSet):
             eta="Ready for Pickup",
             location="Tiffin Pickup Point"
         )
+
+
+def deduct_menu_item_stock(order):
+    import json
+    import re
+    try:
+        items_data = order.items_json
+        vendor = order.vendor
+        
+        # 1. Try parsing as JSON list
+        if items_data.strip().startswith("["):
+            items_list = json.loads(items_data)
+            for item in items_list:
+                item_name = item.get("name")
+                item_id = item.get("id")
+                qty = int(item.get("quantity", 1))
+                
+                menu_item = None
+                if item_id:
+                    menu_item = MenuItem.objects.filter(id=item_id, vendor=vendor).first()
+                if not menu_item and item_name:
+                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first()
+                
+                if menu_item:
+                    menu_item.available_qty = max(0, menu_item.available_qty - qty)
+                    menu_item.is_available = menu_item.available_qty > 0
+                    menu_item.save()
+        else:
+            # 2. Try parsing plain text list
+            lines = items_data.split("\n")
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                match = re.match(r"^(\d+)\s*[xX]\s*(.+)$", line)
+                if match:
+                    qty = int(match.group(1))
+                    item_name = match.group(2).strip()
+                    
+                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first()
+                    if menu_item:
+                        menu_item.available_qty = max(0, menu_item.available_qty - qty)
+                        menu_item.is_available = menu_item.available_qty > 0
+                        menu_item.save()
+                else:
+                    menu_item = MenuItem.objects.filter(name__iexact=line, vendor=vendor).first()
+                    if menu_item:
+                        menu_item.available_qty = max(0, menu_item.available_qty - 1)
+                        menu_item.is_available = menu_item.available_qty > 0
+                        menu_item.save()
+    except Exception as e:
+        print("Failed to deduct stock for order:", e)
 
 
 class OrderTrackerViewSet(viewsets.ModelViewSet):
