@@ -8,7 +8,7 @@ import {
 
 export const StudentContext = createContext();
 import { getOrders, placeOrderApi, getTrackers, getRatings } from '../Services/studentService';
-import { getUserProfile, updateUserProfileApi } from '../services/authService';
+import { getUserProfile, updateUserProfileApi } from '../Services/authService';
 
 export const TRACKING_STEPS = [
   'Order Confirmed',
