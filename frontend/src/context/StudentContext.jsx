@@ -568,7 +568,7 @@ export const StudentProvider = ({ children }) => {
         
         for (let q = 0; q < item.quantity; q++) {
           const totalItemsInCart = cart.reduce((sum, i) => sum + i.quantity, 0);
-          const itemsTotal = item.price;
+          const itemsTotal = Number(item.price);
           const platformFee = Math.round(5 / totalItemsInCart);
           const gst = Math.round(itemsTotal * 0.05);
           const deliveryFee = Math.round(20 / totalItemsInCart);

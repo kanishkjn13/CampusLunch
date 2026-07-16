@@ -2412,3 +2412,29 @@
     font-size: 0.82rem !important;
   }
 }
+
+/* Enable default browser pull-to-refresh on mobile/tablet viewports */
+@media (max-width: 1023px) {
+  .student-phone-frame,
+  .vendor-phone-frame {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .student-dashboard-layout,
+  .vendor-dashboard-layout,
+  .student-main-wrapper,
+  .vendor-main-wrapper {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .student-app-scroll-container,
+  .vendor-app-scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    flex: none !important;
+  }
+}
