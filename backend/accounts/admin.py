@@ -20,10 +20,10 @@ class UserAdmin(admin.ModelAdmin):
     )
 
     search_fields = (
-        "name"
-        "email",
-        "phone",
-    )
+    "full_name",
+    "email",
+    "phone",
+)
 
     ordering = ("-id",)
 
