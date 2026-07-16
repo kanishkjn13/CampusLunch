@@ -283,8 +283,10 @@ const StudentDashboard = () => {
 
 
 
-  const fetchVendorsList = async () => {
-    setVendorsLoading(true);
+  const fetchVendorsList = async (showLoading = false) => {
+    if (showLoading) {
+      setVendorsLoading(true);
+    }
     setVendorsError(false);
     try {
       let foodTypeParam = "";
@@ -324,12 +326,16 @@ const StudentDashboard = () => {
       console.error("Failed to fetch vendors:", err);
       setVendorsError(true);
     } finally {
-      setVendorsLoading(false);
+      if (showLoading) {
+        setVendorsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchVendorsList();
+    fetchVendorsList(true);
+    const interval = setInterval(() => fetchVendorsList(false), 3000);
+    return () => clearInterval(interval);
   }, [searchQuery, filterType, selectedMealType]);
 
   const handleViewVendorDetails = async (vendorId) => {
