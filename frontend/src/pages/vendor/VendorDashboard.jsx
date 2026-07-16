@@ -4,6 +4,7 @@ import { StudentContext } from '@/context/StudentContext';
 import logo from '@/assets/logos/logo.png';
 import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, getUserProfile, deleteUserProfileApi } from "@/Services/authService";
 import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem } from "@/Services/menuService";
+import { updateOrderApi, updateOrderTrackerApi } from "@/Services/studentService";
 
 import { getMediaBaseURL } from '@/APIs/axios';
 import {
@@ -120,13 +121,21 @@ const VendorDashboard = () => {
     return status !== 'closed';
   });
 
-  useEffect(() => {
-    localStorage.setItem('kitchen_status_' + vendorName, kitchenOpen ? 'open' : 'closed');
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'kitchen_status_' + vendorName,
-      newValue: kitchenOpen ? 'open' : 'closed'
-    }));
-  }, [kitchenOpen, vendorName]);
+  const handleToggleKitchenStatus = async () => {
+    const nextStatus = !kitchenOpen;
+    setKitchenOpen(nextStatus);
+    try {
+      await updateUserProfileApi({ is_kitchen_open: nextStatus });
+      localStorage.setItem('kitchen_status_' + vendorName, nextStatus ? 'open' : 'closed');
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'kitchen_status_' + vendorName,
+        newValue: nextStatus ? 'open' : 'closed'
+      }));
+    } catch (err) {
+      console.error("Failed to update kitchen status in remote database:", err);
+      setKitchenOpen(kitchenOpen);
+    }
+  };
 
   useEffect(() => {
     const fetchVendorProfile = async () => {
@@ -135,6 +144,27 @@ const VendorDashboard = () => {
         setVendorName(data.full_name || 'Sharma Tiffin Center');
         setVendorPhone(data.phone || '9876543210');
         setVendorEmail(data.email || 'vendor@campuslunch.com');
+        setKitchenOpen(data.is_kitchen_open !== false);
+        
+        // Sync database configurations into localStorage
+        localStorage.setItem('kitchen_status_' + (data.full_name || 'Sharma Tiffin Center'), data.is_kitchen_open !== false ? 'open' : 'closed');
+        if (data.vendor_working_days) {
+          localStorage.setItem('vendor_working_days', data.vendor_working_days);
+        }
+        if (data.vendor_timings) {
+          localStorage.setItem('vendor_timings', data.vendor_timings);
+        }
+        if (data.vendor_auto_accept) {
+          localStorage.setItem('vendor_auto_accept', data.vendor_auto_accept);
+        }
+
+        // Sync operational timings settings state
+        setOperatingForm({
+          workingDays: data.vendor_working_days || localStorage.getItem('vendor_working_days') || 'Mon - Sat',
+          timings: data.vendor_timings || localStorage.getItem('vendor_timings') || '10:00 AM - 08:00 PM',
+          autoAccept: (data.vendor_auto_accept || localStorage.getItem('vendor_auto_accept')) !== 'disabled'
+        });
+
         if (data.profile_image) {
           const imageUrl = data.profile_image.startsWith('http')
             ? data.profile_image
@@ -147,6 +177,8 @@ const VendorDashboard = () => {
     };
     fetchVendorProfile();
   }, []);
+
+
 
 
 
@@ -439,54 +471,78 @@ const VendorDashboard = () => {
     setConfirmModal({ isOpen: true, orderId: id });
   };
 
-  const handleDeliverConfirm = (id) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Delivered' } : o));
+  const handleDeliverConfirm = async (id) => {
+    try {
+      const sanitizedId = String(id).replace('#', '');
+      
+      await updateOrderApi(sanitizedId, { deliveryStatus: 'Delivered', paymentStatus: 'Paid' });
+      await updateOrderTrackerApi(sanitizedId, {
+        statusIndex: 5,
+        progress: 100,
+        eta: 'Delivered',
+        location: 'Delivered'
+      });
 
-    // Progress corresponding tracking item to 'Delivered' (statusIndex: 5)
-    setActiveTrackers(prev => prev.map(t => {
-      if (t.orderId === id) {
-        return {
-          ...t,
-          statusIndex: 5,
-          progress: 100,
-          eta: 'Delivered',
-          location: 'Delivered'
-        };
-      }
-      return t;
-    }));
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Delivered' } : o));
+      setActiveTrackers(prev => prev.map(t => {
+        if (t.orderId === id) {
+          return {
+            ...t,
+            statusIndex: 5,
+            progress: 100,
+            eta: 'Delivered',
+            location: 'Delivered'
+          };
+        }
+        return t;
+      }));
+    } catch (err) {
+      console.error("Failed to confirm delivery on remote database:", err);
+      alert("Failed to confirm delivery. Please try again.");
+    }
 
     setConfirmModal({ isOpen: false, orderId: null });
     setExpandedOrderId(null);
   };
 
-  const handleAdvanceStatus = (id) => {
+  const handleAdvanceStatus = async (id) => {
     const tracker = (activeTrackers || []).find(t => t.orderId === id);
     if (!tracker) {
       handleDeliverTrigger(id);
       return;
     }
 
+    const sanitizedId = String(id).replace('#', '');
     const currentIdx = tracker.statusIndex;
+    let nextStatus = '';
+    let nextTrackerData = {};
+
     if (currentIdx === 0) {
-      // Confirmed -> Preparing Food
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Preparing' } : o));
-      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 1, eta: '15 mins', location: 'Kitchen Preparing' } : t));
+      nextStatus = 'Preparing';
+      nextTrackerData = { statusIndex: 1, eta: '15 mins', location: 'Kitchen Preparing', progress: 20 };
     } else if (currentIdx === 1) {
-      // Preparing Food -> Packed
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Packed' } : o));
-      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 2, eta: '10 mins', location: 'Kitchen Packing Counter' } : t));
+      nextStatus = 'Packed';
+      nextTrackerData = { statusIndex: 2, eta: '10 mins', location: 'Kitchen Packing Counter', progress: 40 };
     } else if (currentIdx === 2) {
-      // Packed -> Picked Up (Transit)
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Transit' } : o));
-      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 3, eta: '8 mins', location: 'Out for delivery courier' } : t));
+      nextStatus = 'Transit';
+      nextTrackerData = { statusIndex: 3, eta: '8 mins', location: 'Out for delivery courier', progress: 60 };
     } else if (currentIdx === 3) {
-      // Picked Up -> Out For Delivery
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: 'Out For Delivery' } : o));
-      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, statusIndex: 4, eta: '3 mins', location: 'Near Hostel block' } : t));
+      nextStatus = 'Out For Delivery';
+      nextTrackerData = { statusIndex: 4, eta: '3 mins', location: 'Near Hostel block', progress: 80 };
     } else if (currentIdx === 4) {
-      // Out For Delivery -> Delivered
       handleDeliverTrigger(id);
+      return;
+    }
+
+    try {
+      await updateOrderApi(sanitizedId, { deliveryStatus: nextStatus });
+      await updateOrderTrackerApi(sanitizedId, nextTrackerData);
+
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: nextStatus } : o));
+      setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, ...nextTrackerData } : t));
+    } catch (err) {
+      console.error("Failed to advance order status on remote database:", err);
+      alert("Failed to advance order status. Please try again.");
     }
   };
 
@@ -636,17 +692,33 @@ const VendorDashboard = () => {
     }
   };
 
-  const handleSaveOperatingSettings = (e) => {
+  const handleSaveOperatingSettings = async (e) => {
     e.preventDefault();
+    setActionLoading({ isLoading: true, message: 'Saving operating settings...' });
 
-    // Save to localStorage
-    localStorage.setItem('vendor_working_days', operatingForm.workingDays);
-    localStorage.setItem('vendor_timings', operatingForm.timings);
-    localStorage.setItem('vendor_auto_accept', operatingForm.autoAccept ? 'enabled' : 'disabled');
+    try {
+      await updateUserProfileApi({
+        vendor_working_days: operatingForm.workingDays,
+        vendor_timings: operatingForm.timings,
+        vendor_auto_accept: operatingForm.autoAccept ? 'enabled' : 'disabled'
+      });
 
-    alert("Operating settings updated successfully!");
-    setActiveProfileSubPage('menu');
+      // Save to localStorage
+      localStorage.setItem('vendor_working_days', operatingForm.workingDays);
+      localStorage.setItem('vendor_timings', operatingForm.timings);
+      localStorage.setItem('vendor_auto_accept', operatingForm.autoAccept ? 'enabled' : 'disabled');
+
+      alert("Operating settings updated successfully!");
+      setActiveProfileSubPage('menu');
+    } catch (err) {
+      alert("Failed to save operating settings to remote database.");
+      console.error(err);
+    } finally {
+      setActionLoading({ isLoading: false, message: '' });
+    }
   };
+
+
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -1106,7 +1178,7 @@ const VendorDashboard = () => {
                       </div>
 
                       <button
-                        onClick={() => setKitchenOpen(!kitchenOpen)}
+                        onClick={handleToggleKitchenStatus}
                         style={{
                           width: '42px',
                           height: '24px',

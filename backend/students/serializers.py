@@ -34,6 +34,7 @@ class StudentVendorSerializer(serializers.ModelSerializer):
             "profile_image",
             "description",
             "is_active",
+            "is_kitchen_open",
             "menu_items",
         ]
 
@@ -66,6 +67,7 @@ class StudentVendorDetailSerializer(serializers.ModelSerializer):
             "phone",
             "profile_image",
             "description",
+            "is_kitchen_open",
             "menu_items",
         ]
 

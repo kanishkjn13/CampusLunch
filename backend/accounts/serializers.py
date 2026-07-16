@@ -424,6 +424,16 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "role",
+            "is_kitchen_open",
+            "avatar",
+            "sync_orders_trigger",
+            "sync_trackers_trigger",
+            "sync_ratings_trigger",
+            "tiffin_connect_sellers",
+            "last_stock_reset",
+            "vendor_working_days",
+            "vendor_timings",
+            "vendor_auto_accept",
         ]
 
 
@@ -435,5 +445,15 @@ class ProfileSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "profile_image",
+            "is_kitchen_open",
+            "avatar",
+            "sync_orders_trigger",
+            "sync_trackers_trigger",
+            "sync_ratings_trigger",
+            "tiffin_connect_sellers",
+            "last_stock_reset",
+            "vendor_working_days",
+            "vendor_timings",
+            "vendor_auto_accept",
         ]
         read_only_fields = ["email"]

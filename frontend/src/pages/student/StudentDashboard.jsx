@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '@/assets/logos/logo.png';
 import { StudentContext } from '@/context/StudentContext';
 import { changePassword, logoutUser, updateUserProfileApi, forgotPassword, deleteUserProfileApi } from "@/Services/authService";
-import { getVendors, getVendorDetails } from "@/Services/studentService";
+import { getVendors, getVendorDetails, submitRatingApi } from "@/Services/studentService";
 
 import { jsPDF } from 'jspdf';
 import {
@@ -302,6 +302,7 @@ const StudentDashboard = () => {
       setSellers(vendorsList.map(v => ({
         id: v.id,
         name: v.full_name || 'Vendor Kitchen',
+        is_kitchen_open: v.is_kitchen_open !== false,
         photo: v.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
         rating: '4.8',
         reviews: 12,
@@ -343,6 +344,7 @@ const StudentDashboard = () => {
       const formattedSeller = {
         id: details.id,
         name: details.full_name,
+        is_kitchen_open: details.is_kitchen_open !== false,
         photo: details.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
         rating: "4.8",
         reviews: "24",
@@ -479,7 +481,7 @@ const StudentDashboard = () => {
       meals: matchedMeals
     };
   }).filter(seller => {
-    const isClosed = kitchenStatuses && kitchenStatuses[seller.name] === false;
+    const isClosed = kitchenStatuses && (kitchenStatuses[seller.name] === false || (kitchenStatuses[seller.name] === undefined && seller.is_kitchen_open === false));
     return seller.meals.length > 0 && !isClosed;
   });
 
@@ -689,13 +691,19 @@ const StudentDashboard = () => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64Data = reader.result;
         const activeEmail = localStorage.getItem('email') || profileForm.email;
-        localStorage.setItem(`student_avatar_${activeEmail}`, base64Data);
-        setProfileForm(prev => ({ ...prev, avatar: base64Data }));
-        updateUserProfile({ ...profileForm, avatar: base64Data });
-        triggerToast('Profile picture updated successfully!');
+        try {
+          await updateUserProfileApi({ avatar: base64Data });
+          localStorage.setItem(`student_avatar_${activeEmail}`, base64Data);
+          setProfileForm(prev => ({ ...prev, avatar: base64Data }));
+          updateUserProfile({ ...profileForm, avatar: base64Data });
+          triggerToast('Profile picture updated successfully!');
+        } catch (err) {
+          triggerToast('Failed to save profile picture to remote database.');
+          console.error(err);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -1160,8 +1168,16 @@ const StudentDashboard = () => {
                                 </div>
                               );
                             }
-                            return activeVendors.map(vendor => {
-                              const isClosed = !vendor.is_active || localStorage.getItem('kitchen_status_' + vendor.full_name) === 'closed';
+                            const sortedVendors = [...activeVendors].sort((a, b) => {
+                              const aClosed = !a.is_active || kitchenStatuses[a.full_name] === false || (kitchenStatuses[a.full_name] === undefined && a.is_kitchen_open === false);
+                              const bClosed = !b.is_active || kitchenStatuses[b.full_name] === false || (kitchenStatuses[b.full_name] === undefined && b.is_kitchen_open === false);
+                              if (aClosed && !bClosed) return 1;
+                              if (!aClosed && bClosed) return -1;
+                              return 0;
+                            });
+
+                            return sortedVendors.map(vendor => {
+                              const isClosed = !vendor.is_active || kitchenStatuses[vendor.full_name] === false || (kitchenStatuses[vendor.full_name] === undefined && vendor.is_kitchen_open === false);
                               return (
                                 <div
                                   key={vendor.id}
@@ -1175,8 +1191,15 @@ const StudentDashboard = () => {
                                 >
                                   {/* Vendor Header (Only Name and Action link) */}
                                   <div 
-                                    onClick={() => handleViewVendorDetails(vendor.id)}
-                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '0 4px' }}
+                                    onClick={() => !isClosed && handleViewVendorDetails(vendor.id)}
+                                    style={{ 
+                                      display: 'flex', 
+                                      justifyContent: 'space-between', 
+                                      alignItems: 'center', 
+                                      cursor: isClosed ? 'default' : 'pointer', 
+                                      padding: '0 4px',
+                                      opacity: isClosed ? 0.55 : 1
+                                    }}
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                       <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#855300', margin: 0, fontFamily: 'serif' }}>
@@ -1188,10 +1211,12 @@ const StudentDashboard = () => {
                                         </span>
                                       )}
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', color: '#b45309', fontWeight: 800 }}>
-                                      <span>View Kitchen</span>
-                                      <ChevronRight size={14} />
-                                    </div>
+                                    {!isClosed && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', color: '#b45309', fontWeight: 800 }}>
+                                        <span>View Kitchen</span>
+                                        <ChevronRight size={14} />
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Tiffins List from Vendor */}
@@ -2918,23 +2943,32 @@ const StudentDashboard = () => {
                 className="custom-modal-btn btn-confirm"
                 style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem', opacity: (ratingModal.foodRating > 0 && ratingModal.serviceRating > 0) ? 1 : 0.5 }}
                 disabled={!(ratingModal.foodRating > 0 && ratingModal.serviceRating > 0)}
-                onClick={() => {
-                  if (setRatings) {
-                    setRatings(prev => [
-                      {
-                        id: Date.now(),
-                        date: new Date().toLocaleDateString(),
-                        orderId: ratingModal.orderId,
-                        vendorName: ratingModal.vendorName,
-                        foodRating: ratingModal.foodRating,
-                        serviceRating: ratingModal.serviceRating,
-                        comment: ratingModal.comment,
-                        studentName: profileForm.name || user.name || 'Student'
-                      },
-                      ...(prev || [])
-                    ]);
+                onClick={async () => {
+                  try {
+                    const seller = sellers.find(s => s.name === ratingModal.vendorName);
+                    if (!seller) {
+                      alert("Error: Vendor not found");
+                      return;
+                    }
+                    
+                    const payload = {
+                      vendor_id: seller.id,
+                      orderId: ratingModal.orderId,
+                      foodRating: ratingModal.foodRating,
+                      serviceRating: ratingModal.serviceRating,
+                      comment: ratingModal.comment
+                    };
+
+                    const createdRating = await submitRatingApi(payload);
+
+                    if (setRatings) {
+                      setRatings(prev => [createdRating, ...(prev || [])]);
+                    }
+                    triggerToast(`Feedback for ${ratingModal.vendorName} submitted successfully!`);
+                  } catch (err) {
+                    console.error("Failed to submit feedback to remote database:", err);
+                    alert("Failed to submit feedback. Please try again.");
                   }
-                  triggerToast(`Feedback for ${ratingModal.vendorName} submitted successfully!`);
                   setRatingModal({ isOpen: false, orderId: null, vendorName: '', foodRating: 0, serviceRating: 0, comment: '' });
                 }}
               >

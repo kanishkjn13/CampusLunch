@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import MenuItem
+from django.contrib.auth import get_user_model
+from .models import MenuItem, Order, OrderTracker, Rating
+
+User = get_user_model()
 
 class MenuItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,3 +47,97 @@ class MenuItemSerializer(serializers.ModelSerializer):
                         {"name": "A menu item with this name already exists in your menu."}
                     )
         return data
+
+
+class OrderTrackerSerializer(serializers.ModelSerializer):
+    orderId = serializers.CharField(source="order.order_id", read_only=True)
+    vendorName = serializers.CharField(source="order.vendor.full_name", read_only=True)
+    statusIndex = serializers.IntegerField(source="status_index")
+    driverInfo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderTracker
+        fields = [
+            "id",
+            "orderId",
+            "vendorName",
+            "statusIndex",
+            "progress",
+            "eta",
+            "location",
+            "driverInfo",
+        ]
+
+    def get_driver_info(self, obj):
+        return {
+            "name": obj.driver_name,
+            "phone": obj.driver_phone,
+            "vehicle": obj.vehicle,
+            "photo": "/images/default-avatar.jpg",
+        }
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source="order_id", read_only=True)
+    tracker = OrderTrackerSerializer(read_only=True)
+    vendor_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="vendor"),
+        source="vendor",
+        write_only=True
+    )
+    paymentMethod = serializers.CharField(source="payment_method")
+    paymentStatus = serializers.CharField(source="payment_status", required=False)
+    deliveryStatus = serializers.CharField(source="delivery_status", required=False)
+    items = serializers.CharField(source="items_json")
+    vendor = serializers.CharField(source="vendor.full_name", read_only=True)
+    customer = serializers.CharField(source="student.full_name", read_only=True)
+    date = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "order_id",
+            "vendor_id",
+            "vendor",
+            "customer",
+            "items",
+            "bill",
+            "paymentMethod",
+            "paymentStatus",
+            "deliveryStatus",
+            "tracker",
+            "date",
+        ]
+        read_only_fields = ["id", "order_id", "date"]
+
+    def get_date(self, obj):
+        return obj.created_at.strftime("%b %d, %Y %I:%M %p")
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source="student.full_name", read_only=True)
+    vendor_name = serializers.CharField(source="vendor.full_name", read_only=True)
+    vendor_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="vendor"),
+        source="vendor",
+        write_only=True
+    )
+    orderId = serializers.CharField(source="order_id", required=False, allow_blank=True, allow_null=True)
+    foodRating = serializers.IntegerField(source="food_rating")
+    serviceRating = serializers.IntegerField(source="service_rating")
+
+    class Meta:
+        model = Rating
+        fields = [
+            "id",
+            "orderId",
+            "vendor_id",
+            "vendor_name",
+            "student_name",
+            "foodRating",
+            "serviceRating",
+            "comment",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]

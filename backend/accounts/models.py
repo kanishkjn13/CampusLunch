@@ -43,6 +43,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=True
     )
 
+    is_kitchen_open = models.BooleanField(
+        default=True
+    )
+
     is_staff = models.BooleanField(
         default=False
     )
@@ -61,6 +65,58 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     profile_image = models.ImageField(
         upload_to="profile_images/",
+        blank=True,
+        null=True
+    )
+
+    avatar = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    sync_orders_trigger = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    sync_trackers_trigger = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    sync_ratings_trigger = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    tiffin_connect_sellers = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    last_stock_reset = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    vendor_working_days = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    vendor_timings = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    vendor_auto_accept = models.CharField(
+        max_length=20,
         blank=True,
         null=True
     )

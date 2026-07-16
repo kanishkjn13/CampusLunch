@@ -44,3 +44,52 @@ class MenuItem(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.vendor.full_name or self.vendor.email})"
+
+
+class Order(models.Model):
+    id = models.AutoField(primary_key=True)
+    order_id = models.CharField(max_length=50, unique=True)
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders", limit_choices_to={"role": "student"})
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="vendor_orders", limit_choices_to={"role": "vendor"})
+    items_json = models.TextField()
+    bill = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=50)
+    payment_status = models.CharField(max_length=50, default="Paid")
+    delivery_status = models.CharField(max_length=50, default="Confirmed")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.order_id} - {self.student.email} -> {self.vendor.email}"
+
+
+class OrderTracker(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="tracker")
+    status_index = models.IntegerField(default=0)
+    progress = models.IntegerField(default=0)
+    eta = models.CharField(max_length=100, default="Ready for Pickup")
+    location = models.CharField(max_length=200, default="Tiffin Pickup Point")
+    driver_name = models.CharField(max_length=100, default="Tiffin Vendor")
+    driver_phone = models.CharField(max_length=20, default="+91 98765 43210")
+    vehicle = models.CharField(max_length=50, default="Pickup Counter")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Tracker for {self.order.order_id}"
+
+
+class Rating(models.Model):
+    id = models.AutoField(primary_key=True)
+    order_id = models.CharField(max_length=50, blank=True, null=True)
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="student_ratings", limit_choices_to={"role": "student"})
+    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="vendor_ratings", limit_choices_to={"role": "vendor"})
+    food_rating = models.IntegerField()
+    service_rating = models.IntegerField()
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Rating for {self.vendor.email} by {self.student.email}"

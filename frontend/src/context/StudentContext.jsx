@@ -7,6 +7,8 @@ import {
 } from '../data/studentMockData';
 
 export const StudentContext = createContext();
+import { getOrders, placeOrderApi, getTrackers, getRatings } from '../Services/studentService';
+import { getUserProfile, updateUserProfileApi } from '../services/authService';
 
 export const TRACKING_STEPS = [
   'Order Confirmed',
@@ -24,12 +26,18 @@ export const StudentProvider = ({ children }) => {
       try {
         const loggedInUser = JSON.parse(userStr);
         if (loggedInUser) {
+          const activeEmail = loggedInUser.email || INITIAL_USER_PROFILE.email;
           return {
             ...INITIAL_USER_PROFILE,
             name: loggedInUser.full_name || loggedInUser.name || INITIAL_USER_PROFILE.name,
             phone: loggedInUser.phone || INITIAL_USER_PROFILE.phone,
-            email: loggedInUser.email || INITIAL_USER_PROFILE.email,
-            avatar: localStorage.getItem(`student_avatar_${loggedInUser.email}`) || INITIAL_USER_PROFILE.avatar
+            email: activeEmail,
+            avatar: loggedInUser.avatar || localStorage.getItem(`student_avatar_${activeEmail}`) || INITIAL_USER_PROFILE.avatar,
+            sync_orders_trigger: loggedInUser.sync_orders_trigger || localStorage.getItem('sync_orders_trigger') || '',
+            sync_trackers_trigger: loggedInUser.sync_trackers_trigger || localStorage.getItem('sync_trackers_trigger') || '',
+            sync_ratings_trigger: loggedInUser.sync_ratings_trigger || localStorage.getItem('sync_ratings_trigger') || '',
+            tiffin_connect_sellers: loggedInUser.tiffin_connect_sellers || localStorage.getItem('tiffin_connect_sellers') || '',
+            last_stock_reset: loggedInUser.last_stock_reset || localStorage.getItem('last_stock_reset') || '',
           };
         }
       } catch (e) {
@@ -42,7 +50,12 @@ export const StudentProvider = ({ children }) => {
       name: localStorage.getItem('name') || INITIAL_USER_PROFILE.name,
       phone: localStorage.getItem('phone') || INITIAL_USER_PROFILE.phone,
       email: activeEmail,
-      avatar: localStorage.getItem(`student_avatar_${activeEmail}`) || INITIAL_USER_PROFILE.avatar
+      avatar: localStorage.getItem(`student_avatar_${activeEmail}`) || INITIAL_USER_PROFILE.avatar,
+      sync_orders_trigger: localStorage.getItem('sync_orders_trigger') || '',
+      sync_trackers_trigger: localStorage.getItem('sync_trackers_trigger') || '',
+      sync_ratings_trigger: localStorage.getItem('sync_ratings_trigger') || '',
+      tiffin_connect_sellers: localStorage.getItem('tiffin_connect_sellers') || '',
+      last_stock_reset: localStorage.getItem('last_stock_reset') || '',
     };
   });
   const [sellers, setSellers] = useState(() => {
@@ -64,56 +77,14 @@ export const StudentProvider = ({ children }) => {
   // Favorites State (Array of food ids or seller ids)
   const [favorites, setFavorites] = useState([]);
   
-  const [orders, setOrders] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tiffin_connect_orders');
-      if (saved && saved !== 'undefined') {
-        const parsed = JSON.parse(saved);
-        const isValid = Array.isArray(parsed) && parsed.every(o => typeof o.items === 'string');
-        if (isValid) {
-          return parsed;
-        }
-      }
-      return [];
-    } catch (e) {
-      console.error("Failed to parse orders from localStorage:", e);
-      return [];
-    }
-  });
+  const [orders, setOrders] = useState([]);
 
   // Live order active tracker status
   const [activeOrderTracker, setActiveOrderTracker] = useState(null);
-  const [activeTrackers, setActiveTrackers] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tiffin_connect_trackers');
-      const loadedTrackers = (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
-      
-      const savedOrdersStr = localStorage.getItem('tiffin_connect_orders');
-      const currentOrders = (savedOrdersStr && savedOrdersStr !== 'undefined') ? JSON.parse(savedOrdersStr) : [];
-      
-      return loadedTrackers.map(t => {
-        const matched = currentOrders.find(o => o.id === t.orderId);
-        if (matched && (matched.deliveryStatus === 'Delivered' || matched.deliveryStatus === 'Cancelled') && t.statusIndex < 5) {
-          return { ...t, statusIndex: 5, progress: 100, eta: 'Delivered', location: 'Delivered' };
-        }
-        return t;
-      });
-    } catch (e) {
-      console.error("Failed to parse trackers from localStorage:", e);
-      return [];
-    }
-  });
+  const [activeTrackers, setActiveTrackers] = useState([]);
 
   // Ratings State
-  const [ratings, setRatings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tiffin_connect_ratings');
-      return (saved && saved !== 'undefined') ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Failed to parse ratings from localStorage:", e);
-      return [];
-    }
-  });
+  const [ratings, setRatings] = useState([]);
 
   const [kitchenStatuses, setKitchenStatuses] = useState(() => {
     const statuses = {};
@@ -138,20 +109,115 @@ export const StudentProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    localStorage.setItem('tiffin_connect_orders', JSON.stringify(orders));
+    const loadBackendData = async () => {
+      const token = localStorage.getItem("access");
+      if (!token) return;
+
+      try {
+        const [profileData, ordersData, trackersData, ratingsData] = await Promise.all([
+          getUserProfile(),
+          getOrders(),
+          getTrackers(),
+          getRatings(),
+        ]);
+
+        setUser(prev => {
+          const nextUser = {
+            ...prev,
+            name: profileData.full_name || prev.name,
+            phone: profileData.phone || prev.phone,
+            email: profileData.email || prev.email,
+            avatar: profileData.avatar || prev.avatar,
+            sync_orders_trigger: profileData.sync_orders_trigger || prev.sync_orders_trigger,
+            sync_trackers_trigger: profileData.sync_trackers_trigger || prev.sync_trackers_trigger,
+            sync_ratings_trigger: profileData.sync_ratings_trigger || prev.sync_ratings_trigger,
+            tiffin_connect_sellers: profileData.tiffin_connect_sellers || prev.tiffin_connect_sellers,
+            last_stock_reset: profileData.last_stock_reset || prev.last_stock_reset,
+          };
+
+          // Sync database profile data to local storage
+          localStorage.setItem('name', nextUser.name);
+          localStorage.setItem('phone', nextUser.phone);
+          localStorage.setItem('email', nextUser.email);
+          if (nextUser.avatar) {
+            localStorage.setItem(`student_avatar_${nextUser.email}`, nextUser.avatar);
+          }
+          if (nextUser.sync_orders_trigger) {
+            localStorage.setItem('sync_orders_trigger', nextUser.sync_orders_trigger);
+          }
+          if (nextUser.sync_trackers_trigger) {
+            localStorage.setItem('sync_trackers_trigger', nextUser.sync_trackers_trigger);
+          }
+          if (nextUser.sync_ratings_trigger) {
+            localStorage.setItem('sync_ratings_trigger', nextUser.sync_ratings_trigger);
+          }
+          if (nextUser.tiffin_connect_sellers) {
+            localStorage.setItem('tiffin_connect_sellers', nextUser.tiffin_connect_sellers);
+          }
+          if (nextUser.last_stock_reset) {
+            localStorage.setItem('last_stock_reset', nextUser.last_stock_reset);
+          }
+
+          // Update cached sellers state if returned from database
+          if (profileData.tiffin_connect_sellers) {
+            try {
+              setSellers(JSON.parse(profileData.tiffin_connect_sellers));
+            } catch (e) {
+              console.error("Failed to parse sellers from database profileData:", e);
+            }
+          }
+
+          return nextUser;
+        });
+
+        setOrders(ordersData);
+        setActiveTrackers(trackersData);
+        setRatings(ratingsData);
+      } catch (err) {
+        console.error("Failed to load initial data from remote database:", err);
+      }
+    };
+    loadBackendData();
+  }, [user.email]);
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      const val = Date.now().toString();
+      const prevVal = localStorage.getItem('sync_orders_trigger');
+      if (val !== prevVal) {
+        localStorage.setItem('sync_orders_trigger', val);
+        updateUserProfileApi({ sync_orders_trigger: val }).catch(err => 
+          console.error("Failed to sync sync_orders_trigger to remote DB:", err)
+        );
+      }
+    }
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('tiffin_connect_trackers', JSON.stringify(activeTrackers));
+    if (activeTrackers.length > 0) {
+      const val = Date.now().toString();
+      const prevVal = localStorage.getItem('sync_trackers_trigger');
+      if (val !== prevVal) {
+        localStorage.setItem('sync_trackers_trigger', val);
+        updateUserProfileApi({ sync_trackers_trigger: val }).catch(err => 
+          console.error("Failed to sync sync_trackers_trigger to remote DB:", err)
+        );
+      }
+    }
   }, [activeTrackers]);
 
   useEffect(() => {
-    localStorage.setItem('tiffin_connect_ratings', JSON.stringify(ratings));
+    if (ratings.length > 0) {
+      const val = Date.now().toString();
+      const prevVal = localStorage.getItem('sync_ratings_trigger');
+      if (val !== prevVal) {
+        localStorage.setItem('sync_ratings_trigger', val);
+        updateUserProfileApi({ sync_ratings_trigger: val }).catch(err => 
+          console.error("Failed to sync sync_ratings_trigger to remote DB:", err)
+        );
+      }
+    }
   }, [ratings]);
-
-  useEffect(() => {
-    localStorage.setItem('tiffin_connect_sellers', JSON.stringify(sellers));
-  }, [sellers]);
 
   // Reset stock at 12:00 AM daily
   const checkMidnightReset = () => {
@@ -160,8 +226,17 @@ export const StudentProvider = ({ children }) => {
     
     if (lastReset !== todayStr) {
       setSellers(INITIAL_SELLERS);
-      localStorage.setItem('tiffin_connect_sellers', JSON.stringify(INITIAL_SELLERS));
+      const sellersStr = JSON.stringify(INITIAL_SELLERS);
+      localStorage.setItem('tiffin_connect_sellers', sellersStr);
       localStorage.setItem('last_stock_reset', todayStr);
+      
+      // Update database!
+      updateUserProfileApi({
+        tiffin_connect_sellers: sellersStr,
+        last_stock_reset: todayStr
+      }).catch(err => 
+        console.error("Failed to sync midnight reset to remote DB:", err)
+      );
     }
   };
 
@@ -171,62 +246,39 @@ export const StudentProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, []);
 
+
+
   useEffect(() => {
-    const handleStorageChange = (e) => {
+    const handleStorageChange = async (e) => {
       try {
-        if (e.key === 'tiffin_connect_orders') {
-          const saved = localStorage.getItem('tiffin_connect_orders');
-          if (saved && saved !== 'undefined') {
-            const parsedOrders = JSON.parse(saved);
-            setOrders(prevOrders => {
-              // Trigger notifications for status updates
-              parsedOrders.forEach(newOrd => {
-                const oldOrd = prevOrders.find(o => o.id === newOrd.id);
-                if (oldOrd && oldOrd.deliveryStatus !== newOrd.deliveryStatus) {
-                  addNotification(
-                    `Order ${newOrd.deliveryStatus}`,
-                    `Order ${newOrd.id} from ${newOrd.vendor} is now ${newOrd.deliveryStatus}!`,
-                    newOrd.deliveryStatus === 'Delivered' ? 'success' : 'info'
-                  );
-                }
-              });
-              return parsedOrders;
+        if (e.key === 'sync_orders_trigger') {
+          const ordersData = await getOrders();
+          setOrders(prevOrders => {
+            ordersData.forEach(newOrd => {
+              const oldOrd = prevOrders.find(o => o.order_id === newOrd.order_id || o.id === newOrd.id);
+              if (oldOrd && oldOrd.deliveryStatus !== newOrd.deliveryStatus) {
+                addNotification(
+                  `Order ${newOrd.deliveryStatus}`,
+                  `Order ${newOrd.order_id || newOrd.id} from ${newOrd.vendor} is now ${newOrd.deliveryStatus}!`,
+                  newOrd.deliveryStatus === 'Delivered' ? 'success' : 'info'
+                );
+              }
             });
-            // Auto-advance trackers of delivered/cancelled orders to index 5 (Delivered)
-            setActiveTrackers(prev => {
-              let updated = false;
-              const nextTrackers = prev.map(t => {
-                const matchedOrder = parsedOrders.find(o => o.id === t.orderId);
-                if (matchedOrder && (matchedOrder.deliveryStatus === 'Delivered' || matchedOrder.deliveryStatus === 'Cancelled') && t.statusIndex < 5) {
-                  updated = true;
-                  return { ...t, statusIndex: 5, progress: 100, eta: 'Delivered', location: 'Delivered' };
-                }
-                return t;
-              });
-              return updated ? nextTrackers : prev;
-            });
-          }
+            return ordersData;
+          });
         }
-        if (e.key === 'tiffin_connect_trackers') {
-          const saved = localStorage.getItem('tiffin_connect_trackers');
-          if (saved && saved !== 'undefined') {
-            const parsed = JSON.parse(saved);
-            setActiveTrackers(parsed);
-            // Also sync activeOrderTracker status
-            setActiveOrderTracker(prev => {
-              if (!prev) return null;
-              const matched = parsed.find(t => t.orderId === prev.orderId);
-              return matched || prev;
-            });
-          }
+        if (e.key === 'sync_trackers_trigger') {
+          const trackersData = await getTrackers();
+          setActiveTrackers(trackersData);
+          setActiveOrderTracker(prev => {
+            if (!prev) return null;
+            const matched = trackersData.find(t => t.orderId === prev.orderId);
+            return matched || prev;
+          });
         }
-        if (e.key === 'tiffin_connect_ratings') {
-          const saved = localStorage.getItem('tiffin_connect_ratings');
-          if (saved && saved !== 'undefined') setRatings(JSON.parse(saved));
-        }
-        if (e.key === 'tiffin_connect_sellers') {
-          const saved = localStorage.getItem('tiffin_connect_sellers');
-          if (saved && saved !== 'undefined') setSellers(JSON.parse(saved));
+        if (e.key === 'sync_ratings_trigger') {
+          const ratingsData = await getRatings();
+          setRatings(ratingsData);
         }
         if (e.key && e.key.startsWith('kitchen_status_')) {
           const name = e.key.replace('kitchen_status_', '');
@@ -237,7 +289,7 @@ export const StudentProvider = ({ children }) => {
           }));
         }
       } catch (err) {
-        console.error("Error parsing storage changed data:", err);
+        console.error("Error handling storage trigger refresh:", err);
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -380,86 +432,85 @@ export const StudentProvider = ({ children }) => {
   // Place checkout order
   const placeOrder = async (addressDetails, paymentMethod) => {
     setLoading(true);
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
     const newOrders = [];
     const orderIds = [];
     const vendorNames = [];
-    let tiffinIndex = 0;
+    const newTrackers = [];
 
-    cart.forEach((item) => {
-      const seller = sellers.find(s => s.id === item.sellerId) || { name: 'Local Kitchen' };
-      for (let q = 0; q < item.quantity; q++) {
-        const randomOffset = Math.floor(Math.random() * 25);
-        const newOrderId = '#TK-' + (800 + tiffinIndex * 35 + randomOffset);
-        tiffinIndex++;
+    try {
+      for (const item of cart) {
+        const seller = sellers.find(s => s.id === item.sellerId);
+        
+        for (let q = 0; q < item.quantity; q++) {
+          const totalItemsInCart = cart.reduce((sum, i) => sum + i.quantity, 0);
+          const itemsTotal = item.price;
+          const platformFee = Math.round(5 / totalItemsInCart);
+          const gst = Math.round(itemsTotal * 0.05);
+          const deliveryFee = Math.round(20 / totalItemsInCart);
+          const discount = activeCoupon 
+            ? (activeCoupon.discountType === 'percentage' ? Math.round(itemsTotal * (activeCoupon.value / 100)) : Math.round(activeCoupon.value / totalItemsInCart))
+            : 0;
+          const finalAmount = itemsTotal + platformFee + gst + deliveryFee - discount;
 
-        // Calculate individual bill (item price + platform fee + GST + delivery fee split)
-        const totalItemsInCart = cart.reduce((sum, i) => sum + i.quantity, 0);
-        const itemsTotal = item.price;
-        const platformFee = Math.round(5 / totalItemsInCart);
-        const gst = Math.round(itemsTotal * 0.05);
-        const deliveryFee = Math.round(20 / totalItemsInCart);
-        const discount = activeCoupon 
-          ? (activeCoupon.discountType === 'percentage' ? Math.round(itemsTotal * (activeCoupon.value / 100)) : Math.round(activeCoupon.value / totalItemsInCart))
-          : 0;
-        const finalAmount = itemsTotal + platformFee + gst + deliveryFee - discount;
+          const payload = {
+            vendor_id: item.sellerId,
+            items: `1x ${item.name}`,
+            bill: finalAmount,
+            paymentMethod: paymentMethod,
+            paymentStatus: 'Paid',
+            deliveryStatus: 'Confirmed'
+          };
 
-        const newOrderObj = {
-          id: newOrderId,
-          vendor: seller.name,
-          customer: user ? user.name : 'Student',
-          items: `1x ${item.name}`,
-          date: 'Just now',
-          bill: finalAmount,
-          paymentMethod: paymentMethod,
-          paymentStatus: 'Paid',
-          deliveryStatus: 'Confirmed'
-        };
+          const createdOrder = await placeOrderApi(payload);
 
-        newOrders.push(newOrderObj);
-        orderIds.push(newOrderId);
-        vendorNames.push(seller.name);
-
-        // Start live status simulation for this individual order
-        startOrderTrackingSimulation(newOrderId, seller.name);
+          newOrders.push(createdOrder);
+          orderIds.push(createdOrder.order_id);
+          vendorNames.push(createdOrder.vendor);
+          
+          if (createdOrder.tracker) {
+            newTrackers.push(createdOrder.tracker);
+          }
+        }
       }
-    });
 
-    // Reduce stock quantities in sellers list based on cart items purchased
-    setSellers(prevSellers => prevSellers.map(s => {
-      const sellerCartItems = cart.filter(item => item.sellerId === s.id);
-      if (sellerCartItems.length > 0) {
-        return {
-          ...s,
-          meals: (s.meals || []).map(m => {
-            const matchingCartItem = sellerCartItems.find(item => item.id === m.id);
-            if (matchingCartItem) {
-              const currentStock = m.availableQty || 0;
-              const nextStock = Math.max(0, currentStock - matchingCartItem.quantity);
-              return { ...m, availableQty: nextStock };
-            }
-            return m;
-          })
-        };
-      }
-      return s;
-    }));
+      setOrders(prev => [...newOrders, ...prev]);
+      setActiveTrackers(prev => [...newTrackers, ...prev]);
 
-    // Update orders list in state
-    setOrders(prev => [...newOrders, ...prev]);
+      addNotification(
+        'Order Confirmed',
+        `Your order of ${newOrders.map(o => o.items).join(', ')} has been successfully placed!`,
+        'success'
+      );
 
-    addNotification(
-      'Order Confirmed',
-      `Your order of ${newOrders.map(o => o.items).join(', ')} has been successfully placed!`,
-      'success'
-    );
+      // Reduce stock quantities in sellers list based on cart items purchased
+      setSellers(prevSellers => prevSellers.map(s => {
+        const sellerCartItems = cart.filter(item => item.sellerId === s.id);
+        if (sellerCartItems.length > 0) {
+          return {
+            ...s,
+            meals: (s.meals || []).map(m => {
+              const matchingCartItem = sellerCartItems.find(item => item.id === m.id);
+              if (matchingCartItem) {
+                const currentStock = m.availableQty || 0;
+                const nextStock = Math.max(0, currentStock - matchingCartItem.quantity);
+                return { ...m, availableQty: nextStock };
+              }
+              return m;
+            })
+          };
+        }
+        return s;
+      }));
 
-    clearCart();
-    setLoading(false);
+      clearCart();
+    } catch (err) {
+      console.error("Failed to place order in remote database:", err);
+      alert("Failed to place order. Please try again.");
+    } finally {
+      setLoading(false);
+    }
     
-    // Return all order IDs and vendor names
     return { orderIds, vendorNames };
   };
 
