@@ -220,7 +220,6 @@ const StudentDashboard = () => {
     removeFromCart,
     clearCart,
     applyCoupon,
-    removeCoupon,
     placeOrder,
     setOrders,
     ratings,
@@ -229,7 +228,9 @@ const StudentDashboard = () => {
     setSellers,
     notifications,
     deleteNotification,
-    markAllNotificationsRead
+    markAllNotificationsRead,
+    triggerOrdersSync,
+    triggerRatingsSync
   } = useContext(StudentContext);
 
   // Layout Tab Navigation
@@ -644,6 +645,7 @@ const StudentDashboard = () => {
     setOrders(prev => prev.map(o =>
       o.id === orderId ? { ...o, deliveryStatus: 'Cancelled', paymentStatus: 'Refunded' } : o
     ));
+    triggerOrdersSync();
     triggerToast(`Order ${orderId} has been cancelled. Refund initiated.`);
   };
 
@@ -2972,6 +2974,7 @@ const StudentDashboard = () => {
 
                     if (setRatings) {
                       setRatings(prev => [createdRating, ...(prev || [])]);
+                      triggerRatingsSync();
                     }
                     triggerToast(`Feedback for ${ratingModal.vendorName} submitted successfully!`);
                   } catch (err) {

@@ -221,7 +221,17 @@ const VendorDashboard = () => {
     image: ''
   });
 
-  const { orders: contextOrders, setOrders, ratings: contextRatings, sellers, setSellers, activeTrackers, setActiveTrackers } = useContext(StudentContext);
+  const { 
+    orders: contextOrders, 
+    setOrders, 
+    ratings: contextRatings, 
+    sellers, 
+    setSellers, 
+    activeTrackers, 
+    setActiveTrackers,
+    triggerOrdersSync,
+    triggerTrackersSync
+  } = useContext(StudentContext);
 
   const fetchMenu = async (showLoading = false) => {
     if (showLoading) setMenuLoading(true);
@@ -487,6 +497,7 @@ const VendorDashboard = () => {
       });
 
       setOrders(prev => [newOrder, ...prev]);
+      triggerOrdersSync();
 
       setSellers(prevSellers => prevSellers.map(s => {
         if (s.id === currentSeller.id) {
@@ -544,6 +555,8 @@ const VendorDashboard = () => {
         }
         return t;
       }));
+      triggerOrdersSync();
+      triggerTrackersSync();
     } catch (err) {
       console.error("Failed to confirm delivery on remote database:", err);
       alert("Failed to confirm delivery. Please try again.");
@@ -588,6 +601,8 @@ const VendorDashboard = () => {
 
       setOrders(prev => prev.map(o => o.id === id ? { ...o, deliveryStatus: nextStatus } : o));
       setActiveTrackers(prev => prev.map(t => t.orderId === id ? { ...t, ...nextTrackerData } : t));
+      triggerOrdersSync();
+      triggerTrackersSync();
     } catch (err) {
       console.error("Failed to advance order status on remote database:", err);
       alert("Failed to advance order status. Please try again.");

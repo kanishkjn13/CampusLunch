@@ -304,44 +304,29 @@ export const StudentProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [user.email]);
 
-  useEffect(() => {
-    if (orders.length > 0) {
-      const val = Date.now().toString();
-      const prevVal = localStorage.getItem('sync_orders_trigger');
-      if (val !== prevVal) {
-        localStorage.setItem('sync_orders_trigger', val);
-        updateUserProfileApi({ sync_orders_trigger: val }).catch(err => 
-          console.error("Failed to sync sync_orders_trigger to remote DB:", err)
-        );
-      }
-    }
-  }, [orders]);
+  const triggerOrdersSync = () => {
+    const val = Date.now().toString();
+    localStorage.setItem('sync_orders_trigger', val);
+    updateUserProfileApi({ sync_orders_trigger: val }).catch(err => 
+      console.error("Failed to sync sync_orders_trigger to remote DB:", err)
+    );
+  };
 
-  useEffect(() => {
-    if (activeTrackers.length > 0) {
-      const val = Date.now().toString();
-      const prevVal = localStorage.getItem('sync_trackers_trigger');
-      if (val !== prevVal) {
-        localStorage.setItem('sync_trackers_trigger', val);
-        updateUserProfileApi({ sync_trackers_trigger: val }).catch(err => 
-          console.error("Failed to sync sync_trackers_trigger to remote DB:", err)
-        );
-      }
-    }
-  }, [activeTrackers]);
+  const triggerTrackersSync = () => {
+    const val = Date.now().toString();
+    localStorage.setItem('sync_trackers_trigger', val);
+    updateUserProfileApi({ sync_trackers_trigger: val }).catch(err => 
+      console.error("Failed to sync sync_trackers_trigger to remote DB:", err)
+    );
+  };
 
-  useEffect(() => {
-    if (ratings.length > 0) {
-      const val = Date.now().toString();
-      const prevVal = localStorage.getItem('sync_ratings_trigger');
-      if (val !== prevVal) {
-        localStorage.setItem('sync_ratings_trigger', val);
-        updateUserProfileApi({ sync_ratings_trigger: val }).catch(err => 
-          console.error("Failed to sync sync_ratings_trigger to remote DB:", err)
-        );
-      }
-    }
-  }, [ratings]);
+  const triggerRatingsSync = () => {
+    const val = Date.now().toString();
+    localStorage.setItem('sync_ratings_trigger', val);
+    updateUserProfileApi({ sync_ratings_trigger: val }).catch(err => 
+      console.error("Failed to sync sync_ratings_trigger to remote DB:", err)
+    );
+  };
 
   // Reset stock at 12:00 AM daily
   const checkMidnightReset = () => {
@@ -600,6 +585,8 @@ export const StudentProvider = ({ children }) => {
 
       setOrders(prev => [...newOrders, ...prev]);
       setActiveTrackers(prev => [...newTrackers, ...prev]);
+      triggerOrdersSync();
+      triggerTrackersSync();
 
       addNotification(
         'Order Confirmed',
@@ -669,7 +656,10 @@ export const StudentProvider = ({ children }) => {
       setOrders,
       ratings,
       setRatings,
-      kitchenStatuses
+      kitchenStatuses,
+      triggerOrdersSync,
+      triggerTrackersSync,
+      triggerRatingsSync
     }}>
       {children}
     </StudentContext.Provider>
