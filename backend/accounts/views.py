@@ -302,7 +302,7 @@ class SendOTPView(APIView):
             )
         except Exception as e:
             return Response(
-                {"detail": "Failed to send verification email. Please try again later."},
+                {"detail": f"Failed to send verification email: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
