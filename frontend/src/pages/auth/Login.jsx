@@ -20,8 +20,9 @@ const Login = () => {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
+    const token = localStorage.getItem("access");
 
-    if (user) {
+    if (user && token) {
       switch (user.role) {
         case "student":
           navigate("/student", { replace: true });
@@ -140,6 +141,9 @@ const Login = () => {
 
       } else if (err.response?.data?.detail) {
         setError(err.response.data.detail);
+
+      } else if (!err.response) {
+        setError("Unable to connect to the backend server. Please make sure the server is running on port 8000.");
 
       } else {
         setError("Invalid email or password.");
