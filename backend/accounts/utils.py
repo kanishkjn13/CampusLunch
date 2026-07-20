@@ -17,12 +17,11 @@ class InvalidApiKeyError(BrevoAPIError):
     pass
 
 def send_brevo_api_email(to_email, subject, html_content, text_content=""):
+    logger.info("Entering send_brevo_api_email()")
     api_key = getattr(settings, 'BREVO_API_KEY', None)
     from_email_raw = getattr(settings, 'DEFAULT_FROM_EMAIL', 'CampusLunch <lunchcampus@gmail.com>')
     
-    logger.info("Starting Brevo API email dispatch process...")
-    logger.info(f"Recipient: {to_email}")
-    logger.info(f"Subject: '{subject}'")
+    logger.info(f"Arguments: to_email='{to_email}', subject='{subject}'")
     
     # Parse name and email from DEFAULT_FROM_EMAIL (e.g., "CampusLunch <lunchcampus@gmail.com>")
     from_name = "CampusLunch"
@@ -68,36 +67,50 @@ def send_brevo_api_email(to_email, subject, html_content, text_content=""):
     if text_content:
         payload["textContent"] = text_content
 
+    # Print request details for debugging
+    logger.info("Request creation details:")
+    logger.info(f"  Endpoint URL: {url}")
+    # Mask API key header for logging
+    logged_headers = {k: (v if k.lower() != 'api-key' else '***') for k, v in headers.items()}
+    logger.info(f"  Headers: {logged_headers}")
+    logger.info(f"  Payload: {payload}")
+
     logger.info("Sending HTTP POST request to Brevo API endpoint...")
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=15)
-        logger.info(f"Brevo API response received. Status Code: {response.status_code}")
+        logger.info("Brevo API response received.")
+        logger.info(f"  Response Status Code: {response.status_code}")
+        logger.info(f"  Response Headers: {dict(response.headers)}")
+        logger.info(f"  Response Body: {response.text}")
         
         if response.status_code == 201:
             res_data = response.json()
             logger.info(f"Email successfully sent via Brevo API. Message ID: {res_data.get('messageId')}")
             return res_data
         elif response.status_code in [401, 403]:
-            logger.error(f"Authentication failed. Status: {response.status_code}. Response: {response.text}")
-            raise InvalidApiKeyError(f"Unauthorized (API key error): {response.text}")
+            err_msg = f"Authentication/Authorization failed. Status: {response.status_code}. Response: {response.text}"
+            logger.error(err_msg)
+            raise InvalidApiKeyError(err_msg)
         else:
-            logger.error(f"Brevo API returned error. Status: {response.status_code}. Response: {response.text}")
-            raise BrevoAPIError(f"Brevo API error: {response.text}")
+            err_msg = f"Brevo API returned error. Status: {response.status_code}. Response: {response.text}"
+            logger.error(err_msg)
+            raise BrevoAPIError(err_msg)
             
-    except (InvalidApiKeyError, BrevoAPIError):
+    except (InvalidApiKeyError, BrevoAPIError) as e:
+        logger.error(f"Re-throwing expected exception in send_brevo_api_email: {str(e)}", exc_info=True)
         raise
     except requests.exceptions.Timeout as te:
-        logger.error(f"HTTP connection to Brevo API timed out: {str(te)}")
-        traceback.print_exc()
-        raise BrevoAPIError(f"Brevo API request timed out: {str(te)}")
+        err_msg = f"HTTP connection to Brevo API timed out: {str(te)}"
+        logger.error(err_msg, exc_info=True)
+        raise BrevoAPIError(err_msg)
     except requests.exceptions.RequestException as re:
-        logger.error(f"HTTP request to Brevo API failed: {str(re)}")
-        traceback.print_exc()
-        raise BrevoAPIError(f"Brevo API request failed: {str(re)}")
+        err_msg = f"HTTP request to Brevo API failed: {str(re)}"
+        logger.error(err_msg, exc_info=True)
+        raise BrevoAPIError(err_msg)
     except Exception as e:
-        logger.error(f"Unexpected error during API email sending: {str(e)}")
-        traceback.print_exc()
-        raise BrevoAPIError(f"Unexpected error: {str(e)}")
+        err_msg = f"Unexpected error during API email sending: {str(e)}"
+        logger.error(err_msg, exc_info=True)
+        raise BrevoAPIError(err_msg)
 
 def send_password_reset_email(user):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -118,6 +131,8 @@ def send_password_reset_email(user):
     send_brevo_api_email(user.email, subject, html_content, "Reset your password.")
 
 def send_otp_email(email_address, otp):
+    logger.info("Entering send_otp_email()")
+    logger.info(f"Arguments: email_address='{email_address}', otp='{otp}'")
     subject = "Verify Your CampusLunch Email"
     context = {
         "otp": otp,
@@ -126,4 +141,6 @@ def send_otp_email(email_address, otp):
         "emails/otp_verification.html",
         context,
     )
+    logger.info("Calling send_brevo_api_email from send_otp_email...")
     send_brevo_api_email(email_address, subject, html_content, f"Your CampusLunch verification OTP is {otp}.")
+    logger.info("Exiting send_otp_email()")

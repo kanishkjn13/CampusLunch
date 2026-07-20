@@ -172,7 +172,7 @@ class ForgotPasswordView(GenericAPIView):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = PasswordResetTokenGenerator().make_token(user)
             reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
-            print(f"\n[SANDBOX FALLBACK] Failed to send password reset email via SMTP: {str(e)}")
+            print(f"\n[SANDBOX FALLBACK] Failed to send password reset email via Brevo API: {str(e)}")
             print(f"Password reset link for {user.email} is: {reset_link}\n")
             return Response(
                 {"message": "Password reset link generated. (Sandbox Mode: Retrieve link from server logs)"},
@@ -297,7 +297,7 @@ class SendOTPView(APIView):
             send_otp_email(email, otp)
         except InvalidApiKeyError as e:
             return Response(
-                {"detail": "Invalid or missing Brevo API key."},
+                {"detail": f"Invalid/missing Brevo API key or unauthorized IP address: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         except Exception as e:
