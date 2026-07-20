@@ -264,7 +264,7 @@ const SupportChat = () => {
               <Mail size={16} style={{ color: '#855300', marginTop: '2px' }} />
               <div style={{ textAlign: 'left' }}>
                 <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b', display: 'block' }}>Email Support</span>
-                <span style={{ fontSize: '0.68rem', color: '#64748b' }}>help.tiffin@campus.edu</span>
+                <span style={{ fontSize: '0.68rem', color: '#64748b' }}>support@campuslunch.com</span>
               </div>
             </div>
           </div>

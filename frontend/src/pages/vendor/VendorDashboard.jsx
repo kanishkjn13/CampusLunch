@@ -870,26 +870,17 @@ const VendorDashboard = () => {
     navigate('/');
   };
 
-  const handleLogout = async () => {
-    setActionLoading({ isLoading: true, message: 'Logging out securely...' });
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    try {
-      await logoutUser();
-    } catch (err) {
-      console.error("Vendor Logout Error:", err);
-    } finally {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      localStorage.removeItem('vendor_name');
-      localStorage.removeItem('vendor_phone');
-      localStorage.removeItem('vendor_email');
-      localStorage.removeItem('vendor_selfie');
-      
-      setActionLoading({ isLoading: false, message: '' });
-      navigate("/login", { replace: true });
-    }
+  const handleLogout = () => {
+    logoutUser().catch((err) => console.error("Vendor Logout Error:", err));
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    localStorage.removeItem('vendor_name');
+    localStorage.removeItem('vendor_phone');
+    localStorage.removeItem('vendor_email');
+    localStorage.removeItem('vendor_selfie');
+    navigate("/login", { replace: true });
   };
 
   const toggleExpand = (id, e) => {

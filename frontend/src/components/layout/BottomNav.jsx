@@ -23,19 +23,14 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const role = localStorage.getItem('role') || null;
 
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch (err) {
-      console.error("BottomNav Logout Error:", err);
-    } finally {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      setIsProfileOpen(false);
-      navigate("/login", { replace: true });
-    }
+  const handleLogout = () => {
+    logoutUser().catch((err) => console.error("BottomNav Logout Error:", err));
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    setIsProfileOpen(false);
+    navigate("/login", { replace: true });
   };
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -316,7 +311,7 @@ const BottomNav = () => {
           <p className="text-sm font-medium mt-1 mb-6" style={{ color: 'rgba(133, 83, 0, 0.7)' }}>
             {role === 'student' && 'student@gmail.com'}
             {role === 'vendor' && 'vendor@kitchen.com'}
-            {role === 'admin' && 'admin@tiffinconnect.com'}
+            {role === 'admin' && 'admin@campuslunch.com'}
           </p>
 
           {/* Logout Button */}

@@ -62,13 +62,13 @@ const downloadReceiptPdf = (receiptData) => {
   doc.setTextColor(255, 255, 255);
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('TC', 14, 12.8, { align: 'center' });
+  doc.text('CL', 14, 12.8, { align: 'center' });
 
   // Brand Name and Subtitle
   doc.setTextColor(255, 255, 255);
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('TIFFIN CONNECT', 22, 9);
+  doc.text('CAMPUS LUNCH', 22, 9);
   doc.setFont('Helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.text('Campus Marketplace Receipt', 22, 13);
@@ -754,29 +754,20 @@ const StudentDashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    setActionLoading({ isLoading: true, message: 'Logging out securely...' });
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    try {
-      await logoutUser();
-    } catch (err) {
-      console.error("Logout Error:", err);
-    } finally {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      localStorage.removeItem("name");
-      localStorage.removeItem("phone");
-      localStorage.removeItem("email");
-      localStorage.removeItem("tiffin_connect_orders");
-      localStorage.removeItem("tiffin_connect_trackers");
-      localStorage.removeItem("tiffin_connect_sellers");
-      localStorage.removeItem("tiffin_connect_ratings");
-
-      setActionLoading({ isLoading: false, message: '' });
-      navigate("/login", { replace: true });
-    }
+  const handleLogout = () => {
+    logoutUser().catch((err) => console.error("Logout Error:", err));
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    localStorage.removeItem("name");
+    localStorage.removeItem("phone");
+    localStorage.removeItem("email");
+    localStorage.removeItem("tiffin_connect_orders");
+    localStorage.removeItem("tiffin_connect_trackers");
+    localStorage.removeItem("tiffin_connect_sellers");
+    localStorage.removeItem("tiffin_connect_ratings");
+    navigate("/login", { replace: true });
   };
   return (
     <div className="student-device-wrapper">
@@ -872,7 +863,7 @@ const StudentDashboard = () => {
               <div className="mobile-brand-container" onClick={() => { setActiveTab('home'); setSelectedSellerId(null); }} style={{ cursor: 'pointer' }}>
                 <div className="flex items-center gap-2 logo-container-left">
                   <img src={logo} alt="CampusLunch Logo" style={{ height: '28px', width: 'auto', objectFit: 'contain' }} />
-                  <span className="vendor-app-logo">TiffinHub</span>
+                  <span className="vendor-app-logo">Campus Lunch</span>
                 </div>
               </div>
 

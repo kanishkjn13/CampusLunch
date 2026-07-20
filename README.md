@@ -1,6 +1,6 @@
-# Tiffin Connect - Campus Lunch Platform
+# Campus Lunch Platform
 
-Tiffin Connect (also known as Campus Lunch) is a premium, modern campus-focused web application designed to connect college students with local home-chefs and tiffin vendors. It features a complete subscription model, live order tracking, a dedicated vendor management dashboard, an administrator resolution center, and a beautiful responsive user interface styled with premium design tokens.
+Campus Lunch is a premium, modern campus-focused web application designed to connect college students with local home-chefs and tiffin vendors. It features a complete subscription model, live order tracking, a dedicated vendor management dashboard, an administrator resolution center, and a beautiful responsive user interface styled with premium design tokens.
 
 ---
 

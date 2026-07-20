@@ -342,18 +342,13 @@ const AdminDashboard = () => {
     setAdminReplyText('');
   };
 
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch (err) {
-      console.error("Admin Logout Error:", err);
-    } finally {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      navigate("/login", { replace: true });
-    }
+  const handleLogout = () => {
+    logoutUser().catch((err) => console.error("Admin Logout Error:", err));
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    navigate("/login", { replace: true });
   };
 
   // Dynamic header configuration based on the active tab
@@ -418,13 +413,13 @@ const AdminDashboard = () => {
       <aside className="admin-sidebar">
         <div className="sidebar-brand">
           <div className="brand-logo-box">
-            {/* TiffinHub Fork/Knife Custom Icon */}
+            {/* Campus Lunch Fork/Knife Custom Icon */}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             </svg>
           </div>
           <div className="brand-details">
-            <span className="brand-title">TiffinHub</span>
+            <span className="brand-title">Campus Lunch</span>
             <span className="brand-subtitle">ADMIN PORTAL</span>
           </div>
         </div>
@@ -1384,7 +1379,7 @@ const AdminDashboard = () => {
                     <span className="log-timestamp">13:40:00</span>
                     <span className="log-badge-pill bg-green-badge">INFO</span>
                     <p className="log-message-content">
-                      SSL Certificate renewed for primary domain *.tiffinhub-app.com. Next expiry: 365 days.
+                      SSL Certificate renewed for primary domain *.campuslunch-app.com. Next expiry: 365 days.
                     </p>
                     <a href="#" className="log-action-link" onClick={(e) => e.preventDefault()}>Certificate</a>
                   </div>

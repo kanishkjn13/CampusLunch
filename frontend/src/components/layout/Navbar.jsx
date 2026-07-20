@@ -27,19 +27,14 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch (err) {
-      console.error("Navbar Logout Error:", err);
-    } finally {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      setIsOpen(false);
-      navigate("/login", { replace: true });
-    }
+  const handleLogout = () => {
+    logoutUser().catch((err) => console.error("Navbar Logout Error:", err));
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    setIsOpen(false);
+    navigate("/login", { replace: true });
   };
 
   if (isAuthPage) return null;
