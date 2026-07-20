@@ -2,35 +2,45 @@ import axios from "axios";
 
 export const getBaseURL = () => {
   const host = window.location.hostname;
-  if (host === 'localhost' || host === '127.0.0.1') {
-    return "http://127.0.0.1:8000/api";
-  }
-  if (host.startsWith('192.168.')) {
-    return `http://${host}:8000/api`;
+  if (
+    host === 'localhost' || 
+    host === '127.0.0.1' || 
+    host.startsWith('192.168.') || 
+    host.startsWith('10.') || 
+    host.startsWith('172.') || 
+    host.endsWith('.local')
+  ) {
+    return `http://${host === 'localhost' ? '127.0.0.1' : host}:8000/api`;
   }
   return "https://campuslunch-backend.onrender.com/api";
 };
 
 export const getMediaBaseURL = () => {
   const host = window.location.hostname;
-  if (host === 'localhost' || host === '127.0.0.1') {
-    return "http://127.0.0.1:8000";
-  }
-  if (host.startsWith('192.168.')) {
-    return `http://${host}:8000`;
+  if (
+    host === 'localhost' || 
+    host === '127.0.0.1' || 
+    host.startsWith('192.168.') || 
+    host.startsWith('10.') || 
+    host.startsWith('172.') || 
+    host.endsWith('.local')
+  ) {
+    return `http://${host === 'localhost' ? '127.0.0.1' : host}:8000`;
   }
   return "https://campuslunch-backend.onrender.com";
 };
 
 const api = axios.create({
   baseURL: getBaseURL(),
+  timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Attach JWT token automatically
+// Attach JWT token automatically & ensure dynamic baseURL
 api.interceptors.request.use((config) => {
+  config.baseURL = getBaseURL();
   const token = localStorage.getItem("access");
 
   if (token) {
