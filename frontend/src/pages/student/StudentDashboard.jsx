@@ -33,7 +33,9 @@ import {
   CreditCard,
   HelpCircle,
   Lock,
-  RefreshCw
+  RefreshCw,
+  Store,
+  Info
 } from 'lucide-react';
 
 const downloadReceiptPdf = (receiptData) => {
@@ -238,6 +240,22 @@ const StudentDashboard = () => {
   const [profileSubTab, setProfileSubTab] = useState('menu');
   const [inAppNotifications, setInAppNotifications] = useState(true);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
+  const notificationRef = useRef(null);
+
+  // Close notifications dropdown when clicking anywhere outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showNotificationsDropdown && notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotificationsDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showNotificationsDropdown]);
   const [actionLoading, setActionLoading] = useState({ isLoading: false, message: '' });
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -259,12 +277,21 @@ const StudentDashboard = () => {
   const currentTracker = activeTrackers.find(t => t.orderId === selectedTrackingOrderId) || getActiveTrackersList()[0] || activeTrackers[0] || activeOrderTracker;
   const currentSeller = currentTracker && sellers ? (sellers.find(s => s.name === currentTracker.vendorName) || { phone: '+91 98765 43210' }) : null;
 
-  const getSellerRatingInfo = (sellerName) => {
-    const matching = (ratings || []).filter(r => r.vendorName === sellerName);
-    if (matching.length === 0) {
+  const getSellerRatingInfo = (sellerName, sellerId) => {
+    const matching = (ratings || []).filter(r => {
+      const vName = r.vendorName || r.vendor_name;
+      const vId = r.vendorId || r.vendor_id;
+      return (sellerName && vName && vName.toLowerCase() === sellerName.toLowerCase()) || 
+             (sellerId && vId && String(vId) === String(sellerId));
+    });
+    if (!matching || matching.length === 0) {
       return { rating: '0.0', reviews: 0 };
     }
-    const sum = matching.reduce((acc, r) => acc + (Number(r.foodRating) + Number(r.serviceRating)) / 2, 0);
+    const sum = matching.reduce((acc, r) => {
+      const food = Number(r.foodRating || r.food_rating || 0);
+      const service = Number(r.serviceRating || r.service_rating || 0);
+      return acc + (food + service) / 2;
+    }, 0);
     const avg = (sum / matching.length).toFixed(1);
     return { rating: avg, reviews: matching.length };
   };
@@ -319,7 +346,7 @@ const StudentDashboard = () => {
           price: Number(m.price),
           type: m.food_type || 'Veg',
           description: m.description || '',
-          availableQty: m.is_available ? (m.available_qty ?? 999) : 0,
+          availableQty: m.is_available ? (m.available_qty ?? 0) : 0,
           prepTime: '15 mins'
         }))
       })));
@@ -335,7 +362,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchVendorsList(true);
-    const interval = setInterval(() => fetchVendorsList(false), 3000);
+    const interval = setInterval(() => fetchVendorsList(false), 12000);
     return () => clearInterval(interval);
   }, [searchQuery, filterType, selectedMealType]);
 
@@ -365,7 +392,7 @@ const StudentDashboard = () => {
           price: Number(m.price),
           image: m.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E",
           type: m.food_type,
-          availableQty: m.is_available ? (m.available_qty ?? 999) : 0
+          availableQty: m.is_available ? (m.available_qty ?? 0) : 0
         }))
       };
 
@@ -876,14 +903,14 @@ const StudentDashboard = () => {
                   {activeTab === 'checkout' && 'Checkout details'}
                   {activeTab === 'payment' && 'Confirm Payment'}
                   {activeTab === 'order-success' && 'Order Confirmed'}
-                  {activeTab === 'track-order' && 'Live Status Tracker'}
+                  {activeTab === 'track-order' && 'Vendor Details & Order Status'}
                   {activeTab === 'orders' && 'My Orders'}
                   {activeTab === 'profile' && 'Profile Details'}
                 </h2>
               </div>
 
               {/* Header Right Actions */}
-              <div className="header-right-actions" style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
+              <div className="header-right-actions" style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }} ref={notificationRef}>
                 
                 {/* Notification Bell Icon */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}>
@@ -1093,8 +1120,8 @@ const StudentDashboard = () => {
                                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
                                   }}
                                 >
-                                  <MapPin size={16} />
-                                  <span>Track Live Location</span>
+                                  <Info size={16} />
+                                  <span>Vendor Details</span>
                                 </button>
                               </div>
                             </div>
@@ -1211,12 +1238,6 @@ const StudentDashboard = () => {
                                         </span>
                                       )}
                                     </div>
-                                    {!isClosed && (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem', color: '#b45309', fontWeight: 800 }}>
-                                        <span>View Kitchen</span>
-                                        <ChevronRight size={14} />
-                                      </div>
-                                    )}
                                   </div>
 
                                   {/* Tiffins List from Vendor */}
@@ -1234,7 +1255,7 @@ const StudentDashboard = () => {
                                       </div>
                                     ) : (
                                       vendor.menu_items.map(meal => {
-                                        const ratingInfo = getSellerRatingInfo(vendor.full_name);
+                                        const ratingInfo = getSellerRatingInfo(vendor.full_name, vendor.id);
                                         const displayRating = ratingInfo.reviews > 0 ? ratingInfo.rating : '4.8';
                                         
                                         const contextSeller = sellers.find(s => s.id === vendor.id);
@@ -1899,7 +1920,7 @@ const StudentDashboard = () => {
                       }}
                       style={{ padding: '12px 0', borderRadius: '12px', fontWeight: 800 }}
                     >
-                      Vendor Live Location
+                      Vendor Details
                     </button>
 
                     <button
@@ -1934,7 +1955,7 @@ const StudentDashboard = () => {
                     >
                       <ArrowLeft size={20} />
                     </button>
-                    <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Vendor Live Location ({currentTracker.orderId})</h2>
+                    <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Vendor Details & Order Status ({currentTracker.orderId})</h2>
                   </div>
 
                   {/* Status Progress Stepper */}
@@ -2006,58 +2027,132 @@ const StudentDashboard = () => {
                     </div>
                   )}
 
-                  {/* Interactive Google Map */}
-                  <div className="order-again-card" style={{ padding: '0px', overflow: 'hidden', borderRadius: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9' }}>
-                    <iframe
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3683.0805315481755!2d75.8953181!3d22.7531235!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x396302a247d519b5%3A0xb36de176249e0c52!2sIndore%20Institute%20of%20Technology!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
-                      width="100%"
-                      height="320"
-                      style={{ border: 0 }}
-                      allowFullScreen=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    ></iframe>
-                  </div>
+                  {/* Comprehensive Vendor Details Card */}
+                  <div className="order-again-card" style={{ padding: '24px', borderRadius: '16px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    
+                    {/* Header: Vendor avatar, Name, Status Badge, Rating */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      {currentSeller.photo && !currentSeller.photo.startsWith('data:image/svg') ? (
+                        <img
+                          src={currentSeller.photo}
+                          alt={currentTracker.vendorName}
+                          style={{ width: '64px', height: '64px', borderRadius: '16px', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '64px',
+                          height: '64px',
+                          borderRadius: '16px',
+                          backgroundColor: '#fef3c7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#d97706',
+                          fontWeight: 950,
+                          fontSize: '1.75rem'
+                        }}>
+                          {currentTracker.vendorName.charAt(0)}
+                        </div>
+                      )}
 
-                  {/* Vendor Contact details */}
-                  <div className="order-again-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid #f1f5f9' }}>
-                    <div style={{
-                      width: '46px',
-                      height: '46px',
-                      borderRadius: '50%',
-                      backgroundColor: '#fef3c7',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#d97706',
-                      fontWeight: 950,
-                      fontSize: '1.25rem'
-                    }}>
-                      {currentTracker.vendorName.charAt(0)}
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                            {currentTracker.vendorName}
+                          </h3>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            backgroundColor: currentSeller.is_kitchen_open !== false ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            color: currentSeller.is_kitchen_open !== false ? '#10b981' : '#ef4444'
+                          }}>
+                            {currentSeller.is_kitchen_open !== false ? '● Kitchen Open' : '● Kitchen Closed'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', fontSize: '0.78rem', color: '#64748b' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#d97706' }}>
+                            <Star size={14} fill="#d97706" /> {currentSeller.rating || '4.8'} ({currentSeller.reviews || '24'} reviews)
+                          </span>
+                          <span>&bull;</span>
+                          <span style={{ fontWeight: 600 }}>Home Tiffin Kitchen</span>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ flex: 1, textAlign: 'left' }}>
-                      <h3 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>{currentTracker.vendorName}</h3>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>Pickup Point: {currentTracker.location}</p>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', fontWeight: 600, color: '#475569' }}>Phone: {currentSeller.phone || '+91 98765 43210'}</p>
+
+                    <div style={{ height: '1px', backgroundColor: '#f1f5f9' }} />
+
+                    {/* Key Specifications Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', textAlign: 'left' }}>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>
+                          Pickup Point / Location
+                        </span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <MapPin size={16} style={{ color: '#d97706' }} />
+                          {currentTracker.location || currentSeller.vendorLocation || 'Campus Drop Hub'}
+                        </span>
+                      </div>
+
+                      <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>
+                          Serving Operating Hours
+                        </span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Clock size={16} style={{ color: '#d97706' }} />
+                          {currentSeller.servingTime || '10:00 AM - 08:00 PM'}
+                        </span>
+                      </div>
+
+                      <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>
+                          Phone Contact
+                        </span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Phone size={16} style={{ color: '#d97706' }} />
+                          {currentSeller.phone || '+91 98765 43210'}
+                        </span>
+                      </div>
+
+                      <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>
+                          Quality Guarantee
+                        </span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>verified</span>
+                          100% Home Cooked & Hygienic
+                        </span>
+                      </div>
                     </div>
-                    <a
-                      href={`tel:${currentSeller.phone || '9876543210'}`}
-                      style={{
-                        padding: '10px 16px',
-                        borderRadius: '10px',
-                        backgroundColor: '#0f172a',
-                        color: '#ffffff',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        textDecoration: 'none',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Phone size={14} />
-                      Call
-                    </a>
+
+                    {/* Action Buttons Row */}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <a
+                        href={`tel:${currentSeller.phone || '9876543210'}`}
+                        style={{
+                          flex: 1,
+                          minWidth: '140px',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          backgroundColor: '#0f172a',
+                          color: '#ffffff',
+                          fontSize: '0.85rem',
+                          fontWeight: 800,
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <Phone size={16} />
+                        Call Vendor
+                      </a>
+
+
+                    </div>
                   </div>
                 </div>
               )}

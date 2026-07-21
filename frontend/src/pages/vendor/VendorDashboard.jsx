@@ -85,7 +85,7 @@ const VendorDashboard = () => {
     description: "",
     is_available: true,
     is_active: true,
-    available_qty: "50",
+    available_qty: "",
   });
   const [menuImageFile, setMenuImageFile] = useState(null);
   const [menuImagePreview, setMenuImagePreview] = useState(null);
@@ -199,11 +199,23 @@ const VendorDashboard = () => {
 
   // Notifications state
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'info', text: 'New order #TK-448 received from Ishaan Gupta.', time: '5 mins ago' },
-    { id: 2, type: 'warning', text: 'Deluxe Chicken Thali quantity is low (only 3 left).', time: '15 mins ago' },
-    { id: 3, type: 'success', text: 'Aarav Mehta rated your Veg Fried Rice 5 ★!', time: '1 hour ago' },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const notificationRef = useRef(null);
+
+  // Close notifications panel on click outside (clicking any part of the page)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showNotifications && notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   // Confirmation Modal state
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, orderId: null });
@@ -215,7 +227,7 @@ const VendorDashboard = () => {
     price: '',
     type: 'Veg',
     description: '',
-    quantity: 15,
+    quantity: '',
     prepTime: '20 mins',
     ingredients: '',
     image: ''
@@ -255,10 +267,69 @@ const VendorDashboard = () => {
   useEffect(() => {
     if (activeBottomTab === 'availability') {
       fetchMenu(true);
-      const interval = setInterval(() => fetchMenu(false), 3000);
-      return () => clearInterval(interval);
     }
   }, [activeBottomTab]);
+
+  // Dynamic Real-Time Notifications Engine for Vendor
+  useEffect(() => {
+    const list = [];
+    
+    // 1. New & Active Orders for Vendor
+    const vendorOrders = (contextOrders || []).filter(o => {
+      const vName = o.vendor || o.vendorName;
+      return (vendorName && vName && vName.toLowerCase() === vendorName.toLowerCase()) ||
+             (user && user.id && o.vendor_id && String(o.vendor_id) === String(user.id));
+    });
+
+    const activeVendorOrders = vendorOrders.filter(o => (o.deliveryStatus || o.delivery_status) !== 'Delivered' && (o.deliveryStatus || o.delivery_status) !== 'Cancelled');
+    activeVendorOrders.forEach(order => {
+      const timeStr = order.created_at ? new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+      const studentName = order.customerName || order.studentName || order.student_name || 'Student Customer';
+      list.push({
+        id: `ord-${order.id || order.order_id}`,
+        type: 'info',
+        text: `New order ${order.id || order.order_id} from ${studentName} (${order.items || 'Tiffin Meal'})`,
+        time: timeStr,
+        orderId: order.id || order.order_id
+      });
+    });
+
+    // 2. Low Stock Alerts (Stock <= 3)
+    (menuItems || []).forEach(item => {
+      const qty = Number(item.available_qty ?? 0);
+      if (item.is_available && qty > 0 && qty <= 3) {
+        list.push({
+          id: `stock-${item.id}`,
+          type: 'warning',
+          text: `Low Stock Alert: "${item.name}" has only ${qty} portion${qty === 1 ? '' : 's'} left!`,
+          time: 'Action recommended'
+        });
+      }
+    });
+
+    // 3. Customer Ratings & Reviews Feedback
+    const vendorRatings = (contextRatings || []).filter(r => {
+      const vName = r.vendorName || r.vendor_name;
+      const vId = r.vendorId || r.vendor_id;
+      return (vendorName && vName && vName.toLowerCase() === vendorName.toLowerCase()) || 
+             (user && user.id && vId && String(vId) === String(user.id));
+    });
+
+    vendorRatings.forEach(r => {
+      const food = Number(r.foodRating || r.food_rating || 0);
+      const service = Number(r.serviceRating || r.service_rating || 0);
+      const avg = ((food + service) / 2).toFixed(1);
+      const studentName = r.studentName || r.student_name || 'A student';
+      list.push({
+        id: `rating-${r.id}`,
+        type: 'success',
+        text: `${studentName} left a ${avg} ★ rating for your kitchen!`,
+        time: r.date || 'Recent feedback'
+      });
+    });
+
+    setNotifications(list);
+  }, [contextOrders, contextRatings, menuItems, vendorName, user]);
 
   const handleOpenAddMenu = () => {
     setEditingMenuItem(null);
@@ -271,7 +342,7 @@ const VendorDashboard = () => {
       description: "",
       is_available: true,
       is_active: true,
-      available_qty: "50",
+      available_qty: "",
     });
     setMenuImageFile(null);
     setMenuImagePreview(null);
@@ -289,7 +360,7 @@ const VendorDashboard = () => {
       description: item.description || "",
       is_available: item.is_available,
       is_active: item.is_active,
-      available_qty: String(item.available_qty ?? 50),
+      available_qty: String(item.available_qty ?? ""),
     });
     setMenuImageFile(null);
     const imageUrl = item.image
@@ -383,16 +454,58 @@ const VendorDashboard = () => {
   };
 
   const handleUpdateStock = async (item, change) => {
+    const currentQty = Number(item.available_qty ?? 0);
+    const newQty = Math.max(0, currentQty + change);
+    if (currentQty === newQty) return;
+
+    // Optimistic UI update for immediate response on fast clicks
+    setMenuItems(prev => prev.map(m => m.id === item.id ? { 
+      ...m, 
+      available_qty: newQty, 
+      is_available: newQty > 0 
+    } : m));
+
     try {
-      const newQty = Math.max(0, (item.available_qty ?? 0) + change);
       await updateMenuItem(item.id, {
         available_qty: newQty,
         is_available: newQty > 0
       });
-      fetchMenu();
     } catch (err) {
       console.error("Failed to update stock quantity:", err);
+      // Revert state on network error
+      setMenuItems(prev => prev.map(m => m.id === item.id ? { 
+        ...m, 
+        available_qty: currentQty, 
+        is_available: currentQty > 0 
+      } : m));
       alert("Failed to update stock.");
+    }
+  };
+
+  const handleSetDirectStock = async (item, targetQtyStr) => {
+    const parsedQty = Math.max(0, parseInt(targetQtyStr, 10) || 0);
+    const currentQty = Number(item.available_qty ?? 0);
+
+    // Optimistic UI update
+    setMenuItems(prev => prev.map(m => m.id === item.id ? { 
+      ...m, 
+      available_qty: parsedQty, 
+      is_available: parsedQty > 0 
+    } : m));
+
+    try {
+      await updateMenuItem(item.id, {
+        available_qty: parsedQty,
+        is_available: parsedQty > 0
+      });
+    } catch (err) {
+      console.error("Failed to update direct stock quantity:", err);
+      // Revert state on error
+      setMenuItems(prev => prev.map(m => m.id === item.id ? { 
+        ...m, 
+        available_qty: currentQty, 
+        is_available: currentQty > 0 
+      } : m));
     }
   };
 
@@ -1098,7 +1211,7 @@ const VendorDashboard = () => {
               </div>
 
               {/* Header Right Actions */}
-              <div className="header-right-actions" style={{ position: 'relative' }}>
+              <div className="header-right-actions" style={{ position: 'relative' }} ref={notificationRef}>
 
                 <button
                   className="header-notification-btn"
@@ -1135,8 +1248,14 @@ const VendorDashboard = () => {
                         <div
                           key={n.id}
                           className="notification-item"
-                          onClick={() => handleDismissNotification(n.id)}
-                          title="Click to dismiss"
+                          onClick={() => {
+                            if (n.type === 'info') setActiveBottomTab('orders');
+                            else if (n.type === 'warning') setActiveBottomTab('availability');
+                            else if (n.type === 'success') setActiveBottomTab('reviews');
+                            handleDismissNotification(n.id);
+                            setShowNotifications(false);
+                          }}
+                          title="Click to view details"
                         >
                           <div className={`notification-item-icon ${n.type}`}>
                             {n.type === 'info' ? <ShoppingBag size={14} /> : n.type === 'warning' ? <Bell size={14} /> : <Star size={14} />}
@@ -1657,9 +1776,25 @@ const VendorDashboard = () => {
                                 >
                                   -
                                 </button>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 800, minWidth: '20px', textAlign: 'center', color: isOutOfStock ? '#ef4444' : '#0f172a' }}>
-                                  {item.available_qty ?? 0}
-                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.available_qty ?? ''}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => handleSetDirectStock(item, e.target.value)}
+                                  placeholder="0"
+                                  style={{
+                                    width: '38px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    textAlign: 'center',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 800,
+                                    color: isOutOfStock ? '#ef4444' : '#0f172a',
+                                    outline: 'none'
+                                  }}
+                                  title="Type stock quantity"
+                                />
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleUpdateStock(item, 1); }}
@@ -1701,7 +1836,12 @@ const VendorDashboard = () => {
               {activeBottomTab === 'reviews' && (
                 <div className="reviews-tab-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
                   {(() => {
-                    const matching = (contextRatings || []).filter(r => r.vendorName === vendorName);
+                    const matching = (contextRatings || []).filter(r => {
+                      const vName = r.vendorName || r.vendor_name;
+                      const vId = r.vendorId || r.vendor_id;
+                      return (vendorName && vName && vName.toLowerCase() === vendorName.toLowerCase()) || 
+                             (user && user.id && vId && String(vId) === String(user.id));
+                    });
                     const totalReviews = matching.length;
                     if (totalReviews === 0) {
                       return (
@@ -1713,9 +1853,9 @@ const VendorDashboard = () => {
                       );
                     }
 
-                    const avgFood = (matching.reduce((acc, r) => acc + Number(r.foodRating), 0) / totalReviews).toFixed(1);
-                    const avgService = (matching.reduce((acc, r) => acc + Number(r.serviceRating), 0) / totalReviews).toFixed(1);
-                    const avgOverall = (matching.reduce((acc, r) => acc + (Number(r.foodRating) + Number(r.serviceRating)) / 2, 0) / totalReviews).toFixed(1);
+                    const avgFood = (matching.reduce((acc, r) => acc + Number(r.foodRating || r.food_rating || 0), 0) / totalReviews).toFixed(1);
+                    const avgService = (matching.reduce((acc, r) => acc + Number(r.serviceRating || r.service_rating || 0), 0) / totalReviews).toFixed(1);
+                    const avgOverall = (matching.reduce((acc, r) => acc + (Number(r.foodRating || r.food_rating || 0) + Number(r.serviceRating || r.service_rating || 0)) / 2, 0) / totalReviews).toFixed(1);
 
                     return (
                       <>
@@ -1797,7 +1937,9 @@ const VendorDashboard = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {(() => {
                             const filteredList = matching.filter(review => {
-                              const avgReview = (Number(review.foodRating) + Number(review.serviceRating)) / 2;
+                              const food = Number(review.foodRating || review.food_rating || 0);
+                              const service = Number(review.serviceRating || review.service_rating || 0);
+                              const avgReview = (food + service) / 2;
                               if (reviewsRatingFilter !== 'all') {
                                 const minStar = Number(reviewsRatingFilter);
                                 if (reviewsRatingFilter === '5') {
@@ -1811,7 +1953,8 @@ const VendorDashboard = () => {
                               }
                               if (reviewsSearch) {
                                 const q = reviewsSearch.toLowerCase();
-                                const matchesName = review.studentName.toLowerCase().includes(q);
+                                const studentName = (review.studentName || review.student_name || '').toLowerCase();
+                                const matchesName = studentName.includes(q);
                                 const matchesComment = review.comment && review.comment.toLowerCase().includes(q);
                                 if (!matchesName && !matchesComment) return false;
                               }
@@ -1828,15 +1971,20 @@ const VendorDashboard = () => {
                             }
 
                             return filteredList.map(review => {
-                              const overallVal = ((Number(review.foodRating) + Number(review.serviceRating)) / 2).toFixed(1);
+                              const food = Number(review.foodRating || review.food_rating || 0);
+                              const service = Number(review.serviceRating || review.service_rating || 0);
+                              const overallVal = ((food + service) / 2).toFixed(1);
+                              const studentName = review.studentName || review.student_name || 'Student Customer';
+                              const reviewDate = review.date || (review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recently');
+                              
                               return (
                                 <div key={review.id} style={{ padding: '16px', borderRadius: '16px', backgroundColor: '#ffffff', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 15px rgba(0,0,0,0.005)', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
                                   {/* Top Row: Customer info & Overall rating */}
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{review.studentName}</span>
-                                      <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>{review.date}</span>
+                                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{studentName}</span>
+                                      <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>{reviewDate}</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fffbeb', padding: '4px 8px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.15)' }}>
                                       <Star size={12} fill="#f59e0b" stroke="none" />
@@ -1855,9 +2003,9 @@ const VendorDashboard = () => {
 
                                   {/* Bottom: Service & Food Taste Sub-ratings */}
                                   <div style={{ display: 'flex', gap: '10px', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
-                                    <span>Food Quality: <strong style={{ color: '#d97706' }}>★{review.foodRating}</strong></span>
+                                    <span>Food Quality: <strong style={{ color: '#d97706' }}>★{food}</strong></span>
                                     <span style={{ color: '#cbd5e1' }}>|</span>
-                                    <span>Service: <strong style={{ color: '#2563eb' }}>★{review.serviceRating}</strong></span>
+                                    <span>Service: <strong style={{ color: '#2563eb' }}>★{service}</strong></span>
                                   </div>
 
                                 </div>
@@ -2536,18 +2684,7 @@ const VendorDashboard = () => {
                         />
                       </div>
 
-                      {/* Stock availability status checkbox */}
-                      <div style={{ display: 'flex', gap: '20px', margin: '2px 0' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>
-                          <input
-                            type="checkbox"
-                            checked={menuForm.is_available}
-                            onChange={(e) => setMenuForm(prev => ({ ...prev, is_available: e.target.checked }))}
-                            style={{ accentColor: '#855300', cursor: 'pointer', width: '16px', height: '16px' }}
-                          />
-                          Available for online orders
-                        </label>
-                      </div>
+
 
                       {/* Action buttons */}
                       <div style={{ display: 'flex', gap: '14px', marginTop: '10px' }}>

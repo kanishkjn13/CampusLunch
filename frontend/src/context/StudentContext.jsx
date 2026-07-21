@@ -240,7 +240,7 @@ export const StudentProvider = ({ children }) => {
                   price: Number(m.price),
                   image: m.image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-8.03c2.09-.13 3.75-1.85 3.75-3.97V2H11v7zm4-6v8h3v11h2V3h-5z'/%3E%3C/svg%3E",
                   type: m.food_type,
-                  availableQty: m.is_available ? (m.available_qty ?? 999) : 0
+                  availableQty: m.is_available ? (m.available_qty ?? 0) : 0
                 }))
               }));
               
@@ -300,7 +300,7 @@ export const StudentProvider = ({ children }) => {
       }
     };
 
-    const interval = setInterval(pollData, 3000);
+    const interval = setInterval(pollData, 12000);
     return () => clearInterval(interval);
   }, [user.email]);
 

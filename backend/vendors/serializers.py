@@ -121,12 +121,15 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class RatingSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source="student.full_name", read_only=True)
+    studentName = serializers.CharField(source="student.full_name", read_only=True)
     vendor_name = serializers.CharField(source="vendor.full_name", read_only=True)
+    vendorName = serializers.CharField(source="vendor.full_name", read_only=True)
     vendor_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role="vendor"),
         source="vendor",
         write_only=True
     )
+    vendorId = serializers.IntegerField(source="vendor.id", read_only=True)
     orderId = serializers.CharField(source="order_id", required=False, allow_blank=True, allow_null=True)
     foodRating = serializers.IntegerField(source="food_rating")
     serviceRating = serializers.IntegerField(source="service_rating")
@@ -137,8 +140,11 @@ class RatingSerializer(serializers.ModelSerializer):
             "id",
             "orderId",
             "vendor_id",
+            "vendorId",
             "vendor_name",
+            "vendorName",
             "student_name",
+            "studentName",
             "foodRating",
             "serviceRating",
             "comment",

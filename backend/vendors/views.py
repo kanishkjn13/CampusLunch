@@ -82,16 +82,25 @@ class OrderViewSet(viewsets.ModelViewSet):
             location="Tiffin Pickup Point"
         )
 
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old_status = instance.delivery_status
+        updated_order = serializer.save()
+        if old_status != "Cancelled" and updated_order.delivery_status == "Cancelled":
+            restore_menu_item_stock(updated_order)
+
 
 def deduct_menu_item_stock(order):
     import json
     import re
     try:
-        items_data = order.items_json
+        items_data = (order.items_json or order.items or "").strip()
         vendor = order.vendor
+        if not items_data:
+            return
         
         # 1. Try parsing as JSON list
-        if items_data.strip().startswith("["):
+        if items_data.startswith("["):
             items_list = json.loads(items_data)
             for item in items_list:
                 item_name = item.get("name")
@@ -102,7 +111,7 @@ def deduct_menu_item_stock(order):
                 if item_id:
                     menu_item = MenuItem.objects.filter(id=item_id, vendor=vendor).first()
                 if not menu_item and item_name:
-                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first()
+                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first() or MenuItem.objects.filter(name__icontains=item_name, vendor=vendor).first()
                 
                 if menu_item:
                     menu_item.available_qty = max(0, menu_item.available_qty - qty)
@@ -120,19 +129,71 @@ def deduct_menu_item_stock(order):
                     qty = int(match.group(1))
                     item_name = match.group(2).strip()
                     
-                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first()
+                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first() or MenuItem.objects.filter(name__icontains=item_name, vendor=vendor).first()
                     if menu_item:
                         menu_item.available_qty = max(0, menu_item.available_qty - qty)
                         menu_item.is_available = menu_item.available_qty > 0
                         menu_item.save()
                 else:
-                    menu_item = MenuItem.objects.filter(name__iexact=line, vendor=vendor).first()
+                    menu_item = MenuItem.objects.filter(name__iexact=line, vendor=vendor).first() or MenuItem.objects.filter(name__icontains=line, vendor=vendor).first()
                     if menu_item:
                         menu_item.available_qty = max(0, menu_item.available_qty - 1)
                         menu_item.is_available = menu_item.available_qty > 0
                         menu_item.save()
     except Exception as e:
         print("Failed to deduct stock for order:", e)
+
+
+def restore_menu_item_stock(order):
+    import json
+    import re
+    try:
+        items_data = (order.items_json or order.items or "").strip()
+        vendor = order.vendor
+        if not items_data:
+            return
+        
+        if items_data.startswith("["):
+            items_list = json.loads(items_data)
+            for item in items_list:
+                item_name = item.get("name")
+                item_id = item.get("id")
+                qty = int(item.get("quantity", 1))
+                
+                menu_item = None
+                if item_id:
+                    menu_item = MenuItem.objects.filter(id=item_id, vendor=vendor).first()
+                if not menu_item and item_name:
+                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first() or MenuItem.objects.filter(name__icontains=item_name, vendor=vendor).first()
+                
+                if menu_item:
+                    menu_item.available_qty = menu_item.available_qty + qty
+                    menu_item.is_available = True
+                    menu_item.save()
+        else:
+            lines = items_data.split("\n")
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                match = re.match(r"^(\d+)\s*[xX]\s*(.+)$", line)
+                if match:
+                    qty = int(match.group(1))
+                    item_name = match.group(2).strip()
+                    
+                    menu_item = MenuItem.objects.filter(name__iexact=item_name, vendor=vendor).first() or MenuItem.objects.filter(name__icontains=item_name, vendor=vendor).first()
+                    if menu_item:
+                        menu_item.available_qty = menu_item.available_qty + qty
+                        menu_item.is_available = True
+                        menu_item.save()
+                else:
+                    menu_item = MenuItem.objects.filter(name__iexact=line, vendor=vendor).first() or MenuItem.objects.filter(name__icontains=line, vendor=vendor).first()
+                    if menu_item:
+                        menu_item.available_qty = menu_item.available_qty + 1
+                        menu_item.is_available = True
+                        menu_item.save()
+    except Exception as e:
+        print("Failed to restore stock for order:", e)
 
 
 class OrderTrackerViewSet(viewsets.ModelViewSet):

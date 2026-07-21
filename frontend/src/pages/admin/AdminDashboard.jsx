@@ -139,19 +139,32 @@ const AdminDashboard = () => {
   const sellers = context.sellers || [];
   const ratings = context.ratings || [];
 
-  const getSellerRatingInfo = (sellerName) => {
-    const matching = (ratings || []).filter(r => r.vendorName === sellerName);
-    if (matching.length === 0) {
+  const getSellerRatingInfo = (sellerName, sellerId) => {
+    const matching = (ratings || []).filter(r => {
+      const vName = r.vendorName || r.vendor_name;
+      const vId = r.vendorId || r.vendor_id;
+      return (sellerName && vName && vName.toLowerCase() === sellerName.toLowerCase()) || 
+             (sellerId && vId && String(vId) === String(sellerId));
+    });
+    if (!matching || matching.length === 0) {
       return { rating: '0.0', reviews: 0 };
     }
-    const sum = matching.reduce((acc, r) => acc + (Number(r.foodRating) + Number(r.serviceRating)) / 2, 0);
+    const sum = matching.reduce((acc, r) => {
+      const food = Number(r.foodRating || r.food_rating || 0);
+      const service = Number(r.serviceRating || r.service_rating || 0);
+      return acc + (food + service) / 2;
+    }, 0);
     const avg = (sum / matching.length).toFixed(1);
     return { rating: avg, reviews: matching.length };
   };
 
   const globalAvgRating = (() => {
     if ((ratings || []).length === 0) return '0.0';
-    const sum = ratings.reduce((acc, r) => acc + (Number(r.foodRating) + Number(r.serviceRating)) / 2, 0);
+    const sum = ratings.reduce((acc, r) => {
+      const food = Number(r.foodRating || r.food_rating || 0);
+      const service = Number(r.serviceRating || r.service_rating || 0);
+      return acc + (food + service) / 2;
+    }, 0);
     return (sum / ratings.length).toFixed(1);
   })();
 
@@ -816,7 +829,7 @@ const AdminDashboard = () => {
                     </thead>
                     <tbody>
                       {(sellers || []).map(seller => {
-                        const info = getSellerRatingInfo(seller.name);
+                        const info = getSellerRatingInfo(seller.name, seller.id);
                         return (
                           <tr key={seller.id} style={{ borderBottom: '1px solid #f8fafc' }}>
                             <td style={{ padding: '12px 8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -845,26 +858,34 @@ const AdminDashboard = () => {
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.76rem' }}>Customer review submissions will aggregate and appear here in real-time.</p>
                     </div>
                   ) : (
-                    (ratings || []).map(review => (
-                      <div key={review.id} style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', textAlign: 'left' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <div>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{review.studentName}</span>
-                            <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '6px' }}>rated <strong style={{ color: '#0f172a' }}>{review.vendorName}</strong></span>
+                    (ratings || []).map(review => {
+                      const studentName = review.studentName || review.student_name || 'Student Customer';
+                      const vendorName = review.vendorName || review.vendor_name || 'Vendor Kitchen';
+                      const reviewDate = review.date || (review.created_at ? new Date(review.created_at).toLocaleDateString() : 'Recently');
+                      const food = Number(review.foodRating || review.food_rating || 0);
+                      const service = Number(review.serviceRating || review.service_rating || 0);
+
+                      return (
+                        <div key={review.id} style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #f1f5f9', textAlign: 'left' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <div>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{studentName}</span>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '6px' }}>rated <strong style={{ color: '#0f172a' }}>{vendorName}</strong></span>
+                            </div>
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{reviewDate}</span>
                           </div>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{review.date}</span>
+                          <div style={{ display: 'flex', gap: '10px', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                            <span style={{ color: '#d97706' }}>Food: ★{food}</span>
+                            <span style={{ color: '#2563eb' }}>Service: ★{service}</span>
+                          </div>
+                          {review.comment && (
+                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569', fontStyle: 'italic', lineHeight: '1.4' }}>
+                              "{review.comment}"
+                            </p>
+                          )}
                         </div>
-                        <div style={{ display: 'flex', gap: '10px', fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                          <span style={{ color: '#d97706' }}>Food: ★{review.foodRating}</span>
-                          <span style={{ color: '#2563eb' }}>Service: ★{review.serviceRating}</span>
-                        </div>
-                        {review.comment && (
-                          <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569', fontStyle: 'italic', lineHeight: '1.4' }}>
-                            "{review.comment}"
-                          </p>
-                        )}
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

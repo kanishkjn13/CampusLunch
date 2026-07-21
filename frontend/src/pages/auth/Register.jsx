@@ -719,10 +719,10 @@ const Register = () => {
                         className="w-full h-12 pl-[42px] rounded-xl border border-outline-variant bg-surface-bright outline-none font-body-md text-body-md auth-input"
                         style={{
                           paddingRight: emailVerified
-                            ? '100px'
+                            ? '145px'
                             : otpSent
-                              ? '160px'
-                              : '80px'
+                              ? '165px'
+                              : '85px'
                         }}
                         id="email"
                         type="email"
