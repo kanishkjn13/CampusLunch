@@ -228,8 +228,8 @@ export const StudentProvider = ({ children }) => {
                 name: v.full_name,
                 is_kitchen_open: v.is_kitchen_open !== false,
                 photo: v.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
-                rating: "4.8",
-                reviews: "24",
+                rating: "0.0",
+                reviews: "0",
                 servingTime: "10:00 AM - 08:00 PM",
                 vendorLocation: "Campus Hub",
                 distance: "0.2 km",
@@ -300,9 +300,9 @@ export const StudentProvider = ({ children }) => {
       }
     };
 
-    const interval = setInterval(pollData, 12000);
+    const interval = setInterval(pollData, 15000);
     return () => clearInterval(interval);
-  }, [user.email]);
+  }, []);
 
   const triggerOrdersSync = () => {
     const val = Date.now().toString();

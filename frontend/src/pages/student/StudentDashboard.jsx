@@ -334,8 +334,8 @@ const StudentDashboard = () => {
         name: v.full_name || 'Vendor Kitchen',
         is_kitchen_open: v.is_kitchen_open !== false,
         photo: v.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
-        rating: '4.8',
-        reviews: 12,
+        rating: getSellerRatingInfo(v.full_name, v.id).reviews > 0 ? getSellerRatingInfo(v.full_name, v.id).rating : '0.0',
+        reviews: getSellerRatingInfo(v.full_name, v.id).reviews,
         distance: '0.5km',
         servingTime: '12:00 PM - 3:00 PM',
         vendorLocation: 'Campus Area',
@@ -362,8 +362,6 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchVendorsList(true);
-    const interval = setInterval(() => fetchVendorsList(false), 12000);
-    return () => clearInterval(interval);
   }, [searchQuery, filterType, selectedMealType]);
 
   const handleViewVendorDetails = async (vendorId) => {
@@ -380,8 +378,8 @@ const StudentDashboard = () => {
         name: details.full_name,
         is_kitchen_open: details.is_kitchen_open !== false,
         photo: details.profile_image || "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Crect width='24' height='24' fill='%23f1f5f9'/%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6zm0 2.5l6 4.5v11H6v-11l6-4.5z'/%3E%3C/svg%3E",
-        rating: "4.8",
-        reviews: "24",
+        rating: getSellerRatingInfo(details.full_name, details.id).reviews > 0 ? getSellerRatingInfo(details.full_name, details.id).rating : '0.0',
+        reviews: getSellerRatingInfo(details.full_name, details.id).reviews,
         servingTime: "10:00 AM - 08:00 PM",
         vendorLocation: "Campus Hub",
         distance: "0.2 km",
@@ -1150,7 +1148,7 @@ const StudentDashboard = () => {
                           <div className="order-again-info">
                             <h4>{orders[0].items.split(',')[0] || 'Veg Thali'}</h4>
                             <p>By {orders[0].vendor} • {orders[0].date}</p>
-                            <span className="rating">★ 4.8</span>
+                            <span className="rating">★ {getSellerRatingInfo(orders[0].vendor, orders[0].vendor_id).reviews > 0 ? getSellerRatingInfo(orders[0].vendor, orders[0].vendor_id).rating : '0.0'}</span>
                           </div>
                           <button
                             className="order-again-action"
@@ -1256,7 +1254,7 @@ const StudentDashboard = () => {
                                     ) : (
                                       vendor.menu_items.map(meal => {
                                         const ratingInfo = getSellerRatingInfo(vendor.full_name, vendor.id);
-                                        const displayRating = ratingInfo.reviews > 0 ? ratingInfo.rating : '4.8';
+                                        const displayRating = ratingInfo.reviews > 0 ? ratingInfo.rating : '0.0';
                                         
                                         const contextSeller = sellers.find(s => s.id === vendor.id);
                                         const contextMeal = contextSeller ? contextSeller.meals.find(m => m.id === meal.id) : null;
@@ -1412,7 +1410,7 @@ const StudentDashboard = () => {
 
                   <div className="order-again-card" style={{ display: 'block', padding: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f59e0b' }}>★ 4.8 Ratings</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f59e0b' }}>★ {getSellerRatingInfo(selectedVendorDetails.full_name, selectedVendorDetails.id).reviews > 0 ? getSellerRatingInfo(selectedVendorDetails.full_name, selectedVendorDetails.id).rating : '0.0'} Rating</span>
                       <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Serving: Fresh Daily</span>
                     </div>
                     <p style={{ fontSize: '0.82rem', color: '#475569', margin: '4px 0 0 0' }}>Location: Campus Hub Kitchen</p>
@@ -2033,7 +2031,7 @@ const StudentDashboard = () => {
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', fontSize: '0.78rem', color: '#64748b' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#d97706' }}>
-                            <Star size={14} fill="#d97706" /> {currentSeller.rating || '4.8'} ({currentSeller.reviews || '24'} reviews)
+                            <Star size={14} fill="#d97706" /> {getSellerRatingInfo(currentSeller.name, currentSeller.id).reviews > 0 ? getSellerRatingInfo(currentSeller.name, currentSeller.id).rating : '0.0'} ({getSellerRatingInfo(currentSeller.name, currentSeller.id).reviews} reviews)
                           </span>
                           <span>&bull;</span>
                           <span style={{ fontWeight: 600 }}>Home Tiffin Kitchen</span>

@@ -2053,7 +2053,23 @@ const VendorDashboard = () => {
                         <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Premium Meal Partner &bull; Verified Chef</p>
                         <div className="profile-rating-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fef3c7', padding: '4px 12px', borderRadius: '12px', marginTop: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#d97706' }}>
                           <Star size={12} fill="#d97706" style={{ color: '#d97706' }} />
-                          <span>4.8 (120+ ratings)</span>
+                          {(() => {
+                            const vendorRatings = (contextRatings || []).filter(r => {
+                              const vName = r.vendorName || r.vendor_name;
+                              const vId = r.vendorId || r.vendor_id;
+                              return (vendorName && vName && vName.toLowerCase() === vendorName.toLowerCase()) || 
+                                     (user && user.id && vId && String(vId) === String(user.id));
+                            });
+                            const totalR = vendorRatings.length;
+                            if (totalR === 0) return <span>0.0 (0 ratings)</span>;
+                            const sum = vendorRatings.reduce((acc, r) => {
+                              const food = Number(r.foodRating || r.food_rating || 0);
+                              const service = Number(r.serviceRating || r.service_rating || 0);
+                              return acc + (food + service) / 2;
+                            }, 0);
+                            const avg = (sum / totalR).toFixed(1);
+                            return <span>{avg} ({totalR} rating{totalR === 1 ? '' : 's'})</span>;
+                          })()}
                         </div>
                       </div>
 

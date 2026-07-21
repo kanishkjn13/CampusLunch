@@ -147,7 +147,7 @@ const VendorDetails = () => {
               
               <div className="flex items-center gap-2 text-status-warning mb-6">
                 <Star size={20} fill="currentColor" />
-                <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>4.8</span>
+                <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>{vendor.rating || '0.0'}</span>
                 <span className="text-secondary" style={{ fontSize: '0.9rem' }}>(Verified)</span>
               </div>
               
