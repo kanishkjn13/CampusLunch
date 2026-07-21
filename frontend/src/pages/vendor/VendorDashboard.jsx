@@ -234,6 +234,7 @@ const VendorDashboard = () => {
   });
 
   const { 
+    user,
     orders: contextOrders, 
     setOrders, 
     ratings: contextRatings, 
