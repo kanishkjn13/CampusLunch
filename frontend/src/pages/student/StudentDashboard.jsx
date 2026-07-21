@@ -1955,48 +1955,7 @@ const StudentDashboard = () => {
                     >
                       <ArrowLeft size={20} />
                     </button>
-                    <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Vendor Details & Order Status ({currentTracker.orderId})</h2>
-                  </div>
-
-                  {/* Status Progress Stepper */}
-                  <div className="order-again-card" style={{ padding: '16px 20px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b' }}>Order Status</span>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          fontWeight: 900,
-                          color: currentTracker.statusIndex === 5 ? '#10b981' : '#f59e0b',
-                          backgroundColor: currentTracker.statusIndex === 5 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                          padding: '4px 10px',
-                          borderRadius: '99px',
-                          textTransform: 'uppercase'
-                        }}
-                      >
-                        {currentTracker.statusIndex === 5 ? 'Delivered' : currentTracker.eta}
-                      </span>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${currentTracker.statusIndex === 5 ? 100 : (currentTracker.statusIndex * 20)}%`,
-                          height: '100%',
-                          backgroundColor: currentTracker.statusIndex === 5 ? '#10b981' : '#855300',
-                          borderRadius: '99px',
-                          transition: 'width 0.4s ease'
-                        }}
-                      />
-                    </div>
-
-                    {/* Stepper Labels */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', fontWeight: 800, color: '#94a3b8' }}>
-                      <span style={{ color: currentTracker.statusIndex >= 0 ? '#855300' : 'inherit' }}>Ordered</span>
-                      <span style={{ color: currentTracker.statusIndex >= 1 ? '#855300' : 'inherit' }}>Preparing</span>
-                      <span style={{ color: currentTracker.statusIndex >= 3 ? '#855300' : 'inherit' }}>In Transit</span>
-                      <span style={{ color: currentTracker.statusIndex === 5 ? '#10b981' : 'inherit' }}>Delivered</span>
-                    </div>
+                    <h2 className="dashboard-heading" style={{ fontSize: '1.25rem' }}>Vendor Details ({currentTracker.orderId})</h2>
                   </div>
 
                   {/* Delivered Success & Ratings Actions Card */}

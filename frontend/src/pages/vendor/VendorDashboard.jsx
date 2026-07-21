@@ -1007,64 +1007,73 @@ const VendorDashboard = () => {
 
   const totalAvailablePackets = foodItems.reduce((acc, curr) => acc + (curr.availableQty || 0), 0);
 
-  // Sales metrics based on selected period
+  // Sales metrics based on selected period and database orders
   const getSalesMetrics = () => {
-    const completedOrdersList = (contextOrders || []).filter(o => o.vendor === vendorName && o.deliveryStatus === 'Delivered');
+    // Filter non-cancelled orders belonging to this logged-in vendor
+    const vendorOrdersList = (contextOrders || []).filter(o => {
+      const vName = o.vendor || o.vendorName || o.vendor_name;
+      const vId = o.vendor_id || o.vendorId;
+      const isMyVendor = (vendorName && vName && vName.toLowerCase() === vendorName.toLowerCase()) ||
+                         (user && user.id && vId && String(vId) === String(user.id));
+      const status = o.deliveryStatus || o.delivery_status;
+      return isMyVendor && status !== 'Cancelled';
+    });
 
-    // Filter by period
-    let filtered = completedOrdersList;
+    const isToday = (dateStr) => {
+      if (!dateStr) return true;
+      const lower = String(dateStr).toLowerCase();
+      if (lower.includes('today') || lower.includes('just now')) return true;
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return true;
+      const today = new Date();
+      return d.getDate() === today.getDate() &&
+             d.getMonth() === today.getMonth() &&
+             d.getFullYear() === today.getFullYear();
+    };
+
+    const isThisMonth = (dateStr) => {
+      if (!dateStr) return true;
+      const lower = String(dateStr).toLowerCase();
+      if (lower.includes('today') || lower.includes('just now')) return true;
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return true;
+      const diffMs = Date.now() - d.getTime();
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      return diffDays >= 0 && diffDays <= 30;
+    };
+
+    let filtered = vendorOrdersList;
     if (salesPeriod === 'today') {
-      filtered = completedOrdersList.filter(o => {
-        const dStr = (o.date || '').toLowerCase();
-        return dStr.includes('today') || dStr.includes('just now') || o.date === new Date().toLocaleDateString();
-      });
+      filtered = vendorOrdersList.filter(o => isToday(o.created_at || o.date));
     } else if (salesPeriod === 'month') {
-      filtered = completedOrdersList.filter(o => {
-        const dStr = (o.date || '').toLowerCase();
-        if (dStr.includes('today') || dStr.includes('just now')) return true;
-        try {
-          const parsed = Date.parse(o.date);
-          if (isNaN(parsed)) return false;
-          const diffMs = Date.now() - parsed;
-          const diffDays = diffMs / (1000 * 60 * 60 * 24);
-          return diffDays >= 0 && diffDays <= 30;
-        } catch (e) {
-          return false;
-        }
-      });
+      filtered = vendorOrdersList.filter(o => isThisMonth(o.created_at || o.date));
     }
 
     const totalRev = filtered.reduce((acc, o) => acc + (Number(o.bill) || 0), 0);
     const totalCount = filtered.length;
 
-    // Calculate weekly growth performance dynamically (compares this week vs last week)
+    // Calculate weekly growth performance dynamically
     const now = Date.now();
     const oneDayMs = 1000 * 60 * 60 * 24;
 
-    const thisWeekOrders = completedOrdersList.filter(o => {
-      const dStr = (o.date || '').toLowerCase();
-      if (dStr.includes('today') || dStr.includes('just now')) return true;
-      try {
-        const parsed = Date.parse(o.date);
-        if (isNaN(parsed)) return false;
-        const diffMs = now - parsed;
-        const diffDays = diffMs / oneDayMs;
-        return diffDays >= 0 && diffDays <= 7;
-      } catch (e) {
-        return false;
-      }
+    const thisWeekOrders = vendorOrdersList.filter(o => {
+      const dateVal = o.created_at || o.date;
+      if (!dateVal) return true;
+      const lower = String(dateVal).toLowerCase();
+      if (lower.includes('today') || lower.includes('just now')) return true;
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return true;
+      const diffDays = (now - d.getTime()) / oneDayMs;
+      return diffDays >= 0 && diffDays <= 7;
     });
 
-    const lastWeekOrders = completedOrdersList.filter(o => {
-      try {
-        const parsed = Date.parse(o.date);
-        if (isNaN(parsed)) return false;
-        const diffMs = now - parsed;
-        const diffDays = diffMs / oneDayMs;
-        return diffDays > 7 && diffDays <= 14;
-      } catch (e) {
-        return false;
-      }
+    const lastWeekOrders = vendorOrdersList.filter(o => {
+      const dateVal = o.created_at || o.date;
+      if (!dateVal) return false;
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return false;
+      const diffDays = (now - d.getTime()) / oneDayMs;
+      return diffDays > 7 && diffDays <= 14;
     });
 
     const revThisWeek = thisWeekOrders.reduce((acc, o) => acc + (Number(o.bill) || 0), 0);
@@ -1072,9 +1081,9 @@ const VendorDashboard = () => {
 
     let growthPct = 0;
     if (revLastWeek === 0) {
-      growthPct = revThisWeek > 0 ? 37.5 : 0; // standard mock growth if last week had no deliveries
+      growthPct = revThisWeek > 0 ? 100 : 0;
     } else {
-      growthPct = Math.round(((revThisWeek - revLastWeek) / revLastWeek) * 1000) / 10;
+      growthPct = Math.round(((revThisWeek - revLastWeek) / revLastWeek) * 100);
     }
 
     const growth = growthPct >= 0 ? `+${growthPct}%` : `${growthPct}%`;
