@@ -240,6 +240,11 @@ class LoginSerializer(serializers.Serializer):
                 "Your account is inactive."
             )
 
+        if user.role == "vendor" and not user.is_verified:
+            raise serializers.ValidationError(
+                "Your account is pending admin verification. You can only log in after your account has been verified by the administrator."
+            )
+
         refresh = RefreshToken.for_user(user)
 
         return {
@@ -424,6 +429,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "role",
+            "is_verified",
             "is_kitchen_open",
             "avatar",
             "sync_orders_trigger",

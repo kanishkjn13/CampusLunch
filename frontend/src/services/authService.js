@@ -101,3 +101,62 @@ export const verifyOTP = async (email, otp) => {
   const response = await api.post("/verify-otp/", { email, otp });
   return response.data;
 };
+
+// Admin Vendor Management & Verification
+export const getAdminVendorsList = async () => {
+  const response = await api.get("/auth/admin/vendors/");
+  return response.data;
+};
+
+export const verifyVendorApi = async (vendorId, action = "approve") => {
+  const response = await api.post(`/auth/admin/vendors/${vendorId}/verify/`, { action });
+  return response.data;
+};
+
+export const onboardVendorApi = async (vendorData) => {
+  const response = await api.post("/auth/admin/vendors/onboard/", vendorData);
+  return response.data;
+};
+
+// System Controls & Health APIs
+export const getSystemHealthApi = async () => {
+  const response = await api.get("/auth/system-health/");
+  return response.data;
+};
+
+export const updateCommissionRateApi = async (commissionRate) => {
+  const response = await api.post("/auth/system-health/", { commission_rate: commissionRate });
+  return response.data;
+};
+
+// Admin Support Ticket APIs
+export const getSupportTicketsApi = async () => {
+  const response = await api.get("/auth/admin/support/tickets/");
+  return response.data;
+};
+
+export const getSupportMessagesApi = async (ticketId) => {
+  const response = await api.get(`/auth/admin/support/tickets/${ticketId}/messages/`);
+  return response.data;
+};
+
+export const sendSupportMessageApi = async (ticketId, messageText, sender = "admin") => {
+  const response = await api.post(`/auth/admin/support/tickets/${ticketId}/messages/`, { text: messageText, sender });
+  return response.data;
+};
+
+export const updateTicketStatusApi = async (ticketId, status) => {
+  const response = await api.post(`/auth/admin/support/tickets/${ticketId}/status/`, { status });
+  return response.data;
+};
+
+// Profile & Security APIs
+export const getUserProfileApi = async () => {
+  const response = await api.get("/auth/profile/");
+  return response.data;
+};
+
+export const changeUserPasswordApi = async (data) => {
+  const response = await api.post("/auth/change-password/", data);
+  return response.data;
+};

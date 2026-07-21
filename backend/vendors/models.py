@@ -95,3 +95,46 @@ class Rating(models.Model):
 
     def __str__(self):
         return f"Rating for {self.vendor.email} by {self.student.email}"
+
+
+class SupportTicket(models.Model):
+    USER_TYPE_CHOICES = (
+        ("customer", "Customer"),
+        ("vendor", "Vendor"),
+    )
+    STATUS_CHOICES = (
+        ("open", "Open"),
+        ("in_progress", "In Progress"),
+        ("closed", "Closed"),
+    )
+
+    id = models.AutoField(primary_key=True)
+    ticket_id = models.CharField(max_length=50, unique=True)
+    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default="customer")
+    user_name = models.CharField(max_length=150)
+    user_email = models.EmailField(blank=True, null=True)
+    user_phone = models.CharField(max_length=50, blank=True, null=True)
+    order_id = models.CharField(max_length=100, blank=True, null=True)
+    title = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.ticket_id} - {self.title} ({self.status})"
+
+
+class SupportMessage(models.Model):
+    id = models.AutoField(primary_key=True)
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name="messages")
+    sender = models.CharField(max_length=50, default="admin") # 'admin' or 'user'
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Msg #{self.id} for {self.ticket.ticket_id}"

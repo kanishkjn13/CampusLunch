@@ -257,6 +257,20 @@ const StudentDashboard = () => {
     };
   }, [showNotificationsDropdown]);
   const [actionLoading, setActionLoading] = useState({ isLoading: false, message: '' });
+  const [commissionRate, setCommissionRate] = useState(() => Number(localStorage.getItem('admin_commission_rate') || 12));
+
+  useEffect(() => {
+    const handleCommissionUpdate = () => {
+      const updatedRate = Number(localStorage.getItem('admin_commission_rate') || 12);
+      setCommissionRate(updatedRate);
+    };
+    window.addEventListener('storage', handleCommissionUpdate);
+    window.addEventListener('commission_rate_updated', handleCommissionUpdate);
+    return () => {
+      window.removeEventListener('storage', handleCommissionUpdate);
+      window.removeEventListener('commission_rate_updated', handleCommissionUpdate);
+    };
+  }, []);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -484,7 +498,7 @@ const StudentDashboard = () => {
 
   // Cart price aggregates
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const platformFee = cart.length > 0 ? 5 : 0;
+  const platformFee = cart.length > 0 ? (Math.round((cartSubtotal * commissionRate) / 100) || 5) : 0;
   const gst = Math.round(cartSubtotal * 0.05);
   const deliveryFee = cart.length > 0 ? 20 : 0;
   const discountAmount = activeCoupon
@@ -1609,7 +1623,7 @@ const StudentDashboard = () => {
                             <span>₹{cartSubtotal}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                            <span>Platform Fee</span>
+                            <span>Platform Handling Fee ({commissionRate}%)</span>
                             <span>₹{platformFee}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>

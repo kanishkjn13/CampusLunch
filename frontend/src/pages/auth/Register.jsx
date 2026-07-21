@@ -37,6 +37,7 @@ const Register = () => {
   const [cooldown, setCooldown] = useState(0);
 
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showVendorSuccessModal, setShowVendorSuccessModal] = useState(false);
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
 
   const otpRefs = [
@@ -381,19 +382,17 @@ const Register = () => {
       if (role === "vendor") {
         payload.fssai_license = "";
         await vendorRegister(payload);
+        setLoading(false);
+        setShowVendorSuccessModal(true);
       } else {
         await studentRegister(payload);
+        navigate("/login", {
+          replace: true,
+          state: {
+            message: "Registration successful! Please login.",
+          },
+        });
       }
-
-      navigate("/login", {
-        replace: true,
-        state: {
-          message:
-            role === "student"
-              ? "Registration successful! Please login."
-              : "Vendor registered successfully. Please login.",
-        },
-      });
 
     } catch (err) {
       if (err.response?.data) {
@@ -1066,6 +1065,115 @@ const Register = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vendor Verification Success Popup Dialog */}
+      {showVendorSuccessModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '24px',
+            maxWidth: '460px',
+            width: '100%',
+            padding: '32px 28px',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid #e2e8f0',
+            position: 'relative'
+          }}>
+            <div style={{
+              width: '68px',
+              height: '68px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(234, 88, 12, 0.1)',
+              color: '#ea580c',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 18px auto',
+              border: '2px solid rgba(234, 88, 12, 0.2)'
+            }}>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+            </div>
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>
+              Verification Request Sent!
+            </h3>
+
+            <span style={{
+              display: 'inline-block',
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              color: '#d97706',
+              backgroundColor: 'rgba(217, 119, 6, 0.12)',
+              padding: '3px 12px',
+              borderRadius: '99px',
+              marginBottom: '16px'
+            }}>
+              STATUS: PENDING ADMIN APPROVAL
+            </span>
+
+            <div style={{
+              backgroundColor: '#fff7ed',
+              border: '1px solid #ffedd5',
+              borderRadius: '14px',
+              padding: '14px 16px',
+              marginBottom: '20px',
+              textAlign: 'left'
+            }}>
+              <p style={{ margin: 0, fontSize: '0.84rem', color: '#c2410c', lineHeight: '1.5', fontWeight: 700 }}>
+                ⚠️ Admin Verification Required
+              </p>
+              <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: '#9a3412', lineHeight: '1.5' }}>
+                Your kitchen registration details have been submitted. <strong>You can only log in after admin verification</strong> is approved by the system administrator.
+              </p>
+            </div>
+
+            <p style={{ fontSize: '0.84rem', color: '#64748b', margin: '0 0 24px 0', lineHeight: '1.5' }}>
+              Once the administrator verifies your kitchen details, you will be able to sign in to your vendor dashboard.
+            </p>
+
+            <button
+              onClick={() => {
+                setShowVendorSuccessModal(false);
+                navigate('/login', {
+                  replace: true,
+                  state: {
+                    message: 'Registration submitted! You can log in once your account is verified by the admin.'
+                  }
+                });
+              }}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                backgroundColor: '#ea580c',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(234, 88, 12, 0.35)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Understood, Proceed to Login
+            </button>
           </div>
         </div>
       )}
