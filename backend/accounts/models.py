@@ -121,6 +121,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True
     )
 
+    two_factor_enabled = models.BooleanField(
+        default=False
+    )
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"
