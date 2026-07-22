@@ -33,20 +33,39 @@ class MenuItemSerializer(serializers.ModelSerializer):
     def validate(self, data):
         request = self.context.get("request")
         if request and request.user:
-            vendor = request.user
-            name = data.get("name")
-            
-            # Exclude current item for updates
-            instance_id = self.instance.id if self.instance else None
-            
-            if name:
-                queryset = MenuItem.objects.filter(vendor=vendor, name__iexact=name)
-                if instance_id:
-                    queryset = queryset.exclude(id=instance_id)
-                if queryset.exists():
-                    raise serializers.ValidationError(
-                        {"name": "A menu item with this name already exists in your menu."}
-                    )
+            if request.user.role == 'vendor':
+                vendor = request.user
+                name = data.get("name")
+                instance_id = self.instance.id if self.instance else None
+                if name:
+                    queryset = MenuItem.objects.filter(vendor=vendor, name__iexact=name)
+                    if instance_id:
+                        queryset = queryset.exclude(id=instance_id)
+                    if queryset.exists():
+                        raise serializers.ValidationError(
+                            {"name": "A menu item with this name already exists in your menu."}
+                        )
+            elif request.user.role == 'admin':
+                # Determine vendor from request data or instance
+                vendor = data.get("vendor") or (self.instance.vendor if self.instance else None)
+                if not vendor:
+                    # Look in raw data if not validated yet (vendor is read-only in serializer, so it's not in validated_data)
+                    vendor_id = request.data.get("vendor_id") or request.data.get("vendor")
+                    if vendor_id:
+                        from django.contrib.auth import get_user_model
+                        User = get_user_model()
+                        vendor = User.objects.filter(id=vendor_id, role="vendor").first()
+                
+                name = data.get("name") or (self.instance.name if self.instance else None)
+                instance_id = self.instance.id if self.instance else None
+                if vendor and name:
+                    queryset = MenuItem.objects.filter(vendor=vendor, name__iexact=name)
+                    if instance_id:
+                        queryset = queryset.exclude(id=instance_id)
+                    if queryset.exists():
+                        raise serializers.ValidationError(
+                            {"name": "A menu item with this name already exists for this vendor."}
+                        )
         return data
 
 

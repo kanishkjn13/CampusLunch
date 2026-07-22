@@ -160,3 +160,75 @@ export const changeUserPasswordApi = async (data) => {
   const response = await api.post("/auth/change-password/", data);
   return response.data;
 };
+
+// Admin Stats View
+export const getAdminStatsApi = async () => {
+  const response = await api.get("/auth/admin/stats/");
+  return response.data;
+};
+
+// Admin Students View
+export const getAdminStudentsListApi = async () => {
+  const response = await api.get("/auth/admin/students/");
+  return response.data;
+};
+
+export const manageStudentApi = async (studentId, action) => {
+  const response = await api.post(`/auth/admin/students/${studentId}/manage/`, { action });
+  return response.data;
+};
+
+// Admin Menu Items CRUD
+export const getAdminMenuItemsApi = async () => {
+  const response = await api.get("/vendors/admin/menu-items/");
+  return response.data;
+};
+
+export const createAdminMenuItemApi = async (data) => {
+  const response = await api.post("/vendors/admin/menu-items/", data);
+  return response.data;
+};
+
+export const updateAdminMenuItemApi = async (id, data) => {
+  const response = await api.patch(`/vendors/admin/menu-items/${id}/`, data);
+  return response.data;
+};
+
+export const deleteAdminMenuItemApi = async (id) => {
+  const response = await api.delete(`/vendors/admin/menu-items/${id}/`);
+  return response.data;
+};
+
+// Admin Platform Orders
+export const getAdminOrdersApi = async () => {
+  const response = await api.get("/vendors/orders/");
+  return response.data;
+};
+
+export const updateAdminOrderTrackerApi = async (id, trackerData) => {
+  const response = await api.put(`/vendors/trackers/${id}/`, trackerData);
+  return response.data;
+};
+
+// Notifications APIs
+export const getNotificationsApi = async () => {
+  const response = await api.get("/auth/notifications/");
+  return response.data;
+};
+
+export const markNotificationReadApi = async (id) => {
+  const response = await api.post(`/auth/notifications/${id}/read/`);
+  return response.data;
+};
+
+export const markAllNotificationsReadApi = async () => {
+  const response = await api.post("/auth/notifications/read-all/");
+  return response.data;
+};
+
+// Admin Broadcast API
+export const sendAdminBroadcastApi = async (data) => {
+  const response = await api.post("/auth/admin/broadcast/", data);
+  return response.data;
+};
+

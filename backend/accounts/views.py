@@ -356,9 +356,21 @@ class AdminVendorListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        from django.db.models import Sum, Avg
+        from vendors.models import Order, Rating, MenuItem
         vendors = User.objects.filter(role="vendor").order_by("-created_at")
-        data = [
-            {
+        data = []
+        for v in vendors:
+            orders_qs = Order.objects.filter(vendor=v)
+            total_sales = float(orders_qs.filter(delivery_status="Delivered").aggregate(total=Sum("bill"))["total"] or 0)
+            total_orders = orders_qs.count()
+            total_customers = orders_qs.values("student").distinct().count()
+            
+            avg_food = Rating.objects.filter(vendor=v).aggregate(avg=Avg("food_rating"))["avg"] or 0
+            avg_service = Rating.objects.filter(vendor=v).aggregate(avg=Avg("service_rating"))["avg"] or 0
+            avg_rating = round((float(avg_food) + float(avg_service)) / 2, 1) if Rating.objects.filter(vendor=v).exists() else 0.0
+            
+            data.append({
                 "id": f"V-{1000 + v.id}",
                 "real_id": v.id,
                 "name": v.full_name or v.email.split("@")[0],
@@ -370,11 +382,19 @@ class AdminVendorListView(APIView):
                 "bgClass": "bg-peach",
                 "icon": "store",
                 "is_verified": v.is_verified,
+                "is_active": v.is_active,
                 "status": "Verified" if v.is_verified else "Pending",
                 "created_at": v.created_at.strftime("%Y-%m-%d %H:%M"),
-            }
-            for v in vendors
-        ]
+                "last_login": v.last_login.strftime("%Y-%m-%d %H:%M") if v.last_login else "Never",
+                "total_sales": total_sales,
+                "total_orders": total_orders,
+                "total_customers": total_customers,
+                "average_rating": avg_rating,
+                "menu_count": MenuItem.objects.filter(vendor=v).count(),
+                "timings": v.vendor_timings or "09:00 AM - 09:00 PM",
+                "working_days": v.vendor_working_days or "Mon-Sat",
+                "auto_accept": v.vendor_auto_accept or "Enabled"
+            })
         return Response(data, status=status.HTTP_200_OK)
 
 
@@ -414,6 +434,22 @@ class AdminVerifyVendorView(APIView):
                     "message": f"Vendor '{vendor.full_name or vendor.email}' verification rejected.",
                     "is_verified": False,
                     "status": "Rejected"
+                }, status=status.HTTP_200_OK)
+            elif action == "suspend":
+                vendor.is_active = False
+                vendor.save()
+                return Response({
+                    "message": f"Vendor '{vendor.full_name or vendor.email}' suspended successfully.",
+                    "is_active": False,
+                    "status": "Suspended"
+                }, status=status.HTTP_200_OK)
+            elif action == "restore":
+                vendor.is_active = True
+                vendor.save()
+                return Response({
+                    "message": f"Vendor '{vendor.full_name or vendor.email}' restored successfully.",
+                    "is_active": True,
+                    "status": "Verified"
                 }, status=status.HTTP_200_OK)
 
             return Response({"detail": "Invalid action specified."}, status=status.HTTP_400_BAD_REQUEST)
@@ -727,3 +763,303 @@ class AdminSupportTicketStatusView(APIView):
             "message": f"Ticket #{ticket.ticket_id} status updated to {new_status}.",
             "status": ticket.status
         }, status=status.HTTP_200_OK)
+
+
+class AdminDashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'admin':
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        from django.db.models import Sum, Avg, Q
+        from django.utils import timezone
+        from datetime import timedelta
+        from vendors.models import MenuItem, Order, Rating, SupportTicket
+        from accounts.models import Notification, User
+
+        today = timezone.now().date()
+        start_of_week = today - timedelta(days=7)
+        start_of_month = today - timedelta(days=30)
+
+        total_users = User.objects.count()
+        total_students = User.objects.filter(role="student").count()
+        total_vendors = User.objects.filter(role="vendor").count()
+
+        total_menu_items = MenuItem.objects.count()
+        available_menu_items = MenuItem.objects.filter(is_available=True, is_active=True).count()
+        unavailable_menu_items = MenuItem.objects.filter(Q(is_available=False) | Q(is_active=False)).count()
+
+        today_orders = Order.objects.filter(created_at__date=today).count()
+        pending_orders = Order.objects.filter(delivery_status="Confirmed").count()
+        preparing_orders = Order.objects.filter(delivery_status__in=["Preparing Food", "Preparing", "Packed", "Picked Up", "Out For Delivery"]).count()
+        accepted_orders = Order.objects.filter(delivery_status="Confirmed").count()
+        completed_orders = Order.objects.filter(delivery_status="Delivered").count()
+        cancelled_orders = Order.objects.filter(delivery_status="Cancelled").count()
+
+        today_revenue = Order.objects.filter(created_at__date=today, delivery_status="Delivered").aggregate(total=Sum("bill"))["total"] or 0
+        weekly_revenue = Order.objects.filter(created_at__date__gte=start_of_week, delivery_status="Delivered").aggregate(total=Sum("bill"))["total"] or 0
+        monthly_revenue = Order.objects.filter(created_at__date__gte=start_of_month, delivery_status="Delivered").aggregate(total=Sum("bill"))["total"] or 0
+        overall_revenue = Order.objects.filter(delivery_status="Delivered").aggregate(total=Sum("bill"))["total"] or 0
+
+        delivered_count = Order.objects.filter(delivery_status="Delivered").count()
+        avg_order_value = round(float(overall_revenue) / delivered_count, 2) if delivered_count > 0 else 0
+
+        total_ratings = Rating.objects.count()
+        avg_food = Rating.objects.aggregate(avg=Avg("food_rating"))["avg"] or 0
+        avg_service = Rating.objects.aggregate(avg=Avg("service_rating"))["avg"] or 0
+        avg_rating = round((float(avg_food) + float(avg_service)) / 2, 2) if total_ratings > 0 else 0
+
+        support_tickets = SupportTicket.objects.filter(status="open").count()
+        unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
+
+        recent_regs = User.objects.all().order_by("-created_at")[:5]
+        recent_registrations_data = [
+            {
+                "id": r.id,
+                "full_name": r.full_name or r.email.split("@")[0],
+                "email": r.email,
+                "role": r.role,
+                "created_at": r.created_at.strftime("%Y-%m-%d %H:%M")
+            }
+            for r in recent_regs
+        ]
+
+        recent_ord = Order.objects.all().order_by("-created_at")[:5]
+        recent_orders_data = [
+            {
+                "id": o.id,
+                "order_id": o.order_id,
+                "customer": o.student.full_name if o.student else "Offline Walk-up",
+                "vendor": o.vendor.full_name or o.vendor.email,
+                "bill": float(o.bill),
+                "delivery_status": o.delivery_status,
+                "created_at": o.created_at.strftime("%Y-%m-%d %H:%M")
+            }
+            for o in recent_ord
+        ]
+
+        recent_activities = []
+        for o in Order.objects.all().order_by("-created_at")[:3]:
+            recent_activities.append({
+                "type": "order",
+                "text": f"New order placed by {o.student.full_name if o.student else 'Walk-up'} at {o.vendor.full_name}",
+                "timestamp": o.created_at.strftime("%b %d, %I:%M %p"),
+                "order_id": o.order_id
+            })
+        for t in SupportTicket.objects.all().order_by("-created_at")[:3]:
+            recent_activities.append({
+                "type": "support",
+                "text": f"Support Ticket {t.ticket_id} ('{t.title}') created by {t.user_name}",
+                "timestamp": t.created_at.strftime("%b %d, %I:%M %p"),
+                "ticket_id": t.ticket_id
+            })
+        for r in Rating.objects.all().order_by("-created_at")[:3]:
+            recent_activities.append({
+                "type": "rating",
+                "text": f"{r.student.full_name} rated {r.vendor.full_name} with {r.food_rating}★",
+                "timestamp": r.created_at.strftime("%b %d, %I:%M %p")
+            })
+        
+        recent_activities = sorted(recent_activities, key=lambda x: x["timestamp"], reverse=True)[:5]
+
+        return Response({
+            "total_users": total_users,
+            "total_students": total_students,
+            "total_vendors": total_vendors,
+            "total_menu_items": total_menu_items,
+            "available_menu_items": available_menu_items,
+            "unavailable_menu_items": unavailable_menu_items,
+            "today_orders": today_orders,
+            "pending_orders": pending_orders,
+            "accepted_orders": accepted_orders,
+            "preparing_orders": preparing_orders,
+            "completed_orders": completed_orders,
+            "cancelled_orders": cancelled_orders,
+            "today_revenue": float(today_revenue),
+            "weekly_revenue": float(weekly_revenue),
+            "monthly_revenue": float(monthly_revenue),
+            "overall_revenue": float(overall_revenue),
+            "avg_order_value": avg_order_value,
+            "total_ratings": total_ratings,
+            "avg_rating": avg_rating,
+            "support_tickets": support_tickets,
+            "unread_notifications": unread_notifications,
+            "recent_registrations": recent_registrations_data,
+            "recent_orders": recent_orders_data,
+            "recent_activities": recent_activities
+        }, status=status.HTTP_200_OK)
+
+
+class AdminStudentListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'admin':
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        from accounts.models import User
+        from students.models import Subscription, Cart
+        from vendors.models import Order
+
+        students = User.objects.filter(role="student").order_by("-created_at")
+        data = []
+        for s in students:
+            subs = Subscription.objects.filter(student=s)
+            subs_data = [
+                {
+                    "id": sub.id,
+                    "plan_type": sub.plan_type,
+                    "vendor_name": sub.vendor.full_name or sub.vendor.email,
+                    "start_date": sub.start_date.strftime("%Y-%m-%d"),
+                    "end_date": sub.end_date.strftime("%Y-%m-%d"),
+                    "is_active": sub.is_active,
+                    "price": float(sub.price)
+                }
+                for sub in subs
+            ]
+
+            cart = s.cart.first()
+            cart_items = []
+            if cart:
+                for item in cart.items.all():
+                    cart_items.append({
+                        "id": item.id,
+                        "menu_item_name": item.menu_item.name,
+                        "quantity": item.quantity,
+                        "price": float(item.menu_item.price)
+                    })
+
+            orders = Order.objects.filter(student=s).order_by("-created_at")
+            orders_data = [
+                {
+                    "id": o.id,
+                    "order_id": o.order_id,
+                    "vendor_name": o.vendor.full_name or o.vendor.email,
+                    "bill": float(o.bill),
+                    "delivery_status": o.delivery_status,
+                    "created_at": o.created_at.strftime("%Y-%m-%d %H:%M")
+                }
+                for o in orders
+            ]
+
+            data.append({
+                "id": f"S-{1000 + s.id}",
+                "real_id": s.id,
+                "name": s.full_name or s.email.split("@")[0],
+                "email": s.email,
+                "phone": s.phone,
+                "is_active": s.is_active,
+                "created_at": s.created_at.strftime("%Y-%m-%d %H:%M"),
+                "last_login": s.last_login.strftime("%Y-%m-%d %H:%M") if s.last_login else "Never",
+                "orders": orders_data,
+                "orders_count": len(orders_data),
+                "subscriptions": subs_data,
+                "subscriptions_count": len(subs_data),
+                "cart_items": cart_items,
+                "cart_items_count": len(cart_items)
+            })
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class AdminManageStudentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, student_id):
+        if request.user.role != 'admin':
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        from accounts.models import User
+        student = None
+        if str(student_id).startswith("S-"):
+            try:
+                s_id = int(str(student_id).replace("S-", "")) - 1000
+                student = User.objects.filter(id=s_id, role="student").first()
+            except Exception:
+                pass
+        if not student:
+            student = User.objects.filter(id=student_id, role="student").first()
+        if not student:
+            student = User.objects.filter(email__iexact=str(student_id), role="student").first()
+
+        if not student:
+            return Response({"detail": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get("action")
+        if action == "suspend" or action == "deactivate":
+            student.is_active = False
+            student.save()
+            return Response({"message": f"Student {student.email} has been deactivated.", "is_active": False}, status=status.HTTP_200_OK)
+        elif action == "restore" or action == "activate":
+            student.is_active = True
+            student.save()
+            return Response({"message": f"Student {student.email} has been activated.", "is_active": True}, status=status.HTTP_200_OK)
+
+        return Response({"detail": "Invalid action specified."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class NotificationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from accounts.models import Notification
+        notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
+        data = [
+            {
+                "id": n.id,
+                "title": n.title,
+                "message": n.message,
+                "is_read": n.is_read,
+                "unread": not n.is_read,
+                "created_at": n.created_at.strftime("%Y-%m-%d %H:%M"),
+                "time": n.created_at.strftime("%b %d, %I:%M %p")
+            }
+            for n in notifications
+        ]
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class NotificationMarkReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, notification_id):
+        from accounts.models import Notification
+        notification = Notification.objects.filter(id=notification_id, user=request.user).first()
+        if not notification:
+            return Response({"detail": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
+        notification.is_read = True
+        notification.save()
+        return Response({"message": "Notification marked as read."}, status=status.HTTP_200_OK)
+
+
+class NotificationMarkReadAllView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from accounts.models import Notification
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({"message": "All notifications marked as read."}, status=status.HTTP_200_OK)
+
+
+class AdminBroadcastView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != 'admin':
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        message = request.data.get("message", "").strip()
+        title = request.data.get("title", "System Broadcast").strip()
+        if not message:
+            return Response({"detail": "Message body is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from accounts.models import User, Notification
+        recipients = User.objects.exclude(role="admin")
+        notifications = [
+            Notification(user=u, title=title, message=message)
+            for u in recipients
+        ]
+        Notification.objects.bulk_create(notifications)
+
+        return Response({"message": f"Broadcast sent to {len(notifications)} users successfully."}, status=status.HTTP_200_OK)
+

@@ -19,6 +19,13 @@ from .views import (
     AdminSupportTicketListView,
     AdminSupportMessageView,
     AdminSupportTicketStatusView,
+    AdminDashboardStatsView,
+    AdminStudentListView,
+    AdminManageStudentView,
+    NotificationListView,
+    NotificationMarkReadView,
+    NotificationMarkReadAllView,
+    AdminBroadcastView,
 )
 
 urlpatterns = [
@@ -79,4 +86,11 @@ urlpatterns = [
     path("admin/support/tickets/", AdminSupportTicketListView.as_view(), name="admin-support-tickets"),
     path("admin/support/tickets/<str:ticket_id>/messages/", AdminSupportMessageView.as_view(), name="admin-support-messages"),
     path("admin/support/tickets/<str:ticket_id>/status/", AdminSupportTicketStatusView.as_view(), name="admin-support-status"),
+    path("admin/stats/", AdminDashboardStatsView.as_view(), name="admin-stats"),
+    path("admin/students/", AdminStudentListView.as_view(), name="admin-student-list"),
+    path("admin/students/<str:student_id>/manage/", AdminManageStudentView.as_view(), name="admin-manage-student"),
+    path("notifications/", NotificationListView.as_view(), name="notifications"),
+    path("notifications/<int:notification_id>/read/", NotificationMarkReadView.as_view(), name="notification-mark-read"),
+    path("notifications/read-all/", NotificationMarkReadAllView.as_view(), name="notification-mark-read-all"),
+    path("admin/broadcast/", AdminBroadcastView.as_view(), name="admin-broadcast"),
 ]

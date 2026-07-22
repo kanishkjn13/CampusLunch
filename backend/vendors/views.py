@@ -34,6 +34,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Order.objects.filter(student=user)
         elif user.role == "vendor":
             return Order.objects.filter(vendor=user)
+        elif user.role == "admin":
+            return Order.objects.all()
         return Order.objects.none()
 
     def get_object(self):
@@ -207,6 +209,8 @@ class OrderTrackerViewSet(viewsets.ModelViewSet):
             return OrderTracker.objects.filter(order__student=user)
         elif user.role == "vendor":
             return OrderTracker.objects.filter(order__vendor=user)
+        elif user.role == "admin":
+            return OrderTracker.objects.all()
         return OrderTracker.objects.none()
 
     def get_object(self):
@@ -237,6 +241,40 @@ class RatingViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(student=self.request.user)
+
+
+class AdminMenuItemViewSet(viewsets.ModelViewSet):
+    serializer_class = MenuItemSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        if self.request.user.role != 'admin':
+            return MenuItem.objects.none()
+        return MenuItem.objects.all()
+
+    def perform_create(self, serializer):
+        vendor_id = self.request.data.get("vendor_id") or self.request.data.get("vendor")
+        if vendor_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            vendor = User.objects.filter(id=vendor_id, role="vendor").first()
+            if vendor:
+                serializer.save(vendor=vendor)
+                return
+        serializer.save()
+
+    def perform_update(self, serializer):
+        vendor_id = self.request.data.get("vendor_id") or self.request.data.get("vendor")
+        if vendor_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            vendor = User.objects.filter(id=vendor_id, role="vendor").first()
+            if vendor:
+                serializer.save(vendor=vendor)
+                return
+        serializer.save()
+
 
 
 

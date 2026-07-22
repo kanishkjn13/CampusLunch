@@ -148,3 +148,20 @@ class EmailOTP(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.otp} - Verified: {self.verified}"
+
+
+class Notification(models.Model):
+    id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+
+    class Meta:
+        db_table = "accounts_notification"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} - {self.user.email}"
+
