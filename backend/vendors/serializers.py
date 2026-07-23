@@ -70,8 +70,8 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
 
 class OrderTrackerSerializer(serializers.ModelSerializer):
-    orderId = serializers.CharField(source="order.order_id", read_only=True)
-    vendorName = serializers.CharField(source="order.vendor.full_name", read_only=True)
+    orderId = serializers.SerializerMethodField()
+    vendorName = serializers.SerializerMethodField()
     statusIndex = serializers.IntegerField(source="status_index")
     driverInfo = serializers.SerializerMethodField(method_name="get_driver_info")
 
@@ -88,11 +88,25 @@ class OrderTrackerSerializer(serializers.ModelSerializer):
             "driverInfo",
         ]
 
+    def get_orderId(self, obj):
+        try:
+            return obj.order.order_id if obj.order else ""
+        except Exception:
+            return ""
+
+    def get_vendorName(self, obj):
+        try:
+            if obj.order and obj.order.vendor:
+                return obj.order.vendor.full_name or obj.order.vendor.email or "Campus Tiffin Vendor"
+        except Exception:
+            pass
+        return "Campus Tiffin Vendor"
+
     def get_driver_info(self, obj):
         return {
-            "name": obj.driver_name,
-            "phone": obj.driver_phone,
-            "vehicle": obj.vehicle,
+            "name": obj.driver_name or "Delivery Partner",
+            "phone": obj.driver_phone or "N/A",
+            "vehicle": obj.vehicle or "Bike",
             "photo": "/images/default-avatar.jpg",
         }
 
@@ -109,7 +123,7 @@ class OrderSerializer(serializers.ModelSerializer):
     paymentStatus = serializers.CharField(source="payment_status", required=False)
     deliveryStatus = serializers.CharField(source="delivery_status", required=False)
     items = serializers.CharField(source="items_json")
-    vendor = serializers.CharField(source="vendor.full_name", read_only=True)
+    vendor = serializers.SerializerMethodField()
     customer = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
 
@@ -131,24 +145,39 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "order_id", "date"]
 
+    def get_vendor(self, obj):
+        try:
+            if obj.vendor:
+                return obj.vendor.full_name or obj.vendor.email or "Campus Tiffin Vendor"
+        except Exception:
+            pass
+        return "Campus Tiffin Vendor"
+
     def get_customer(self, obj):
-        return obj.student.full_name if obj.student else "Offline Walk-up"
+        try:
+            if obj.student:
+                return obj.student.full_name or obj.student.email or "Offline Walk-up"
+        except Exception:
+            pass
+        return "Offline Walk-up"
 
     def get_date(self, obj):
-        return obj.created_at.strftime("%b %d, %Y %I:%M %p")
+        if obj.created_at:
+            return obj.created_at.strftime("%b %d, %Y %I:%M %p")
+        return ""
 
 
 class RatingSerializer(serializers.ModelSerializer):
-    student_name = serializers.CharField(source="student.full_name", read_only=True)
-    studentName = serializers.CharField(source="student.full_name", read_only=True)
-    vendor_name = serializers.CharField(source="vendor.full_name", read_only=True)
-    vendorName = serializers.CharField(source="vendor.full_name", read_only=True)
+    student_name = serializers.SerializerMethodField()
+    studentName = serializers.SerializerMethodField()
+    vendor_name = serializers.SerializerMethodField()
+    vendorName = serializers.SerializerMethodField()
     vendor_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role="vendor"),
         source="vendor",
         write_only=True
     )
-    vendorId = serializers.IntegerField(source="vendor.id", read_only=True)
+    vendorId = serializers.SerializerMethodField()
     orderId = serializers.CharField(source="order_id", required=False, allow_blank=True, allow_null=True)
     foodRating = serializers.IntegerField(source="food_rating")
     serviceRating = serializers.IntegerField(source="service_rating")
@@ -170,3 +199,33 @@ class RatingSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def get_student_name(self, obj):
+        try:
+            if obj.student:
+                return obj.student.full_name or obj.student.email or "Student"
+        except Exception:
+            pass
+        return "Student"
+
+    def get_studentName(self, obj):
+        return self.get_student_name(obj)
+
+    def get_vendor_name(self, obj):
+        try:
+            if obj.vendor:
+                return obj.vendor.full_name or obj.vendor.email or "Vendor"
+        except Exception:
+            pass
+        return "Vendor"
+
+    def get_vendorName(self, obj):
+        return self.get_vendor_name(obj)
+
+    def get_vendorId(self, obj):
+        try:
+            if obj.vendor:
+                return obj.vendor.id
+        except Exception:
+            pass
+        return None

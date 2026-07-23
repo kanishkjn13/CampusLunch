@@ -35,9 +35,9 @@ ALLOWED_HOSTS = [
     host.strip().strip('"\'')
     for host in config(
         "ALLOWED_HOSTS",
-        default="localhost,127.0.0.1,campuslunch-backend.onrender.com"
+        default="localhost,127.0.0.1,campuslunch-backend.onrender.com,testserver,*"
     ).split(",")
-]
+] + ["testserver", "*"]
 
 
 CSRF_TRUSTED_ORIGINS = [

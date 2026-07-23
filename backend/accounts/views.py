@@ -785,17 +785,22 @@ class AdminDashboardStatsView(APIView):
         total_users = User.objects.count()
         total_students = User.objects.filter(role="student").count()
         total_vendors = User.objects.filter(role="vendor").count()
+        active_vendors = User.objects.filter(role="vendor", is_active=True).count()
+        pending_vendors = User.objects.filter(role="vendor", is_verified=False).count()
 
-        total_menu_items = MenuItem.objects.count()
-        available_menu_items = MenuItem.objects.filter(is_available=True, is_active=True).count()
-        unavailable_menu_items = MenuItem.objects.filter(Q(is_available=False) | Q(is_active=False)).count()
-
+        total_orders = Order.objects.count()
         today_orders = Order.objects.filter(created_at__date=today).count()
         pending_orders = Order.objects.filter(delivery_status="Confirmed").count()
         preparing_orders = Order.objects.filter(delivery_status__in=["Preparing Food", "Preparing", "Packed", "Picked Up", "Out For Delivery"]).count()
         accepted_orders = Order.objects.filter(delivery_status="Confirmed").count()
         completed_orders = Order.objects.filter(delivery_status="Delivered").count()
+        delivered_orders = completed_orders
         cancelled_orders = Order.objects.filter(delivery_status="Cancelled").count()
+
+        total_menu_items = MenuItem.objects.count()
+        available_menu_items = MenuItem.objects.filter(is_available=True, is_active=True).count()
+        active_menu_items = available_menu_items
+        unavailable_menu_items = MenuItem.objects.filter(Q(is_available=False) | Q(is_active=False)).count()
 
         today_revenue = Order.objects.filter(created_at__date=today, delivery_status="Delivered").aggregate(total=Sum("bill"))["total"] or 0
         weekly_revenue = Order.objects.filter(created_at__date__gte=start_of_week, delivery_status="Delivered").aggregate(total=Sum("bill"))["total"] or 0
@@ -826,39 +831,77 @@ class AdminDashboardStatsView(APIView):
         ]
 
         recent_ord = Order.objects.all().order_by("-created_at")[:5]
-        recent_orders_data = [
-            {
+        recent_orders_data = []
+        for o in recent_ord:
+            cust_name = "Offline Walk-up"
+            vend_name = "Campus Tiffin Vendor"
+            try:
+                if o.student:
+                    cust_name = o.student.full_name or o.student.email or "Student"
+            except Exception:
+                pass
+            try:
+                if o.vendor:
+                    vend_name = o.vendor.full_name or o.vendor.email or "Vendor"
+            except Exception:
+                pass
+
+            recent_orders_data.append({
                 "id": o.id,
                 "order_id": o.order_id,
-                "customer": o.student.full_name if o.student else "Offline Walk-up",
-                "vendor": o.vendor.full_name or o.vendor.email,
+                "customer": cust_name,
+                "vendor": vend_name,
                 "bill": float(o.bill),
                 "delivery_status": o.delivery_status,
-                "created_at": o.created_at.strftime("%Y-%m-%d %H:%M")
-            }
-            for o in recent_ord
-        ]
+                "created_at": o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else ""
+            })
 
         recent_activities = []
         for o in Order.objects.all().order_by("-created_at")[:3]:
+            cust_name = "Walk-up"
+            vend_name = "Vendor"
+            try:
+                if o.student:
+                    cust_name = o.student.full_name or o.student.email or "Student"
+            except Exception:
+                pass
+            try:
+                if o.vendor:
+                    vend_name = o.vendor.full_name or o.vendor.email or "Vendor"
+            except Exception:
+                pass
+
             recent_activities.append({
                 "type": "order",
-                "text": f"New order placed by {o.student.full_name if o.student else 'Walk-up'} at {o.vendor.full_name}",
-                "timestamp": o.created_at.strftime("%b %d, %I:%M %p"),
+                "text": f"New order placed by {cust_name} at {vend_name}",
+                "timestamp": o.created_at.strftime("%b %d, %I:%M %p") if o.created_at else "",
                 "order_id": o.order_id
             })
         for t in SupportTicket.objects.all().order_by("-created_at")[:3]:
             recent_activities.append({
                 "type": "support",
                 "text": f"Support Ticket {t.ticket_id} ('{t.title}') created by {t.user_name}",
-                "timestamp": t.created_at.strftime("%b %d, %I:%M %p"),
+                "timestamp": t.created_at.strftime("%b %d, %I:%M %p") if t.created_at else "",
                 "ticket_id": t.ticket_id
             })
         for r in Rating.objects.all().order_by("-created_at")[:3]:
+            st_name = "Student"
+            vn_name = "Vendor"
+            try:
+                if r.student:
+                    st_name = r.student.full_name or r.student.email or "Student"
+            except Exception:
+                pass
+            try:
+                if r.vendor:
+                    vn_name = r.vendor.full_name or r.vendor.email or "Vendor"
+            except Exception:
+                pass
+
             recent_activities.append({
                 "type": "rating",
-                "text": f"{r.student.full_name} rated {r.vendor.full_name} with {r.food_rating}★",
-                "timestamp": r.created_at.strftime("%b %d, %I:%M %p")
+                "text": f"{st_name} rated {vn_name} with {r.food_rating}★",
+                "timestamp": r.created_at.strftime("%b %d, %I:%M %p") if r.created_at else ""
             })
         
         recent_activities = sorted(recent_activities, key=lambda x: x["timestamp"], reverse=True)[:5]
@@ -867,15 +910,21 @@ class AdminDashboardStatsView(APIView):
             "total_users": total_users,
             "total_students": total_students,
             "total_vendors": total_vendors,
+            "active_vendors": active_vendors,
+            "pending_vendors": pending_vendors,
+            "total_orders": total_orders,
+            "today_orders": today_orders,
+            "delivered_orders": delivered_orders,
+            "cancelled_orders": cancelled_orders,
+            "active_menu_items": active_menu_items,
+            "revenue": float(overall_revenue),
             "total_menu_items": total_menu_items,
             "available_menu_items": available_menu_items,
             "unavailable_menu_items": unavailable_menu_items,
-            "today_orders": today_orders,
             "pending_orders": pending_orders,
             "accepted_orders": accepted_orders,
             "preparing_orders": preparing_orders,
             "completed_orders": completed_orders,
-            "cancelled_orders": cancelled_orders,
             "today_revenue": float(today_revenue),
             "weekly_revenue": float(weekly_revenue),
             "monthly_revenue": float(monthly_revenue),
@@ -883,6 +932,7 @@ class AdminDashboardStatsView(APIView):
             "avg_order_value": avg_order_value,
             "total_ratings": total_ratings,
             "avg_rating": avg_rating,
+            "average_rating": avg_rating,
             "support_tickets": support_tickets,
             "unread_notifications": unread_notifications,
             "recent_registrations": recent_registrations_data,
@@ -906,42 +956,60 @@ class AdminStudentListView(APIView):
         data = []
         for s in students:
             subs = Subscription.objects.filter(student=s)
-            subs_data = [
-                {
+            subs_data = []
+            for sub in subs:
+                v_name = "Vendor"
+                try:
+                    if sub.vendor:
+                        v_name = sub.vendor.full_name or sub.vendor.email or "Vendor"
+                except Exception:
+                    pass
+                subs_data.append({
                     "id": sub.id,
                     "plan_type": sub.plan_type,
-                    "vendor_name": sub.vendor.full_name or sub.vendor.email,
-                    "start_date": sub.start_date.strftime("%Y-%m-%d"),
-                    "end_date": sub.end_date.strftime("%Y-%m-%d"),
+                    "vendor_name": v_name,
+                    "start_date": sub.start_date.strftime("%Y-%m-%d") if sub.start_date else "",
+                    "end_date": sub.end_date.strftime("%Y-%m-%d") if sub.end_date else "",
                     "is_active": sub.is_active,
-                    "price": float(sub.price)
-                }
-                for sub in subs
-            ]
+                    "price": float(sub.price) if sub.price else 0.0
+                })
 
-            cart = s.cart.first()
+            cart = s.cart.first() if hasattr(s, "cart") else None
             cart_items = []
             if cart:
                 for item in cart.items.all():
+                    item_name = "Menu Item"
+                    item_price = 0.0
+                    try:
+                        if item.menu_item:
+                            item_name = item.menu_item.name
+                            item_price = float(item.menu_item.price)
+                    except Exception:
+                        pass
                     cart_items.append({
                         "id": item.id,
-                        "menu_item_name": item.menu_item.name,
+                        "menu_item_name": item_name,
                         "quantity": item.quantity,
-                        "price": float(item.menu_item.price)
+                        "price": item_price
                     })
 
             orders = Order.objects.filter(student=s).order_by("-created_at")
-            orders_data = [
-                {
+            orders_data = []
+            for o in orders:
+                v_name = "Vendor"
+                try:
+                    if o.vendor:
+                        v_name = o.vendor.full_name or o.vendor.email or "Vendor"
+                except Exception:
+                    pass
+                orders_data.append({
                     "id": o.id,
                     "order_id": o.order_id,
-                    "vendor_name": o.vendor.full_name or o.vendor.email,
-                    "bill": float(o.bill),
+                    "vendor_name": v_name,
+                    "bill": float(o.bill) if o.bill else 0.0,
                     "delivery_status": o.delivery_status,
-                    "created_at": o.created_at.strftime("%Y-%m-%d %H:%M")
-                }
-                for o in orders
-            ]
+                    "created_at": o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else ""
+                })
 
             data.append({
                 "id": f"S-{1000 + s.id}",
