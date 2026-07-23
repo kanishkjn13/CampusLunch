@@ -36,6 +36,7 @@ urlpatterns = [
 
     path("api/send-otp/", SendOTPView.as_view(), name="send-otp"),
     path("api/verify-otp/", VerifyOTPView.as_view(), name="verify-otp"),
+    # Authentication, Vendor, and Student API endpoints
     path("api/auth/", include("accounts.urls")),
     path("api/vendors/", include("vendors.urls")),
     path("api/students/", include("students.urls")),
