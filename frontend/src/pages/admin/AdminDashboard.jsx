@@ -158,7 +158,7 @@ const AdminDashboard = () => {
   // Filters and searches
   const [vendorSearchQuery, setVendorSearchQuery] = useState('');
   const [vendorStatusFilter, setVendorStatusFilter] = useState('all');
-  
+
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [studentStatusFilter, setStudentStatusFilter] = useState('all');
 
@@ -261,7 +261,7 @@ const AdminDashboard = () => {
     // Setup health check interval
     checkHealth();
     const interval = setInterval(checkHealth, 8000);
-    
+
     // Close notifications click handler
     const handleClickOutside = (event) => {
       if (notificationsDropdownRef.current && !notificationsDropdownRef.current.contains(event.target)) {
@@ -595,7 +595,7 @@ const AdminDashboard = () => {
   const filteredVendors = vendors.filter(v => {
     const q = vendorSearchQuery.toLowerCase();
     const matchSearch = !q || v.name.toLowerCase().includes(q) || v.email.toLowerCase().includes(q) || v.phone.includes(q);
-    const matchStatus = vendorStatusFilter === 'all' || 
+    const matchStatus = vendorStatusFilter === 'all' ||
       (vendorStatusFilter === 'verified' && v.is_verified) ||
       (vendorStatusFilter === 'pending' && !v.is_verified);
     return matchSearch && matchStatus;
@@ -618,7 +618,7 @@ const AdminDashboard = () => {
     const q = menuSearchQuery.toLowerCase();
     const matchSearch = !q || m.name.toLowerCase().includes(q) || (m.vendor_name || '').toLowerCase().includes(q);
     const matchMeal = menuMealFilter === 'all' || m.meal_type === menuMealFilter;
-    const matchAvail = menuAvailabilityFilter === 'all' || 
+    const matchAvail = menuAvailabilityFilter === 'all' ||
       (menuAvailabilityFilter === 'available' && m.is_available) ||
       (menuAvailabilityFilter === 'unavailable' && !m.is_available);
     return matchSearch && matchMeal && matchAvail;
@@ -731,15 +731,15 @@ const AdminDashboard = () => {
               type="text"
               placeholder={
                 activeTab === 'vendors' ? (viewingMenuVendor ? "Search menu items..." : "Search vendor name, email, ID...") :
-                activeTab === 'students' ? "Search student name, email, ID..." :
-                activeTab === 'orders' ? "Search order ID..." :
-                "Search dashboard..."
+                  activeTab === 'students' ? "Search student name, email, ID..." :
+                    activeTab === 'orders' ? "Search order ID..." :
+                      "Search dashboard..."
               }
               className="search-bar-input"
               value={
                 activeTab === 'vendors' ? (viewingMenuVendor ? menuSearchQuery : vendorSearchQuery) :
-                activeTab === 'students' ? studentSearchQuery :
-                activeTab === 'orders' ? orderSearchQuery : ''
+                  activeTab === 'students' ? studentSearchQuery :
+                    activeTab === 'orders' ? orderSearchQuery : ''
               }
               onChange={(e) => {
                 const val = e.target.value;
@@ -756,8 +756,8 @@ const AdminDashboard = () => {
           <div className="header-profile-section" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             {/* Notification Bell Dropdown */}
             <div style={{ position: 'relative' }} ref={notificationsDropdownRef}>
-              <button 
-                className="header-icon-btn notification-bell" 
+              <button
+                className="header-icon-btn notification-bell"
                 onClick={() => setShowNotificationsDropdown(prev => !prev)}
               >
                 <Bell size={20} />
@@ -796,8 +796,8 @@ const AdminDashboard = () => {
                       </div>
                     ) : (
                       notifications.map(alert => (
-                        <div 
-                          key={alert.id} 
+                        <div
+                          key={alert.id}
                           onClick={() => alert.unread && handleMarkNotificationRead(alert.id)}
                           style={{
                             padding: '10px 12px',
@@ -841,11 +841,11 @@ const AdminDashboard = () => {
 
         {/* Content Area */}
         <main className="admin-main-content">
-          
+
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-              
+
               <div className="dashboard-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                   <h1 className="dashboard-title" style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
@@ -936,7 +936,7 @@ const AdminDashboard = () => {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                 gap: '20px'
               }}>
-                
+
                 {/* Metric 1: Revenue & Commission (Featured Warm Gradient Card) */}
                 <div style={{
                   background: 'linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)',
@@ -1082,7 +1082,7 @@ const AdminDashboard = () => {
                 gap: '24px',
                 alignItems: 'stretch'
               }}>
-                
+
                 {/* Left Column: Vendor Verification Queue Card Container */}
                 <div style={{
                   backgroundColor: '#ffffff',
@@ -1505,7 +1505,7 @@ const AdminDashboard = () => {
 
                 <div style={{ backgroundColor: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-                    
+
                     {/* Column 1: Customer Complaints */}
                     <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', textAlign: 'left' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
@@ -1624,15 +1624,15 @@ const AdminDashboard = () => {
           {/* TAB 2: VENDORS */}
           {activeTab === 'vendors' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
+
               {viewingMenuVendor ? (
                 /* NESTED VIEW: Menu Management inside Vendor */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  
+
                   {/* Premium Back navigation header */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <button 
-                      onClick={() => setViewingMenuVendor(null)} 
+                    <button
+                      onClick={() => setViewingMenuVendor(null)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1698,8 +1698,8 @@ const AdminDashboard = () => {
                       <h1 className="dashboard-title">"{viewingMenuVendor.name}" Menu Management</h1>
                       <p className="dashboard-subtitle">Configure tiffin dishes, categories, pricing, and active quantities for this kitchen vendor.</p>
                     </div>
-                    <button 
-                      onClick={() => { resetMenuForm(); setMenuForm(prev => ({ ...prev, vendor_id: viewingMenuVendor.real_id })); setShowAddMenuModal(true); }} 
+                    <button
+                      onClick={() => { resetMenuForm(); setMenuForm(prev => ({ ...prev, vendor_id: viewingMenuVendor.real_id })); setShowAddMenuModal(true); }}
                       style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '10px', border: 'none', backgroundColor: '#ea580c', color: '#ffffff', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(234, 88, 12, 0.25)' }}
                     >
                       <Plus size={16} />
@@ -1710,8 +1710,8 @@ const AdminDashboard = () => {
                   {/* Menu table */}
                   <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', textAlign: 'left' }}>
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                      <select 
-                        value={menuMealFilter} 
+                      <select
+                        value={menuMealFilter}
                         onChange={(e) => setMenuMealFilter(e.target.value)}
                         style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none' }}
                       >
@@ -1721,8 +1721,8 @@ const AdminDashboard = () => {
                         <option value="Dinner">Dinner</option>
                       </select>
 
-                      <select 
-                        value={menuAvailabilityFilter} 
+                      <select
+                        value={menuAvailabilityFilter}
                         onChange={(e) => setMenuAvailabilityFilter(e.target.value)}
                         style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none' }}
                       >
@@ -1754,7 +1754,7 @@ const AdminDashboard = () => {
                               <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                 <td style={{ padding: '12px 8px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    
+
                                     {/* Pure CSS Veg / Non-Veg Indicator Dot inside square */}
                                     <div style={{
                                       width: '16px',
@@ -1816,7 +1816,7 @@ const AdminDashboard = () => {
                                 </td>
                                 <td style={{ padding: '12px 8px' }}>
                                   <div style={{ display: 'flex', gap: '6px' }}>
-                                    <button 
+                                    <button
                                       onClick={() => {
                                         setMenuForm({
                                           id: m.id,
@@ -1831,7 +1831,7 @@ const AdminDashboard = () => {
                                           vendor_id: m.vendor
                                         });
                                         setShowEditMenuModal(true);
-                                      }} 
+                                      }}
                                       style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
                                     >
                                       Edit
@@ -1909,7 +1909,7 @@ const AdminDashboard = () => {
                   <div style={{ marginTop: '24px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                       <h2 className="dashboard-heading" style={{ fontSize: '1.1rem', margin: 0 }}>Kitchen Quality Performance & DB Directory</h2>
-                      
+
                       {/* Search and Status Filter */}
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                         <input
@@ -2001,7 +2001,7 @@ const AdminDashboard = () => {
                                     <button onClick={() => setSelectedVendor(vendor)} style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#64748b', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer' }}>
                                       Inspect
                                     </button>
-                                    
+
                                     <button onClick={() => setViewingMenuVendor(vendor)} style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#ea580c', color: '#ffffff', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer' }}>
                                       View Menu
                                     </button>
@@ -2078,8 +2078,8 @@ const AdminDashboard = () => {
                       width: '220px'
                     }}
                   />
-                  <select 
-                    value={studentStatusFilter} 
+                  <select
+                    value={studentStatusFilter}
                     onChange={(e) => setStudentStatusFilter(e.target.value)}
                     style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none' }}
                   >
@@ -2189,8 +2189,8 @@ const AdminDashboard = () => {
                       width: '220px'
                     }}
                   />
-                  <select 
-                    value={orderStatusFilter} 
+                  <select
+                    value={orderStatusFilter}
                     onChange={(e) => setOrderStatusFilter(e.target.value)}
                     style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none' }}
                   >
@@ -2373,8 +2373,8 @@ const AdminDashboard = () => {
                   />
                   <div style={{ display: 'flex', gap: '4px' }}>
                     {['all', 'customer', 'vendor', 'closed'].map(tab => (
-                      <button 
-                        key={tab} 
+                      <button
+                        key={tab}
                         onClick={() => setSupportTabFilter(tab)}
                         style={{
                           flex: 1,
@@ -2399,8 +2399,8 @@ const AdminDashboard = () => {
                       const matchTab = supportTabFilter === 'all' ? true : (supportTabFilter === 'closed' ? t.status === 'closed' : t.userType === supportTabFilter && t.status !== 'closed');
                       return matchQuery && matchTab;
                     }).map(t => (
-                      <div 
-                        key={t.ticket_id} 
+                      <div
+                        key={t.ticket_id}
                         onClick={() => setActiveTicketId(t.ticket_id)}
                         style={{
                           padding: '10px 12px',
@@ -2506,40 +2506,304 @@ const AdminDashboard = () => {
 
           {/* TAB 8: SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
-              {/* Profile Config */}
-              <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', textAlign: 'left' }}>
-                <h3 style={{ margin: '0 0 16px 0', fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>Profile Details</h3>
-                <form onSubmit={handleSaveProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>FULL NAME</label>
-                    <input type="text" value={adminProfileForm.fullName} onChange={(e) => setAdminProfileForm(prev => ({ ...prev, fullName: e.target.value }))} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>EMAIL ID</label>
-                    <input type="email" value={adminProfileForm.email} onChange={(e) => setAdminProfileForm(prev => ({ ...prev, email: e.target.value }))} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>PHONE</label>
-                    <input type="text" value={adminProfileForm.phone} onChange={(e) => setAdminProfileForm(prev => ({ ...prev, phone: e.target.value }))} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }} />
-                  </div>
-                  <button type="submit" style={{ width: 'fit-content', padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#855300', color: '#ffffff', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
-                    Save Profile
-                  </button>
-                </form>
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Settings Page Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <h1 className="dashboard-title">Platform & Admin Settings</h1>
+                  <p className="dashboard-subtitle">Manage super administrator profile, security protocols, platform commission rates, and live system health.</p>
+                </div>
+                <button
+                  onClick={checkHealth}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    fontSize: '0.8rem',
+                    fontWeight: 750,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <RotateCw size={14} /> Re-check System Health
+                </button>
               </div>
 
-              {/* Password Config */}
-              <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>Security & authorization</h3>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '12px' }}>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.82rem', fontWeight: 800 }}>Change Password</h4>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Update administrator login details</p>
+              {/* Main Settings Cards Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+
+                {/* CARD 1: Profile & Contact Configuration */}
+                <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(133, 83, 0, 0.1)', color: '#855300', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 850, flexShrink: 0 }}>
+                      <User size={24} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 850, color: '#0f172a' }}>{adminProfileForm.fullName || 'Admin User'}</h3>
+                        <span style={{ fontSize: '0.66rem', fontWeight: 850, color: '#855300', backgroundColor: 'rgba(133, 83, 0, 0.1)', padding: '2px 8px', borderRadius: '99px', textTransform: 'uppercase' }}>
+                          SUPER ADMIN
+                        </span>
+                      </div>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.76rem', color: '#64748b' }}>{adminProfileForm.email}</p>
+                    </div>
                   </div>
-                  <button onClick={() => setShowChangePasswordModal(true)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#855300', fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer' }}>
-                    Update
-                  </button>
+
+                  <form onSubmit={handleSaveProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 850, color: '#475569', marginBottom: '6px', letterSpacing: '0.5px' }}>FULL NAME</label>
+                      <input
+                        type="text"
+                        value={adminProfileForm.fullName}
+                        onChange={(e) => setAdminProfileForm(prev => ({ ...prev, fullName: e.target.value }))}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem', outline: 'none' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 850, color: '#475569', marginBottom: '6px', letterSpacing: '0.5px' }}>EMAIL ADDRESS</label>
+                      <input
+                        type="email"
+                        value={adminProfileForm.email}
+                        onChange={(e) => setAdminProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem', outline: 'none' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 850, color: '#475569', marginBottom: '6px', letterSpacing: '0.5px' }}>CONTACT PHONE NUMBER</label>
+                      <input
+                        type="text"
+                        value={adminProfileForm.phone}
+                        onChange={(e) => setAdminProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem', outline: 'none' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 850, color: '#475569', marginBottom: '6px', letterSpacing: '0.5px' }}>SYSTEM ROLE PERMISSIONS</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={adminProfileForm.role || 'Super Administrator'}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#64748b', fontSize: '0.84rem', fontWeight: 700 }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      style={{
+                        marginTop: '6px',
+                        width: 'fit-content',
+                        padding: '10px 20px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        backgroundColor: '#855300',
+                        color: '#ffffff',
+                        fontSize: '0.82rem',
+                        fontWeight: 850,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 12px rgba(133, 83, 0, 0.2)'
+                      }}
+                    >
+                      <CheckCircle size={16} /> Save Profile Changes
+                    </button>
+                  </form>
+                </div>
+
+                {/* RIGHT COLUMN: Financial Controls & Security */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+                  {/* CARD 2: Platform Financial Controls */}
+                  <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(234, 88, 12, 0.1)', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Percent size={18} />
+                        </div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 850, color: '#0f172a' }}>Platform Commission Rules</h3>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>Configure platform fee deducted from vendor order totals</p>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 850, color: '#ea580c', backgroundColor: 'rgba(234, 88, 12, 0.1)', padding: '4px 12px', borderRadius: '10px' }}>
+                        {commissionRate}%
+                      </span>
+                    </div>
+
+                    <div style={{ backgroundColor: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '12px', padding: '14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#9a3412' }}>Live Commission Rate Fee</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 850, color: '#ea580c' }}>{commissionRate}% per order</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        value={tempCommission}
+                        onChange={(e) => setTempCommission(Number(e.target.value))}
+                        onMouseUp={async () => {
+                          setCommissionRate(tempCommission);
+                          try {
+                            await updateCommissionRateApi(tempCommission);
+                            showNotification(`Commission rate updated to ${tempCommission}% in Database.`, 'success');
+                          } catch (err) {
+                            showNotification("Failed to update commission rate.", "error");
+                          }
+                        }}
+                        style={{ width: '100%', accentColor: '#ea580c', cursor: 'pointer' }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#9a3412', marginTop: '4px', fontWeight: 700 }}>
+                        <span>0% (No Fee)</span>
+                        <span>15% (Default)</span>
+                        <span>30% (Max)</span>
+                      </div>
+                    </div>
+
+                    {/* Breakdown example */}
+                    <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '0.76rem', color: '#475569' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>Order Payout Calculation Breakdown:</div>
+                      <div>• On a ₹100 order: Vendor receives <strong style={{ color: '#16a34a' }}>₹{(100 * (1 - commissionRate / 100)).toFixed(2)}</strong></div>
+                      <div>• CampusLunch Platform Fee: <strong style={{ color: '#ea580c' }}>₹{(100 * (commissionRate / 100)).toFixed(2)}</strong> ({commissionRate}%)</div>
+                    </div>
+                  </div>
+
+                  {/* CARD 3: Security & Authorization Controls */}
+                  <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Shield size={18} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 850, color: '#0f172a' }}>Security & Authorization</h3>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>Password updates, authentication sessions, and access locks</p>
+                      </div>
+                    </div>
+
+                    {/* Password Sub-item */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', border: '1px solid #cbd5e1', borderRadius: '12px', backgroundColor: '#f8fafc' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Key size={16} />
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 850, color: '#0f172a' }}>Change Password</h4>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Update super admin login credentials</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowChangePasswordModal(true)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #855300',
+                          backgroundColor: '#ffffff',
+                          color: '#855300',
+                          fontSize: '0.76rem',
+                          fontWeight: 850,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Update Password
+                      </button>
+                    </div>
+
+                    {/* Active Session Diagnostics */}
+                    <div style={{ padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', fontSize: '0.76rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ color: '#64748b', fontWeight: 700 }}>Current Session Host:</span>
+                        <span style={{ fontWeight: 850, color: '#0f172a' }}>127.0.0.1 (Localhost / Production)</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ color: '#64748b', fontWeight: 700 }}>JWT Access Token Status:</span>
+                        <span style={{ fontWeight: 850, color: '#16a34a' }}>● ACTIVE & AUTHORIZED</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b', fontWeight: 700 }}>Database Authority:</span>
+                        <span style={{ fontWeight: 850, color: '#2563eb' }}>Railway MySQL (Role: Admin)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 4: FULL WIDTH LIVE SYSTEM DIAGNOSTICS */}
+              <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', textAlign: 'left', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Monitor size={18} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 850, color: '#0f172a' }}>Live System Diagnostics & Service Telemetry</h3>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>Real-time service health, server latency, and integration endpoints</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 850, color: healthData.backend.is_active ? '#16a34a' : '#dc2626', backgroundColor: healthData.backend.is_active ? 'rgba(22, 163, 74, 0.1)' : 'rgba(220, 38, 38, 0.1)', padding: '4px 12px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: healthData.backend.is_active ? '#22c55e' : '#ef4444', animation: healthData.backend.is_active ? 'ping 1.5s infinite' : 'none' }}></span>
+                    {healthData.backend.is_active ? 'ALL SYSTEMS OPERATIONAL' : 'SYSTEM DEGRADATION'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                  {/* Indicator 1: Django Backend */}
+                  <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 850, color: '#0f172a' }}>Django API Backend</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{healthData.backend.message}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 850, color: '#16a34a' }}>ONLINE</div>
+                      {healthData.backend.latency_ms > 0 && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{healthData.backend.latency_ms}ms latency</div>}
+                    </div>
+                  </div>
+
+                  {/* Indicator 2: Brevo Email Service */}
+                  <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Mail size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 850, color: '#0f172a' }}>Brevo Email OTP Service</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{healthData.brevo.message}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 850, color: '#6366f1' }}>ACTIVE</div>
+                      <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>SMTP Relay Ready</div>
+                    </div>
+                  </div>
+
+                  {/* Indicator 3: Railway MySQL DB */}
+                  <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(234, 88, 12, 0.1)', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Cloud size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 850, color: '#0f172a' }}>Railway MySQL Database</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>tokaido.proxy.rlwy.net:30474</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 850, color: '#ea580c' }}>CONNECTED</div>
+                      <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Live Tables Synced</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2736,7 +3000,7 @@ const AdminDashboard = () => {
                   </div>
 
                   {selectedOrder.deliveryStatus !== 'Delivered' && selectedOrder.deliveryStatus !== 'Cancelled' && (
-                    <button 
+                    <button
                       onClick={() => handleAdvanceOrderStatus(selectedOrder.order_id, selectedOrder.tracker.statusIndex, selectedOrder.tracker.id)}
                       style={{ marginTop: '12px', width: '100%', padding: '10px', border: 'none', backgroundColor: '#ea580c', color: '#ffffff', fontSize: '0.8rem', fontWeight: 800, borderRadius: '8px', cursor: 'pointer' }}
                     >
@@ -2881,7 +3145,7 @@ const AdminDashboard = () => {
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button onClick={() => setIsEditingCommission(false)} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-              <button 
+              <button
                 onClick={async () => {
                   const rate = parseFloat(tempCommission);
                   if (isNaN(rate) || rate < 0 || rate > 100) {

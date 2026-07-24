@@ -58,3 +58,19 @@ export const submitRatingApi = async (ratingData) => {
   const response = await api.post("/vendors/ratings/", ratingData);
   return response.data;
 };
+
+// Cart APIs
+export const getCart = async () => {
+  const response = await api.get("/students/cart/");
+  return response.data;
+};
+
+export const addToCartApi = async (data) => {
+  const response = await api.post("/students/cart/add-item/", data);
+  return response.data;
+};
+
+export const clearCartApi = async () => {
+  const response = await api.post("/students/cart/clear/");
+  return response.data;
+};
